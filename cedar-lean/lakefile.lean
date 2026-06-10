@@ -20,7 +20,7 @@ open Lake DSL
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require "leanprover" / "doc-gen4" @ git "v4.29.0"
 
-require "leanprover-community" / "batteries" @ git "v4.29.0"
+require specimen from "../../specimen"
 
 package Cedar
 
@@ -52,6 +52,16 @@ lean_lib CedarProto where
 
 lean_lib CedarFFI where
   defaultFacets := #[LeanLib.staticFacet]
+
+lean_lib CedarGen
+
+lean_lib CedarGenFaithful
+
+lean_exe CedarGenFaithfulTest where
+  root := `CedarGenFaithful.Main
+
+lean_exe CedarPropertyTests where
+  root := `CedarGen.PropertyTests
 
 lean_exe CedarUnitTests where
   root := `UnitTest.Main
