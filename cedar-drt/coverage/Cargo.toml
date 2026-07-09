@@ -1,0 +1,30 @@
+[package]
+name = "cedar-drt-coverage"
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[dependencies]
+cedar-policy = { version = "4.4.0", features = ["permissive-validate", "protobufs"] }
+cedar-policy-core = { version = "4.4.0", features = ["arbitrary"] }
+cedar-policy-generators = { path = "../../cedar-policy-generators", version = "4.0.0", features = ["cedar-policy"] }
+cedar-lean-ffi = { path = "../../cedar-lean-ffi", optional = true }
+cedar-drt = { path = "../", optional = true }
+cedar-drt-inner = { path = "../fuzz", optional = true }
+cedar-policy-symcc = { path = "../../cedar/cedar-policy-symcc", optional = true }
+arbitrary = "1.4"
+rand = { version = "0.9", features = ["small_rng"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+libc = "0.2"
+
+[features]
+default = []
+lean-gen = ["cedar-lean-ffi", "cedar-drt"]
+symcc = ["cedar-policy-symcc", "cedar-drt", "cedar-drt-inner", "cedar-lean-ffi"]
+profraw = []
+
+[patch.crates-io]
+cedar-policy = { path = "../../cedar/cedar-policy" }
+cedar-policy-core = { path = "../../cedar/cedar-policy-core" }
