@@ -1,0 +1,3515 @@
+{
+  "corpus_size": 291896,
+  "unique_inputs": 10992,
+  "unique_skeletons": 6514,
+  "total_nodes": 852687,
+  "mean_node_count": 2.9214215723223034,
+  "median_node_count": 1,
+  "cumulative_2paths": 107,
+  "cumulative_3paths": 543,
+  "kpath2_frequency": [
+    [
+      "And\u2192Lit",
+      37572
+    ],
+    [
+      "And\u2192Binary",
+      34451
+    ],
+    [
+      "Binary\u2192Var",
+      33841
+    ],
+    [
+      "And\u2192And",
+      32570
+    ],
+    [
+      "Binary\u2192Slot",
+      19127
+    ],
+    [
+      "Binary\u2192Set",
+      17975
+    ],
+    [
+      "Binary\u2192Lit",
+      16411
+    ],
+    [
+      "Set\u2192Lit",
+      15313
+    ],
+    [
+      "And\u2192Is",
+      7440
+    ],
+    [
+      "Is\u2192Var",
+      6928
+    ],
+    [
+      "ExtFun\u2192Lit",
+      4022
+    ],
+    [
+      "If\u2192Lit",
+      2876
+    ],
+    [
+      "ExtFun\u2192ExtFun",
+      2477
+    ],
+    [
+      "And\u2192ExtFun",
+      1800
+    ],
+    [
+      "And\u2192Unary",
+      1783
+    ],
+    [
+      "Or\u2192Lit",
+      1615
+    ],
+    [
+      "And\u2192Or",
+      1499
+    ],
+    [
+      "Record\u2192Lit",
+      1462
+    ],
+    [
+      "GetAttr\u2192Record",
+      1301
+    ],
+    [
+      "Binary\u2192ExtFun",
+      1255
+    ],
+    [
+      "GetAttr\u2192If",
+      1143
+    ],
+    [
+      "If\u2192ExtFun",
+      1058
+    ],
+    [
+      "If\u2192If",
+      1022
+    ],
+    [
+      "And\u2192HasAttr",
+      1021
+    ],
+    [
+      "If\u2192GetAttr",
+      997
+    ],
+    [
+      "If\u2192Var",
+      994
+    ],
+    [
+      "Is\u2192Lit",
+      990
+    ],
+    [
+      "If\u2192Binary",
+      983
+    ],
+    [
+      "And\u2192GetAttr",
+      973
+    ],
+    [
+      "Binary\u2192If",
+      967
+    ],
+    [
+      "If\u2192Record",
+      939
+    ],
+    [
+      "Set\u2192Var",
+      919
+    ],
+    [
+      "And\u2192If",
+      889
+    ],
+    [
+      "ExtFun\u2192If",
+      821
+    ],
+    [
+      "Unary\u2192Lit",
+      814
+    ],
+    [
+      "Unary\u2192Unary",
+      807
+    ],
+    [
+      "Or\u2192Or",
+      786
+    ],
+    [
+      "Or\u2192Binary",
+      757
+    ],
+    [
+      "Binary\u2192GetAttr",
+      718
+    ],
+    [
+      "Unary\u2192Binary",
+      676
+    ],
+    [
+      "HasAttr\u2192Lit",
+      665
+    ],
+    [
+      "Set\u2192ExtFun",
+      649
+    ],
+    [
+      "GetAttr\u2192Var",
+      608
+    ],
+    [
+      "HasAttr\u2192Var",
+      551
+    ],
+    [
+      "Like\u2192Lit",
+      509
+    ],
+    [
+      "If\u2192Set",
+      495
+    ],
+    [
+      "Binary\u2192Binary",
+      491
+    ],
+    [
+      "And\u2192Like",
+      455
+    ],
+    [
+      "GetAttr\u2192GetAttr",
+      410
+    ],
+    [
+      "Record\u2192Record",
+      370
+    ],
+    [
+      "Or\u2192And",
+      353
+    ],
+    [
+      "HasAttr\u2192Record",
+      343
+    ],
+    [
+      "If\u2192HasAttr",
+      331
+    ],
+    [
+      "Unary\u2192Set",
+      322
+    ],
+    [
+      "Set\u2192Set",
+      274
+    ],
+    [
+      "Or\u2192ExtFun",
+      266
+    ],
+    [
+      "Record\u2192ExtFun",
+      254
+    ],
+    [
+      "ExtFun\u2192GetAttr",
+      252
+    ],
+    [
+      "Record\u2192Var",
+      248
+    ],
+    [
+      "Or\u2192HasAttr",
+      241
+    ],
+    [
+      "If\u2192Unary",
+      219
+    ],
+    [
+      "Unary\u2192If",
+      209
+    ],
+    [
+      "Record\u2192Set",
+      206
+    ],
+    [
+      "Or\u2192Is",
+      197
+    ],
+    [
+      "If\u2192Is",
+      173
+    ],
+    [
+      "If\u2192Or",
+      163
+    ],
+    [
+      "Or\u2192Unary",
+      151
+    ],
+    [
+      "Binary\u2192Record",
+      149
+    ],
+    [
+      "Binary\u2192Unary",
+      146
+    ],
+    [
+      "If\u2192And",
+      95
+    ],
+    [
+      "Unary\u2192Or",
+      94
+    ],
+    [
+      "Or\u2192If",
+      87
+    ],
+    [
+      "Unary\u2192ExtFun",
+      78
+    ],
+    [
+      "HasAttr\u2192GetAttr",
+      78
+    ],
+    [
+      "Is\u2192GetAttr",
+      70
+    ],
+    [
+      "Set\u2192If",
+      70
+    ],
+    [
+      "Set\u2192Record",
+      65
+    ],
+    [
+      "Unary\u2192GetAttr",
+      63
+    ],
+    [
+      "Binary\u2192Is",
+      56
+    ],
+    [
+      "HasAttr\u2192If",
+      55
+    ],
+    [
+      "If\u2192Like",
+      52
+    ],
+    [
+      "Unary\u2192And",
+      52
+    ],
+    [
+      "Unary\u2192Is",
+      51
+    ],
+    [
+      "Binary\u2192HasAttr",
+      43
+    ],
+    [
+      "Record\u2192GetAttr",
+      41
+    ],
+    [
+      "Like\u2192GetAttr",
+      40
+    ],
+    [
+      "Set\u2192Binary",
+      40
+    ],
+    [
+      "Unary\u2192Like",
+      37
+    ],
+    [
+      "Or\u2192GetAttr",
+      35
+    ],
+    [
+      "Binary\u2192And",
+      33
+    ],
+    [
+      "Record\u2192If",
+      33
+    ],
+    [
+      "Is\u2192If",
+      31
+    ],
+    [
+      "Set\u2192GetAttr",
+      21
+    ],
+    [
+      "Binary\u2192Or",
+      19
+    ],
+    [
+      "Or\u2192Like",
+      19
+    ],
+    [
+      "Like\u2192If",
+      16
+    ],
+    [
+      "Record\u2192Binary",
+      16
+    ],
+    [
+      "Record\u2192Unary",
+      9
+    ],
+    [
+      "Set\u2192HasAttr",
+      9
+    ],
+    [
+      "Record\u2192Is",
+      6
+    ],
+    [
+      "Unary\u2192HasAttr",
+      5
+    ],
+    [
+      "Set\u2192Unary",
+      4
+    ],
+    [
+      "Set\u2192Or",
+      3
+    ],
+    [
+      "Set\u2192And",
+      3
+    ],
+    [
+      "Binary\u2192Like",
+      3
+    ],
+    [
+      "Set\u2192Is",
+      2
+    ],
+    [
+      "Record\u2192And",
+      1
+    ]
+  ],
+  "kpath3_frequency": [
+    [
+      "And\u2192Binary\u2192Var",
+      33599
+    ],
+    [
+      "And\u2192And\u2192Lit",
+      32131
+    ],
+    [
+      "And\u2192And\u2192Binary",
+      28841
+    ],
+    [
+      "And\u2192And\u2192And",
+      25564
+    ],
+    [
+      "And\u2192Binary\u2192Slot",
+      19127
+    ],
+    [
+      "And\u2192Binary\u2192Set",
+      17460
+    ],
+    [
+      "And\u2192Binary\u2192Lit",
+      15404
+    ],
+    [
+      "Binary\u2192Set\u2192Lit",
+      15191
+    ],
+    [
+      "And\u2192Is\u2192Var",
+      6768
+    ],
+    [
+      "And\u2192And\u2192Is",
+      6464
+    ],
+    [
+      "ExtFun\u2192ExtFun\u2192Lit",
+      2334
+    ],
+    [
+      "And\u2192And\u2192ExtFun",
+      1790
+    ],
+    [
+      "And\u2192And\u2192Unary",
+      1780
+    ],
+    [
+      "And\u2192And\u2192Or",
+      1495
+    ],
+    [
+      "And\u2192ExtFun\u2192ExtFun",
+      1403
+    ],
+    [
+      "And\u2192Or\u2192Lit",
+      1367
+    ],
+    [
+      "Binary\u2192ExtFun\u2192Lit",
+      1161
+    ],
+    [
+      "And\u2192And\u2192HasAttr",
+      980
+    ],
+    [
+      "And\u2192And\u2192GetAttr",
+      968
+    ],
+    [
+      "If\u2192ExtFun\u2192Lit",
+      927
+    ],
+    [
+      "GetAttr\u2192If\u2192Record",
+      891
+    ],
+    [
+      "If\u2192If\u2192Lit",
+      889
+    ],
+    [
+      "And\u2192If\u2192Lit",
+      874
+    ],
+    [
+      "And\u2192And\u2192If",
+      869
+    ],
+    [
+      "GetAttr\u2192If\u2192Var",
+      838
+    ],
+    [
+      "GetAttr\u2192Record\u2192Lit",
+      821
+    ],
+    [
+      "And\u2192Binary\u2192ExtFun",
+      807
+    ],
+    [
+      "If\u2192Record\u2192Lit",
+      796
+    ],
+    [
+      "Or\u2192Or\u2192Lit",
+      766
+    ],
+    [
+      "And\u2192Is\u2192Lit",
+      760
+    ],
+    [
+      "Binary\u2192Set\u2192Var",
+      758
+    ],
+    [
+      "GetAttr\u2192If\u2192GetAttr",
+      749
+    ],
+    [
+      "And\u2192GetAttr\u2192If",
+      738
+    ],
+    [
+      "And\u2192Unary\u2192Unary",
+      700
+    ],
+    [
+      "And\u2192Or\u2192Or",
+      698
+    ],
+    [
+      "If\u2192GetAttr\u2192If",
+      661
+    ],
+    [
+      "Set\u2192ExtFun\u2192Lit",
+      644
+    ],
+    [
+      "Unary\u2192Unary\u2192Unary",
+      640
+    ],
+    [
+      "And\u2192Binary\u2192If",
+      636
+    ],
+    [
+      "Binary\u2192If\u2192Lit",
+      635
+    ],
+    [
+      "ExtFun\u2192If\u2192ExtFun",
+      604
+    ],
+    [
+      "And\u2192HasAttr\u2192Lit",
+      531
+    ],
+    [
+      "Unary\u2192Unary\u2192Lit",
+      521
+    ],
+    [
+      "If\u2192Binary\u2192Lit",
+      504
+    ],
+    [
+      "ExtFun\u2192If\u2192Lit",
+      488
+    ],
+    [
+      "If\u2192GetAttr\u2192Record",
+      485
+    ],
+    [
+      "And\u2192And\u2192Like",
+      452
+    ],
+    [
+      "And\u2192Unary\u2192Binary",
+      443
+    ],
+    [
+      "Or\u2192Or\u2192Or",
+      440
+    ],
+    [
+      "And\u2192Binary\u2192Binary",
+      429
+    ],
+    [
+      "Binary\u2192ExtFun\u2192ExtFun",
+      422
+    ],
+    [
+      "And\u2192Like\u2192Lit",
+      419
+    ],
+    [
+      "And\u2192Binary\u2192GetAttr",
+      415
+    ],
+    [
+      "And\u2192ExtFun\u2192If",
+      410
+    ],
+    [
+      "Unary\u2192Binary\u2192Lit",
+      407
+    ],
+    [
+      "Or\u2192Binary\u2192Lit",
+      397
+    ],
+    [
+      "GetAttr\u2192If\u2192Lit",
+      393
+    ],
+    [
+      "If\u2192If\u2192If",
+      389
+    ],
+    [
+      "Or\u2192Or\u2192Binary",
+      381
+    ],
+    [
+      "If\u2192Binary\u2192Var",
+      380
+    ],
+    [
+      "Or\u2192Binary\u2192Set",
+      363
+    ],
+    [
+      "And\u2192Or\u2192Binary",
+      343
+    ],
+    [
+      "Or\u2192And\u2192Lit",
+      343
+    ],
+    [
+      "And\u2192If\u2192If",
+      324
+    ],
+    [
+      "Binary\u2192If\u2192Set",
+      321
+    ],
+    [
+      "And\u2192HasAttr\u2192Var",
+      316
+    ],
+    [
+      "Binary\u2192Binary\u2192Lit",
+      314
+    ],
+    [
+      "Binary\u2192If\u2192Binary",
+      292
+    ],
+    [
+      "Binary\u2192GetAttr\u2192Record",
+      291
+    ],
+    [
+      "Binary\u2192If\u2192ExtFun",
+      285
+    ],
+    [
+      "ExtFun\u2192ExtFun\u2192ExtFun",
+      281
+    ],
+    [
+      "GetAttr\u2192If\u2192If",
+      275
+    ],
+    [
+      "Or\u2192Binary\u2192Var",
+      256
+    ],
+    [
+      "If\u2192Binary\u2192Set",
+      253
+    ],
+    [
+      "Binary\u2192Set\u2192Set",
+      250
+    ],
+    [
+      "GetAttr\u2192If\u2192Binary",
+      246
+    ],
+    [
+      "If\u2192If\u2192ExtFun",
+      245
+    ],
+    [
+      "If\u2192ExtFun\u2192ExtFun",
+      242
+    ],
+    [
+      "And\u2192Unary\u2192Set",
+      235
+    ],
+    [
+      "If\u2192If\u2192Binary",
+      229
+    ],
+    [
+      "If\u2192Binary\u2192If",
+      226
+    ],
+    [
+      "ExtFun\u2192ExtFun\u2192If",
+      224
+    ],
+    [
+      "Or\u2192ExtFun\u2192ExtFun",
+      223
+    ],
+    [
+      "If\u2192If\u2192Record",
+      222
+    ],
+    [
+      "Binary\u2192Set\u2192ExtFun",
+      218
+    ],
+    [
+      "Record\u2192Record\u2192Lit",
+      213
+    ],
+    [
+      "GetAttr\u2192Record\u2192Record",
+      210
+    ],
+    [
+      "Binary\u2192If\u2192If",
+      202
+    ],
+    [
+      "GetAttr\u2192GetAttr\u2192Record",
+      199
+    ],
+    [
+      "Record\u2192ExtFun\u2192Lit",
+      197
+    ],
+    [
+      "And\u2192Unary\u2192Lit",
+      196
+    ],
+    [
+      "And\u2192Or\u2192HasAttr",
+      192
+    ],
+    [
+      "Binary\u2192GetAttr\u2192Var",
+      184
+    ],
+    [
+      "Unary\u2192If\u2192Set",
+      181
+    ],
+    [
+      "Set\u2192Set\u2192Set",
+      178
+    ],
+    [
+      "And\u2192Or\u2192And",
+      173
+    ],
+    [
+      "Unary\u2192Set\u2192ExtFun",
+      173
+    ],
+    [
+      "Binary\u2192GetAttr\u2192If",
+      172
+    ],
+    [
+      "Or\u2192Or\u2192And",
+      170
+    ],
+    [
+      "And\u2192If\u2192GetAttr",
+      169
+    ],
+    [
+      "Unary\u2192Binary\u2192ExtFun",
+      167
+    ],
+    [
+      "Unary\u2192If\u2192Lit",
+      163
+    ],
+    [
+      "If\u2192GetAttr\u2192Var",
+      163
+    ],
+    [
+      "GetAttr\u2192GetAttr\u2192If",
+      163
+    ],
+    [
+      "And\u2192Unary\u2192If",
+      161
+    ],
+    [
+      "Set\u2192ExtFun\u2192ExtFun",
+      156
+    ],
+    [
+      "Or\u2192And\u2192And",
+      156
+    ],
+    [
+      "Unary\u2192Unary\u2192Binary",
+      155
+    ],
+    [
+      "And\u2192GetAttr\u2192Record",
+      152
+    ],
+    [
+      "GetAttr\u2192GetAttr\u2192GetAttr",
+      149
+    ],
+    [
+      "And\u2192ExtFun\u2192GetAttr",
+      145
+    ],
+    [
+      "ExtFun\u2192If\u2192If",
+      144
+    ],
+    [
+      "If\u2192Record\u2192Record",
+      144
+    ],
+    [
+      "ExtFun\u2192If\u2192HasAttr",
+      141
+    ],
+    [
+      "And\u2192HasAttr\u2192Record",
+      139
+    ],
+    [
+      "If\u2192Or\u2192Lit",
+      139
+    ],
+    [
+      "If\u2192If\u2192Var",
+      138
+    ],
+    [
+      "Record\u2192Record\u2192Record",
+      130
+    ],
+    [
+      "And\u2192If\u2192Binary",
+      127
+    ],
+    [
+      "ExtFun\u2192If\u2192Binary",
+      125
+    ],
+    [
+      "If\u2192HasAttr\u2192Var",
+      123
+    ],
+    [
+      "If\u2192Set\u2192ExtFun",
+      122
+    ],
+    [
+      "If\u2192Set\u2192Lit",
+      122
+    ],
+    [
+      "If\u2192Binary\u2192ExtFun",
+      121
+    ],
+    [
+      "If\u2192Set\u2192Var",
+      121
+    ],
+    [
+      "Or\u2192Is\u2192Lit",
+      118
+    ],
+    [
+      "And\u2192Binary\u2192Record",
+      116
+    ],
+    [
+      "If\u2192GetAttr\u2192GetAttr",
+      114
+    ],
+    [
+      "Binary\u2192Binary\u2192Binary",
+      114
+    ],
+    [
+      "If\u2192Binary\u2192GetAttr",
+      114
+    ],
+    [
+      "Binary\u2192Binary\u2192GetAttr",
+      112
+    ],
+    [
+      "Or\u2192And\u2192Binary",
+      110
+    ],
+    [
+      "If\u2192Is\u2192Var",
+      109
+    ],
+    [
+      "Or\u2192Binary\u2192If",
+      107
+    ],
+    [
+      "GetAttr\u2192Record\u2192Var",
+      107
+    ],
+    [
+      "Or\u2192Binary\u2192ExtFun",
+      105
+    ],
+    [
+      "If\u2192If\u2192GetAttr",
+      101
+    ],
+    [
+      "Or\u2192HasAttr\u2192Record",
+      101
+    ],
+    [
+      "If\u2192HasAttr\u2192Lit",
+      99
+    ],
+    [
+      "And\u2192Or\u2192Is",
+      99
+    ],
+    [
+      "Binary\u2192GetAttr\u2192GetAttr",
+      98
+    ],
+    [
+      "And\u2192Or\u2192ExtFun",
+      97
+    ],
+    [
+      "HasAttr\u2192Record\u2192ExtFun",
+      93
+    ],
+    [
+      "Or\u2192HasAttr\u2192Var",
+      92
+    ],
+    [
+      "Binary\u2192If\u2192Var",
+      92
+    ],
+    [
+      "Or\u2192Or\u2192Is",
+      91
+    ],
+    [
+      "ExtFun\u2192GetAttr\u2192Var",
+      91
+    ],
+    [
+      "Or\u2192Or\u2192ExtFun",
+      90
+    ],
+    [
+      "GetAttr\u2192Record\u2192Set",
+      89
+    ],
+    [
+      "HasAttr\u2192Record\u2192Lit",
+      89
+    ],
+    [
+      "Or\u2192If\u2192Lit",
+      87
+    ],
+    [
+      "If\u2192HasAttr\u2192Record",
+      87
+    ],
+    [
+      "Unary\u2192Binary\u2192If",
+      85
+    ],
+    [
+      "Binary\u2192Binary\u2192Set",
+      83
+    ],
+    [
+      "Unary\u2192Or\u2192Lit",
+      82
+    ],
+    [
+      "If\u2192And\u2192Lit",
+      82
+    ],
+    [
+      "Binary\u2192Binary\u2192ExtFun",
+      79
+    ],
+    [
+      "Binary\u2192If\u2192Unary",
+      79
+    ],
+    [
+      "GetAttr\u2192Record\u2192ExtFun",
+      78
+    ],
+    [
+      "If\u2192ExtFun\u2192If",
+      77
+    ],
+    [
+      "Set\u2192Set\u2192Lit",
+      76
+    ],
+    [
+      "And\u2192GetAttr\u2192GetAttr",
+      76
+    ],
+    [
+      "And\u2192If\u2192HasAttr",
+      75
+    ],
+    [
+      "Unary\u2192Binary\u2192Var",
+      73
+    ],
+    [
+      "ExtFun\u2192GetAttr\u2192Record",
+      72
+    ],
+    [
+      "Record\u2192Set\u2192ExtFun",
+      71
+    ],
+    [
+      "GetAttr\u2192If\u2192ExtFun",
+      71
+    ],
+    [
+      "Binary\u2192ExtFun\u2192If",
+      70
+    ],
+    [
+      "Binary\u2192If\u2192GetAttr",
+      70
+    ],
+    [
+      "ExtFun\u2192GetAttr\u2192GetAttr",
+      70
+    ],
+    [
+      "Binary\u2192Binary\u2192Var",
+      66
+    ],
+    [
+      "Record\u2192Record\u2192Var",
+      65
+    ],
+    [
+      "Set\u2192Set\u2192ExtFun",
+      65
+    ],
+    [
+      "If\u2192Unary\u2192Set",
+      64
+    ],
+    [
+      "GetAttr\u2192GetAttr\u2192Var",
+      63
+    ],
+    [
+      "ExtFun\u2192ExtFun\u2192GetAttr",
+      61
+    ],
+    [
+      "Binary\u2192Unary\u2192Lit",
+      61
+    ],
+    [
+      "Unary\u2192Binary\u2192Set",
+      60
+    ],
+    [
+      "Unary\u2192Binary\u2192GetAttr",
+      60
+    ],
+    [
+      "If\u2192Is\u2192Lit",
+      59
+    ],
+    [
+      "Or\u2192Or\u2192Unary",
+      58
+    ],
+    [
+      "Record\u2192Set\u2192Lit",
+      58
+    ],
+    [
+      "ExtFun\u2192If\u2192Is",
+      58
+    ],
+    [
+      "Record\u2192ExtFun\u2192ExtFun",
+      58
+    ],
+    [
+      "ExtFun\u2192If\u2192Or",
+      57
+    ],
+    [
+      "Or\u2192Is\u2192Var",
+      56
+    ],
+    [
+      "If\u2192Or\u2192Or",
+      54
+    ],
+    [
+      "If\u2192Record\u2192Var",
+      54
+    ],
+    [
+      "Binary\u2192Unary\u2192Unary",
+      52
+    ],
+    [
+      "And\u2192Unary\u2192Or",
+      51
+    ],
+    [
+      "Unary\u2192Unary\u2192ExtFun",
+      51
+    ],
+    [
+      "If\u2192And\u2192And",
+      51
+    ],
+    [
+      "Unary\u2192Or\u2192Unary",
+      50
+    ],
+    [
+      "Or\u2192Or\u2192If",
+      49
+    ],
+    [
+      "Unary\u2192Binary\u2192Unary",
+      49
+    ],
+    [
+      "If\u2192Like\u2192Lit",
+      49
+    ],
+    [
+      "Binary\u2192Set\u2192Record",
+      49
+    ],
+    [
+      "And\u2192HasAttr\u2192If",
+      48
+    ],
+    [
+      "Or\u2192Unary\u2192Lit",
+      47
+    ],
+    [
+      "Binary\u2192If\u2192HasAttr",
+      47
+    ],
+    [
+      "If\u2192Or\u2192ExtFun",
+      47
+    ],
+    [
+      "And\u2192Or\u2192Unary",
+      46
+    ],
+    [
+      "Unary\u2192ExtFun\u2192ExtFun",
+      46
+    ],
+    [
+      "HasAttr\u2192GetAttr\u2192GetAttr",
+      46
+    ],
+    [
+      "ExtFun\u2192If\u2192GetAttr",
+      45
+    ],
+    [
+      "Record\u2192Record\u2192ExtFun",
+      45
+    ],
+    [
+      "HasAttr\u2192If\u2192Binary",
+      45
+    ],
+    [
+      "Or\u2192Unary\u2192Or",
+      45
+    ],
+    [
+      "If\u2192Unary\u2192Binary",
+      43
+    ],
+    [
+      "And\u2192Binary\u2192Unary",
+      43
+    ],
+    [
+      "Unary\u2192And\u2192Lit",
+      43
+    ],
+    [
+      "HasAttr\u2192If\u2192Var",
+      43
+    ],
+    [
+      "Or\u2192Binary\u2192Unary",
+      43
+    ],
+    [
+      "Unary\u2192If\u2192Unary",
+      43
+    ],
+    [
+      "If\u2192Unary\u2192Unary",
+      42
+    ],
+    [
+      "And\u2192Binary\u2192Is",
+      41
+    ],
+    [
+      "Or\u2192And\u2192Or",
+      41
+    ],
+    [
+      "If\u2192Record\u2192Set",
+      40
+    ],
+    [
+      "If\u2192Unary\u2192If",
+      40
+    ],
+    [
+      "Or\u2192If\u2192If",
+      40
+    ],
+    [
+      "Set\u2192If\u2192ExtFun",
+      40
+    ],
+    [
+      "Binary\u2192Binary\u2192If",
+      40
+    ],
+    [
+      "Binary\u2192Is\u2192Lit",
+      39
+    ],
+    [
+      "HasAttr\u2192Record\u2192Set",
+      39
+    ],
+    [
+      "Or\u2192And\u2192HasAttr",
+      39
+    ],
+    [
+      "If\u2192Binary\u2192Binary",
+      39
+    ],
+    [
+      "Is\u2192GetAttr\u2192Record",
+      38
+    ],
+    [
+      "Or\u2192ExtFun\u2192If",
+      38
+    ],
+    [
+      "Binary\u2192If\u2192And",
+      37
+    ],
+    [
+      "And\u2192If\u2192Unary",
+      37
+    ],
+    [
+      "And\u2192HasAttr\u2192GetAttr",
+      36
+    ],
+    [
+      "GetAttr\u2192Record\u2192GetAttr",
+      35
+    ],
+    [
+      "If\u2192If\u2192HasAttr",
+      35
+    ],
+    [
+      "Binary\u2192Record\u2192Lit",
+      35
+    ],
+    [
+      "Or\u2192Unary\u2192Binary",
+      34
+    ],
+    [
+      "If\u2192And\u2192Binary",
+      34
+    ],
+    [
+      "Unary\u2192Unary\u2192Like",
+      34
+    ],
+    [
+      "If\u2192If\u2192Is",
+      33
+    ],
+    [
+      "Binary\u2192Binary\u2192HasAttr",
+      33
+    ],
+    [
+      "Unary\u2192ExtFun\u2192If",
+      33
+    ],
+    [
+      "Binary\u2192And\u2192Lit",
+      33
+    ],
+    [
+      "Record\u2192If\u2192Lit",
+      33
+    ],
+    [
+      "Unary\u2192Or\u2192ExtFun",
+      32
+    ],
+    [
+      "Unary\u2192Or\u2192Or",
+      32
+    ],
+    [
+      "Or\u2192Or\u2192HasAttr",
+      32
+    ],
+    [
+      "And\u2192Unary\u2192And",
+      32
+    ],
+    [
+      "Or\u2192Is\u2192GetAttr",
+      31
+    ],
+    [
+      "Record\u2192If\u2192ExtFun",
+      31
+    ],
+    [
+      "Is\u2192If\u2192Var",
+      31
+    ],
+    [
+      "And\u2192If\u2192Is",
+      31
+    ],
+    [
+      "GetAttr\u2192If\u2192Or",
+      31
+    ],
+    [
+      "Binary\u2192Set\u2192Binary",
+      30
+    ],
+    [
+      "If\u2192Or\u2192Binary",
+      30
+    ],
+    [
+      "And\u2192Binary\u2192And",
+      30
+    ],
+    [
+      "Unary\u2192Is\u2192Var",
+      29
+    ],
+    [
+      "Unary\u2192Unary\u2192Is",
+      29
+    ],
+    [
+      "And\u2192Or\u2192If",
+      29
+    ],
+    [
+      "Or\u2192HasAttr\u2192Lit",
+      28
+    ],
+    [
+      "ExtFun\u2192GetAttr\u2192If",
+      28
+    ],
+    [
+      "Binary\u2192ExtFun\u2192GetAttr",
+      28
+    ],
+    [
+      "Set\u2192If\u2192Lit",
+      28
+    ],
+    [
+      "And\u2192Is\u2192If",
+      28
+    ],
+    [
+      "And\u2192If\u2192And",
+      28
+    ],
+    [
+      "Set\u2192If\u2192If",
+      28
+    ],
+    [
+      "Like\u2192GetAttr\u2192Record",
+      27
+    ],
+    [
+      "And\u2192Is\u2192GetAttr",
+      27
+    ],
+    [
+      "Binary\u2192Is\u2192Var",
+      27
+    ],
+    [
+      "If\u2192If\u2192Like",
+      27
+    ],
+    [
+      "HasAttr\u2192GetAttr\u2192Record",
+      27
+    ],
+    [
+      "Unary\u2192Unary\u2192GetAttr",
+      26
+    ],
+    [
+      "Binary\u2192Record\u2192Record",
+      26
+    ],
+    [
+      "And\u2192If\u2192ExtFun",
+      26
+    ],
+    [
+      "Binary\u2192Set\u2192If",
+      26
+    ],
+    [
+      "Is\u2192If\u2192Is",
+      26
+    ],
+    [
+      "Unary\u2192Like\u2192Lit",
+      25
+    ],
+    [
+      "If\u2192If\u2192Set",
+      25
+    ],
+    [
+      "Binary\u2192HasAttr\u2192Var",
+      25
+    ],
+    [
+      "ExtFun\u2192If\u2192Unary",
+      25
+    ],
+    [
+      "Binary\u2192Record\u2192Set",
+      25
+    ],
+    [
+      "Unary\u2192Set\u2192Lit",
+      24
+    ],
+    [
+      "And\u2192Like\u2192GetAttr",
+      24
+    ],
+    [
+      "If\u2192HasAttr\u2192GetAttr",
+      24
+    ],
+    [
+      "HasAttr\u2192Record\u2192If",
+      24
+    ],
+    [
+      "Or\u2192GetAttr\u2192Var",
+      23
+    ],
+    [
+      "And\u2192GetAttr\u2192Var",
+      23
+    ],
+    [
+      "If\u2192If\u2192Unary",
+      23
+    ],
+    [
+      "Binary\u2192If\u2192Or",
+      23
+    ],
+    [
+      "Unary\u2192Unary\u2192Or",
+      22
+    ],
+    [
+      "Or\u2192Unary\u2192Unary",
+      22
+    ],
+    [
+      "Set\u2192If\u2192Binary",
+      22
+    ],
+    [
+      "HasAttr\u2192Record\u2192Var",
+      22
+    ],
+    [
+      "Unary\u2192GetAttr\u2192Var",
+      21
+    ],
+    [
+      "If\u2192Unary\u2192Lit",
+      21
+    ],
+    [
+      "Unary\u2192GetAttr\u2192If",
+      21
+    ],
+    [
+      "Unary\u2192Is\u2192Lit",
+      21
+    ],
+    [
+      "If\u2192Is\u2192If",
+      20
+    ],
+    [
+      "Unary\u2192GetAttr\u2192Record",
+      20
+    ],
+    [
+      "Unary\u2192And\u2192Binary",
+      20
+    ],
+    [
+      "Set\u2192Set\u2192Var",
+      20
+    ],
+    [
+      "Binary\u2192Set\u2192GetAttr",
+      20
+    ],
+    [
+      "And\u2192Unary\u2192Is",
+      20
+    ],
+    [
+      "And\u2192If\u2192Or",
+      20
+    ],
+    [
+      "Record\u2192GetAttr\u2192Record",
+      19
+    ],
+    [
+      "HasAttr\u2192If\u2192Lit",
+      19
+    ],
+    [
+      "And\u2192Binary\u2192Or",
+      19
+    ],
+    [
+      "Unary\u2192Set\u2192Set",
+      19
+    ],
+    [
+      "If\u2192Record\u2192ExtFun",
+      19
+    ],
+    [
+      "Binary\u2192Or\u2192Lit",
+      19
+    ],
+    [
+      "Is\u2192GetAttr\u2192Var",
+      19
+    ],
+    [
+      "Binary\u2192Unary\u2192GetAttr",
+      18
+    ],
+    [
+      "Or\u2192HasAttr\u2192GetAttr",
+      18
+    ],
+    [
+      "If\u2192Set\u2192If",
+      18
+    ],
+    [
+      "And\u2192Unary\u2192ExtFun",
+      17
+    ],
+    [
+      "Is\u2192If\u2192Lit",
+      17
+    ],
+    [
+      "If\u2192Binary\u2192Record",
+      17
+    ],
+    [
+      "If\u2192If\u2192Or",
+      16
+    ],
+    [
+      "Or\u2192If\u2192Or",
+      16
+    ],
+    [
+      "Or\u2192If\u2192Binary",
+      16
+    ],
+    [
+      "If\u2192Or\u2192HasAttr",
+      16
+    ],
+    [
+      "Like\u2192If\u2192Lit",
+      16
+    ],
+    [
+      "Set\u2192If\u2192Is",
+      15
+    ],
+    [
+      "Set\u2192Binary\u2192Lit",
+      15
+    ],
+    [
+      "Unary\u2192Unary\u2192Set",
+      15
+    ],
+    [
+      "Binary\u2192HasAttr\u2192Record",
+      15
+    ],
+    [
+      "Binary\u2192And\u2192Binary",
+      15
+    ],
+    [
+      "Set\u2192ExtFun\u2192If",
+      15
+    ],
+    [
+      "Or\u2192Binary\u2192Record",
+      15
+    ],
+    [
+      "Unary\u2192Unary\u2192If",
+      15
+    ],
+    [
+      "Or\u2192Like\u2192Lit",
+      15
+    ],
+    [
+      "GetAttr\u2192If\u2192Unary",
+      15
+    ],
+    [
+      "Set\u2192Binary\u2192ExtFun",
+      15
+    ],
+    [
+      "Unary\u2192Set\u2192If",
+      14
+    ],
+    [
+      "Or\u2192Or\u2192Like",
+      14
+    ],
+    [
+      "If\u2192Or\u2192GetAttr",
+      14
+    ],
+    [
+      "Unary\u2192Set\u2192Var",
+      14
+    ],
+    [
+      "Record\u2192GetAttr\u2192Var",
+      13
+    ],
+    [
+      "Record\u2192Record\u2192Set",
+      13
+    ],
+    [
+      "If\u2192Set\u2192Set",
+      13
+    ],
+    [
+      "And\u2192Like\u2192If",
+      13
+    ],
+    [
+      "Set\u2192If\u2192Set",
+      13
+    ],
+    [
+      "Or\u2192Binary\u2192GetAttr",
+      13
+    ],
+    [
+      "GetAttr\u2192If\u2192HasAttr",
+      12
+    ],
+    [
+      "Or\u2192If\u2192HasAttr",
+      12
+    ],
+    [
+      "Set\u2192Set\u2192If",
+      12
+    ],
+    [
+      "Set\u2192GetAttr\u2192Record",
+      12
+    ],
+    [
+      "Unary\u2192Like\u2192GetAttr",
+      12
+    ],
+    [
+      "Unary\u2192Unary\u2192And",
+      12
+    ],
+    [
+      "Unary\u2192If\u2192Like",
+      12
+    ],
+    [
+      "Unary\u2192And\u2192Unary",
+      11
+    ],
+    [
+      "Binary\u2192Binary\u2192Is",
+      11
+    ],
+    [
+      "Set\u2192GetAttr\u2192Var",
+      11
+    ],
+    [
+      "Set\u2192Binary\u2192Var",
+      11
+    ],
+    [
+      "Binary\u2192If\u2192Is",
+      11
+    ],
+    [
+      "GetAttr\u2192Record\u2192Binary",
+      11
+    ],
+    [
+      "And\u2192Or\u2192GetAttr",
+      11
+    ],
+    [
+      "Or\u2192ExtFun\u2192GetAttr",
+      11
+    ],
+    [
+      "HasAttr\u2192If\u2192Record",
+      10
+    ],
+    [
+      "Binary\u2192And\u2192And",
+      10
+    ],
+    [
+      "If\u2192Binary\u2192Unary",
+      10
+    ],
+    [
+      "ExtFun\u2192If\u2192And",
+      10
+    ],
+    [
+      "Record\u2192Set\u2192Var",
+      10
+    ],
+    [
+      "Set\u2192Record\u2192ExtFun",
+      10
+    ],
+    [
+      "Binary\u2192Or\u2192Binary",
+      10
+    ],
+    [
+      "Like\u2192GetAttr\u2192If",
+      10
+    ],
+    [
+      "HasAttr\u2192If\u2192If",
+      10
+    ],
+    [
+      "Or\u2192Or\u2192GetAttr",
+      10
+    ],
+    [
+      "If\u2192Unary\u2192GetAttr",
+      10
+    ],
+    [
+      "Binary\u2192Record\u2192ExtFun",
+      9
+    ],
+    [
+      "If\u2192Or\u2192Is",
+      9
+    ],
+    [
+      "Is\u2192If\u2192If",
+      9
+    ],
+    [
+      "Binary\u2192Set\u2192HasAttr",
+      9
+    ],
+    [
+      "Record\u2192Binary\u2192Lit",
+      9
+    ],
+    [
+      "Binary\u2192Unary\u2192If",
+      9
+    ],
+    [
+      "Is\u2192GetAttr\u2192If",
+      9
+    ],
+    [
+      "If\u2192Record\u2192Unary",
+      9
+    ],
+    [
+      "Or\u2192Binary\u2192Binary",
+      9
+    ],
+    [
+      "If\u2192If\u2192And",
+      9
+    ],
+    [
+      "Set\u2192Binary\u2192Set",
+      9
+    ],
+    [
+      "Binary\u2192Or\u2192Or",
+      8
+    ],
+    [
+      "Like\u2192If\u2192HasAttr",
+      8
+    ],
+    [
+      "And\u2192Unary\u2192GetAttr",
+      8
+    ],
+    [
+      "Or\u2192GetAttr\u2192If",
+      8
+    ],
+    [
+      "Set\u2192Set\u2192Record",
+      8
+    ],
+    [
+      "Unary\u2192Set\u2192Record",
+      8
+    ],
+    [
+      "Unary\u2192And\u2192If",
+      8
+    ],
+    [
+      "Set\u2192Set\u2192Binary",
+      7
+    ],
+    [
+      "GetAttr\u2192If\u2192Is",
+      7
+    ],
+    [
+      "Record\u2192GetAttr\u2192If",
+      7
+    ],
+    [
+      "Binary\u2192Is\u2192GetAttr",
+      7
+    ],
+    [
+      "If\u2192Or\u2192If",
+      7
+    ],
+    [
+      "If\u2192Unary\u2192ExtFun",
+      7
+    ],
+    [
+      "Binary\u2192Unary\u2192Binary",
+      7
+    ],
+    [
+      "Set\u2192HasAttr\u2192Lit",
+      7
+    ],
+    [
+      "Binary\u2192And\u2192If",
+      7
+    ],
+    [
+      "ExtFun\u2192If\u2192Like",
+      7
+    ],
+    [
+      "Binary\u2192Unary\u2192Set",
+      7
+    ],
+    [
+      "Set\u2192Binary\u2192Binary",
+      7
+    ],
+    [
+      "HasAttr\u2192Record\u2192Record",
+      6
+    ],
+    [
+      "Or\u2192And\u2192ExtFun",
+      6
+    ],
+    [
+      "If\u2192And\u2192Unary",
+      6
+    ],
+    [
+      "Set\u2192If\u2192GetAttr",
+      6
+    ],
+    [
+      "Record\u2192Is\u2192Var",
+      6
+    ],
+    [
+      "Is\u2192GetAttr\u2192GetAttr",
+      6
+    ],
+    [
+      "Or\u2192Unary\u2192And",
+      6
+    ],
+    [
+      "Unary\u2192If\u2192ExtFun",
+      6
+    ],
+    [
+      "Unary\u2192If\u2192Binary",
+      5
+    ],
+    [
+      "If\u2192ExtFun\u2192GetAttr",
+      5
+    ],
+    [
+      "GetAttr\u2192Record\u2192If",
+      5
+    ],
+    [
+      "Unary\u2192And\u2192GetAttr",
+      5
+    ],
+    [
+      "GetAttr\u2192If\u2192And",
+      5
+    ],
+    [
+      "GetAttr\u2192Record\u2192Is",
+      5
+    ],
+    [
+      "Unary\u2192If\u2192If",
+      5
+    ],
+    [
+      "If\u2192Or\u2192And",
+      5
+    ],
+    [
+      "Or\u2192If\u2192ExtFun",
+      5
+    ],
+    [
+      "If\u2192Binary\u2192HasAttr",
+      5
+    ],
+    [
+      "If\u2192Is\u2192GetAttr",
+      5
+    ],
+    [
+      "Record\u2192Binary\u2192Var",
+      5
+    ],
+    [
+      "Binary\u2192HasAttr\u2192Lit",
+      5
+    ],
+    [
+      "If\u2192Record\u2192Binary",
+      5
+    ],
+    [
+      "Record\u2192If\u2192If",
+      5
+    ],
+    [
+      "Unary\u2192And\u2192Or",
+      5
+    ],
+    [
+      "If\u2192Record\u2192If",
+      4
+    ],
+    [
+      "Binary\u2192Set\u2192Unary",
+      4
+    ],
+    [
+      "If\u2192Binary\u2192Is",
+      4
+    ],
+    [
+      "If\u2192And\u2192Or",
+      4
+    ],
+    [
+      "Unary\u2192If\u2192And",
+      4
+    ],
+    [
+      "Set\u2192Binary\u2192GetAttr",
+      4
+    ],
+    [
+      "And\u2192If\u2192Like",
+      4
+    ],
+    [
+      "Record\u2192Binary\u2192Set",
+      4
+    ],
+    [
+      "HasAttr\u2192GetAttr\u2192Var",
+      4
+    ],
+    [
+      "Or\u2192And\u2192If",
+      4
+    ],
+    [
+      "Unary\u2192Binary\u2192Binary",
+      4
+    ],
+    [
+      "Unary\u2192If\u2192Is",
+      4
+    ],
+    [
+      "Record\u2192Unary\u2192Lit",
+      4
+    ],
+    [
+      "If\u2192HasAttr\u2192If",
+      4
+    ],
+    [
+      "Set\u2192Unary\u2192Unary",
+      4
+    ],
+    [
+      "Record\u2192Unary\u2192Unary",
+      4
+    ],
+    [
+      "Set\u2192GetAttr\u2192GetAttr",
+      4
+    ],
+    [
+      "If\u2192And\u2192ExtFun",
+      4
+    ],
+    [
+      "Unary\u2192And\u2192And",
+      4
+    ],
+    [
+      "Or\u2192And\u2192Is",
+      4
+    ],
+    [
+      "Unary\u2192Set\u2192Binary",
+      3
+    ],
+    [
+      "Or\u2192Unary\u2192ExtFun",
+      3
+    ],
+    [
+      "Unary\u2192Unary\u2192HasAttr",
+      3
+    ],
+    [
+      "Record\u2192Set\u2192Set",
+      3
+    ],
+    [
+      "Or\u2192HasAttr\u2192If",
+      3
+    ],
+    [
+      "Like\u2192GetAttr\u2192GetAttr",
+      3
+    ],
+    [
+      "Binary\u2192If\u2192Like",
+      3
+    ],
+    [
+      "Unary\u2192Or\u2192Like",
+      3
+    ],
+    [
+      "Or\u2192Binary\u2192HasAttr",
+      3
+    ],
+    [
+      "Set\u2192Or\u2192Lit",
+      3
+    ],
+    [
+      "If\u2192Record\u2192GetAttr",
+      3
+    ],
+    [
+      "Record\u2192GetAttr\u2192GetAttr",
+      3
+    ],
+    [
+      "Or\u2192Like\u2192GetAttr",
+      3
+    ],
+    [
+      "Unary\u2192HasAttr\u2192Lit",
+      3
+    ],
+    [
+      "Or\u2192GetAttr\u2192Record",
+      3
+    ],
+    [
+      "Binary\u2192Set\u2192Or",
+      3
+    ],
+    [
+      "Record\u2192Binary\u2192Binary",
+      3
+    ],
+    [
+      "Unary\u2192Or\u2192And",
+      3
+    ],
+    [
+      "Set\u2192And\u2192And",
+      3
+    ],
+    [
+      "Binary\u2192Set\u2192And",
+      3
+    ],
+    [
+      "Set\u2192And\u2192Lit",
+      3
+    ],
+    [
+      "Or\u2192And\u2192GetAttr",
+      3
+    ],
+    [
+      "If\u2192And\u2192GetAttr",
+      3
+    ],
+    [
+      "Binary\u2192Like\u2192Lit",
+      3
+    ],
+    [
+      "Unary\u2192And\u2192Like",
+      3
+    ],
+    [
+      "Set\u2192Record\u2192Lit",
+      3
+    ],
+    [
+      "Like\u2192If\u2192Or",
+      3
+    ],
+    [
+      "And\u2192Binary\u2192HasAttr",
+      2
+    ],
+    [
+      "Record\u2192Binary\u2192GetAttr",
+      2
+    ],
+    [
+      "HasAttr\u2192If\u2192Unary",
+      2
+    ],
+    [
+      "Is\u2192If\u2192ExtFun",
+      2
+    ],
+    [
+      "HasAttr\u2192If\u2192GetAttr",
+      2
+    ],
+    [
+      "Binary\u2192Binary\u2192And",
+      2
+    ],
+    [
+      "If\u2192Unary\u2192Is",
+      2
+    ],
+    [
+      "Set\u2192HasAttr\u2192Var",
+      2
+    ],
+    [
+      "If\u2192Like\u2192If",
+      2
+    ],
+    [
+      "Record\u2192Record\u2192GetAttr",
+      2
+    ],
+    [
+      "Set\u2192Is\u2192Var",
+      2
+    ],
+    [
+      "Is\u2192If\u2192HasAttr",
+      2
+    ],
+    [
+      "Unary\u2192And\u2192ExtFun",
+      2
+    ],
+    [
+      "Unary\u2192Or\u2192Binary",
+      2
+    ],
+    [
+      "If\u2192And\u2192HasAttr",
+      2
+    ],
+    [
+      "Unary\u2192Or\u2192If",
+      2
+    ],
+    [
+      "Binary\u2192Binary\u2192Unary",
+      2
+    ],
+    [
+      "Record\u2192ExtFun\u2192If",
+      2
+    ],
+    [
+      "Unary\u2192Is\u2192GetAttr",
+      2
+    ],
+    [
+      "Set\u2192Or\u2192And",
+      2
+    ],
+    [
+      "Or\u2192If\u2192And",
+      2
+    ],
+    [
+      "Record\u2192If\u2192GetAttr",
+      2
+    ],
+    [
+      "Unary\u2192And\u2192Is",
+      2
+    ],
+    [
+      "If\u2192Unary\u2192And",
+      2
+    ],
+    [
+      "Binary\u2192Set\u2192Is",
+      2
+    ],
+    [
+      "Or\u2192Binary\u2192Like",
+      2
+    ],
+    [
+      "Set\u2192GetAttr\u2192If",
+      2
+    ],
+    [
+      "Binary\u2192And\u2192Is",
+      1
+    ],
+    [
+      "Binary\u2192Or\u2192Is",
+      1
+    ],
+    [
+      "Unary\u2192Binary\u2192Record",
+      1
+    ],
+    [
+      "Or\u2192Unary\u2192GetAttr",
+      1
+    ],
+    [
+      "GetAttr\u2192Record\u2192And",
+      1
+    ],
+    [
+      "Set\u2192Or\u2192Or",
+      1
+    ],
+    [
+      "Set\u2192ExtFun\u2192GetAttr",
+      1
+    ],
+    [
+      "If\u2192Unary\u2192Like",
+      1
+    ],
+    [
+      "HasAttr\u2192GetAttr\u2192If",
+      1
+    ],
+    [
+      "HasAttr\u2192Record\u2192GetAttr",
+      1
+    ],
+    [
+      "Like\u2192If\u2192GetAttr",
+      1
+    ],
+    [
+      "HasAttr\u2192If\u2192ExtFun",
+      1
+    ],
+    [
+      "Record\u2192If\u2192Record",
+      1
+    ],
+    [
+      "And\u2192Or\u2192Like",
+      1
+    ],
+    [
+      "Or\u2192Unary\u2192Like",
+      1
+    ],
+    [
+      "Or\u2192If\u2192Is",
+      1
+    ],
+    [
+      "Or\u2192GetAttr\u2192GetAttr",
+      1
+    ],
+    [
+      "If\u2192Like\u2192GetAttr",
+      1
+    ],
+    [
+      "And\u2192Unary\u2192Like",
+      1
+    ],
+    [
+      "Or\u2192Unary\u2192If",
+      1
+    ],
+    [
+      "Set\u2192If\u2192Record",
+      1
+    ],
+    [
+      "Or\u2192Is\u2192If",
+      1
+    ],
+    [
+      "If\u2192Unary\u2192Or",
+      1
+    ],
+    [
+      "GetAttr\u2192If\u2192Like",
+      1
+    ],
+    [
+      "Set\u2192Set\u2192GetAttr",
+      1
+    ],
+    [
+      "HasAttr\u2192If\u2192HasAttr",
+      1
+    ],
+    [
+      "And\u2192Unary\u2192HasAttr",
+      1
+    ],
+    [
+      "If\u2192Binary\u2192Like",
+      1
+    ],
+    [
+      "Set\u2192Unary\u2192Lit",
+      1
+    ],
+    [
+      "Or\u2192Unary\u2192Set",
+      1
+    ],
+    [
+      "Unary\u2192Or\u2192Is",
+      1
+    ],
+    [
+      "Unary\u2192Or\u2192HasAttr",
+      1
+    ],
+    [
+      "Or\u2192Like\u2192If",
+      1
+    ],
+    [
+      "Set\u2192Is\u2192Lit",
+      1
+    ],
+    [
+      "Unary\u2192GetAttr\u2192GetAttr",
+      1
+    ],
+    [
+      "Unary\u2192HasAttr\u2192Var",
+      1
+    ],
+    [
+      "Record\u2192ExtFun\u2192GetAttr",
+      1
+    ],
+    [
+      "Unary\u2192HasAttr\u2192Record",
+      1
+    ],
+    [
+      "If\u2192Or\u2192Like",
+      1
+    ],
+    [
+      "Record\u2192And\u2192Binary",
+      1
+    ],
+    [
+      "Set\u2192If\u2192Unary",
+      1
+    ],
+    [
+      "If\u2192Unary\u2192HasAttr",
+      1
+    ],
+    [
+      "If\u2192And\u2192If",
+      1
+    ],
+    [
+      "Record\u2192Unary\u2192Set",
+      1
+    ],
+    [
+      "Unary\u2192Binary\u2192And",
+      1
+    ],
+    [
+      "Record\u2192Binary\u2192ExtFun",
+      1
+    ],
+    [
+      "Record\u2192Record\u2192Is",
+      1
+    ],
+    [
+      "If\u2192And\u2192Is",
+      1
+    ]
+  ],
+  "diversity_over_time": [
+    {
+      "input_idx": 2281,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 4562,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 6843,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 9124,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 11405,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 13686,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 15967,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 18248,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 20529,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 22810,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 25091,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 27372,
+      "unique_inputs": 1,
+      "unique_skeletons": 1,
+      "cumulative_2paths": 0,
+      "cumulative_3paths": 0
+    },
+    {
+      "input_idx": 29653,
+      "unique_inputs": 2,
+      "unique_skeletons": 2,
+      "cumulative_2paths": 4,
+      "cumulative_3paths": 2
+    },
+    {
+      "input_idx": 31934,
+      "unique_inputs": 5,
+      "unique_skeletons": 5,
+      "cumulative_2paths": 7,
+      "cumulative_3paths": 6
+    },
+    {
+      "input_idx": 34215,
+      "unique_inputs": 5,
+      "unique_skeletons": 5,
+      "cumulative_2paths": 7,
+      "cumulative_3paths": 6
+    },
+    {
+      "input_idx": 36496,
+      "unique_inputs": 6,
+      "unique_skeletons": 6,
+      "cumulative_2paths": 8,
+      "cumulative_3paths": 7
+    },
+    {
+      "input_idx": 38777,
+      "unique_inputs": 6,
+      "unique_skeletons": 6,
+      "cumulative_2paths": 8,
+      "cumulative_3paths": 7
+    },
+    {
+      "input_idx": 41058,
+      "unique_inputs": 7,
+      "unique_skeletons": 7,
+      "cumulative_2paths": 8,
+      "cumulative_3paths": 8
+    },
+    {
+      "input_idx": 43339,
+      "unique_inputs": 8,
+      "unique_skeletons": 8,
+      "cumulative_2paths": 8,
+      "cumulative_3paths": 8
+    },
+    {
+      "input_idx": 45620,
+      "unique_inputs": 10,
+      "unique_skeletons": 10,
+      "cumulative_2paths": 8,
+      "cumulative_3paths": 8
+    },
+    {
+      "input_idx": 47901,
+      "unique_inputs": 11,
+      "unique_skeletons": 11,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 9
+    },
+    {
+      "input_idx": 50182,
+      "unique_inputs": 12,
+      "unique_skeletons": 12,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 9
+    },
+    {
+      "input_idx": 52463,
+      "unique_inputs": 18,
+      "unique_skeletons": 15,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 54744,
+      "unique_inputs": 25,
+      "unique_skeletons": 20,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 57025,
+      "unique_inputs": 41,
+      "unique_skeletons": 29,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 59306,
+      "unique_inputs": 54,
+      "unique_skeletons": 39,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 61587,
+      "unique_inputs": 68,
+      "unique_skeletons": 48,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 63868,
+      "unique_inputs": 86,
+      "unique_skeletons": 59,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 66149,
+      "unique_inputs": 99,
+      "unique_skeletons": 66,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 68430,
+      "unique_inputs": 115,
+      "unique_skeletons": 74,
+      "cumulative_2paths": 10,
+      "cumulative_3paths": 10
+    },
+    {
+      "input_idx": 70711,
+      "unique_inputs": 140,
+      "unique_skeletons": 90,
+      "cumulative_2paths": 11,
+      "cumulative_3paths": 11
+    },
+    {
+      "input_idx": 72992,
+      "unique_inputs": 171,
+      "unique_skeletons": 102,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 75273,
+      "unique_inputs": 201,
+      "unique_skeletons": 116,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 77554,
+      "unique_inputs": 223,
+      "unique_skeletons": 124,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 79835,
+      "unique_inputs": 246,
+      "unique_skeletons": 134,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 82116,
+      "unique_inputs": 277,
+      "unique_skeletons": 143,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 84397,
+      "unique_inputs": 291,
+      "unique_skeletons": 148,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 86678,
+      "unique_inputs": 310,
+      "unique_skeletons": 150,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 88959,
+      "unique_inputs": 336,
+      "unique_skeletons": 155,
+      "cumulative_2paths": 14,
+      "cumulative_3paths": 14
+    },
+    {
+      "input_idx": 91240,
+      "unique_inputs": 362,
+      "unique_skeletons": 168,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 93521,
+      "unique_inputs": 377,
+      "unique_skeletons": 173,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 95802,
+      "unique_inputs": 389,
+      "unique_skeletons": 177,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 98083,
+      "unique_inputs": 406,
+      "unique_skeletons": 183,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 100364,
+      "unique_inputs": 428,
+      "unique_skeletons": 190,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 102645,
+      "unique_inputs": 449,
+      "unique_skeletons": 194,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 104926,
+      "unique_inputs": 466,
+      "unique_skeletons": 198,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 107207,
+      "unique_inputs": 493,
+      "unique_skeletons": 204,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 16
+    },
+    {
+      "input_idx": 109488,
+      "unique_inputs": 514,
+      "unique_skeletons": 210,
+      "cumulative_2paths": 15,
+      "cumulative_3paths": 17
+    },
+    {
+      "input_idx": 111769,
+      "unique_inputs": 544,
+      "unique_skeletons": 220,
+      "cumulative_2paths": 18,
+      "cumulative_3paths": 20
+    },
+    {
+      "input_idx": 114050,
+      "unique_inputs": 580,
+      "unique_skeletons": 234,
+      "cumulative_2paths": 32,
+      "cumulative_3paths": 41
+    },
+    {
+      "input_idx": 116331,
+      "unique_inputs": 608,
+      "unique_skeletons": 246,
+      "cumulative_2paths": 32,
+      "cumulative_3paths": 41
+    },
+    {
+      "input_idx": 118612,
+      "unique_inputs": 637,
+      "unique_skeletons": 258,
+      "cumulative_2paths": 35,
+      "cumulative_3paths": 45
+    },
+    {
+      "input_idx": 120893,
+      "unique_inputs": 666,
+      "unique_skeletons": 269,
+      "cumulative_2paths": 37,
+      "cumulative_3paths": 51
+    },
+    {
+      "input_idx": 123174,
+      "unique_inputs": 696,
+      "unique_skeletons": 278,
+      "cumulative_2paths": 38,
+      "cumulative_3paths": 54
+    },
+    {
+      "input_idx": 125455,
+      "unique_inputs": 732,
+      "unique_skeletons": 295,
+      "cumulative_2paths": 43,
+      "cumulative_3paths": 63
+    },
+    {
+      "input_idx": 127736,
+      "unique_inputs": 778,
+      "unique_skeletons": 319,
+      "cumulative_2paths": 48,
+      "cumulative_3paths": 73
+    },
+    {
+      "input_idx": 130017,
+      "unique_inputs": 828,
+      "unique_skeletons": 344,
+      "cumulative_2paths": 49,
+      "cumulative_3paths": 79
+    },
+    {
+      "input_idx": 132298,
+      "unique_inputs": 880,
+      "unique_skeletons": 373,
+      "cumulative_2paths": 57,
+      "cumulative_3paths": 103
+    },
+    {
+      "input_idx": 134579,
+      "unique_inputs": 935,
+      "unique_skeletons": 392,
+      "cumulative_2paths": 62,
+      "cumulative_3paths": 118
+    },
+    {
+      "input_idx": 136860,
+      "unique_inputs": 989,
+      "unique_skeletons": 416,
+      "cumulative_2paths": 64,
+      "cumulative_3paths": 128
+    },
+    {
+      "input_idx": 139141,
+      "unique_inputs": 1053,
+      "unique_skeletons": 446,
+      "cumulative_2paths": 65,
+      "cumulative_3paths": 133
+    },
+    {
+      "input_idx": 141422,
+      "unique_inputs": 1122,
+      "unique_skeletons": 483,
+      "cumulative_2paths": 68,
+      "cumulative_3paths": 141
+    },
+    {
+      "input_idx": 143703,
+      "unique_inputs": 1184,
+      "unique_skeletons": 514,
+      "cumulative_2paths": 68,
+      "cumulative_3paths": 148
+    },
+    {
+      "input_idx": 145984,
+      "unique_inputs": 1259,
+      "unique_skeletons": 552,
+      "cumulative_2paths": 68,
+      "cumulative_3paths": 150
+    },
+    {
+      "input_idx": 148265,
+      "unique_inputs": 1335,
+      "unique_skeletons": 594,
+      "cumulative_2paths": 73,
+      "cumulative_3paths": 166
+    },
+    {
+      "input_idx": 150546,
+      "unique_inputs": 1405,
+      "unique_skeletons": 621,
+      "cumulative_2paths": 73,
+      "cumulative_3paths": 168
+    },
+    {
+      "input_idx": 152827,
+      "unique_inputs": 1477,
+      "unique_skeletons": 656,
+      "cumulative_2paths": 73,
+      "cumulative_3paths": 168
+    },
+    {
+      "input_idx": 155108,
+      "unique_inputs": 1530,
+      "unique_skeletons": 678,
+      "cumulative_2paths": 73,
+      "cumulative_3paths": 174
+    },
+    {
+      "input_idx": 157389,
+      "unique_inputs": 1591,
+      "unique_skeletons": 708,
+      "cumulative_2paths": 74,
+      "cumulative_3paths": 181
+    },
+    {
+      "input_idx": 159670,
+      "unique_inputs": 1688,
+      "unique_skeletons": 766,
+      "cumulative_2paths": 74,
+      "cumulative_3paths": 185
+    },
+    {
+      "input_idx": 161951,
+      "unique_inputs": 1799,
+      "unique_skeletons": 825,
+      "cumulative_2paths": 75,
+      "cumulative_3paths": 202
+    },
+    {
+      "input_idx": 164232,
+      "unique_inputs": 1905,
+      "unique_skeletons": 883,
+      "cumulative_2paths": 80,
+      "cumulative_3paths": 216
+    },
+    {
+      "input_idx": 166513,
+      "unique_inputs": 1994,
+      "unique_skeletons": 943,
+      "cumulative_2paths": 80,
+      "cumulative_3paths": 224
+    },
+    {
+      "input_idx": 168794,
+      "unique_inputs": 2070,
+      "unique_skeletons": 981,
+      "cumulative_2paths": 80,
+      "cumulative_3paths": 237
+    },
+    {
+      "input_idx": 171075,
+      "unique_inputs": 2174,
+      "unique_skeletons": 1034,
+      "cumulative_2paths": 81,
+      "cumulative_3paths": 247
+    },
+    {
+      "input_idx": 173356,
+      "unique_inputs": 2275,
+      "unique_skeletons": 1089,
+      "cumulative_2paths": 83,
+      "cumulative_3paths": 254
+    },
+    {
+      "input_idx": 175637,
+      "unique_inputs": 2365,
+      "unique_skeletons": 1143,
+      "cumulative_2paths": 85,
+      "cumulative_3paths": 261
+    },
+    {
+      "input_idx": 177918,
+      "unique_inputs": 2459,
+      "unique_skeletons": 1202,
+      "cumulative_2paths": 85,
+      "cumulative_3paths": 265
+    },
+    {
+      "input_idx": 180199,
+      "unique_inputs": 2571,
+      "unique_skeletons": 1271,
+      "cumulative_2paths": 87,
+      "cumulative_3paths": 275
+    },
+    {
+      "input_idx": 182480,
+      "unique_inputs": 2702,
+      "unique_skeletons": 1359,
+      "cumulative_2paths": 89,
+      "cumulative_3paths": 283
+    },
+    {
+      "input_idx": 184761,
+      "unique_inputs": 2834,
+      "unique_skeletons": 1449,
+      "cumulative_2paths": 91,
+      "cumulative_3paths": 298
+    },
+    {
+      "input_idx": 187042,
+      "unique_inputs": 2955,
+      "unique_skeletons": 1519,
+      "cumulative_2paths": 91,
+      "cumulative_3paths": 298
+    },
+    {
+      "input_idx": 189323,
+      "unique_inputs": 3067,
+      "unique_skeletons": 1582,
+      "cumulative_2paths": 92,
+      "cumulative_3paths": 306
+    },
+    {
+      "input_idx": 191604,
+      "unique_inputs": 3212,
+      "unique_skeletons": 1665,
+      "cumulative_2paths": 93,
+      "cumulative_3paths": 313
+    },
+    {
+      "input_idx": 193885,
+      "unique_inputs": 3349,
+      "unique_skeletons": 1743,
+      "cumulative_2paths": 93,
+      "cumulative_3paths": 323
+    },
+    {
+      "input_idx": 196166,
+      "unique_inputs": 3466,
+      "unique_skeletons": 1806,
+      "cumulative_2paths": 93,
+      "cumulative_3paths": 330
+    },
+    {
+      "input_idx": 198447,
+      "unique_inputs": 3612,
+      "unique_skeletons": 1891,
+      "cumulative_2paths": 95,
+      "cumulative_3paths": 346
+    },
+    {
+      "input_idx": 200728,
+      "unique_inputs": 3730,
+      "unique_skeletons": 1963,
+      "cumulative_2paths": 97,
+      "cumulative_3paths": 353
+    },
+    {
+      "input_idx": 203009,
+      "unique_inputs": 3866,
+      "unique_skeletons": 2056,
+      "cumulative_2paths": 98,
+      "cumulative_3paths": 359
+    },
+    {
+      "input_idx": 205290,
+      "unique_inputs": 3973,
+      "unique_skeletons": 2114,
+      "cumulative_2paths": 98,
+      "cumulative_3paths": 364
+    },
+    {
+      "input_idx": 207571,
+      "unique_inputs": 4090,
+      "unique_skeletons": 2189,
+      "cumulative_2paths": 100,
+      "cumulative_3paths": 378
+    },
+    {
+      "input_idx": 209852,
+      "unique_inputs": 4234,
+      "unique_skeletons": 2275,
+      "cumulative_2paths": 100,
+      "cumulative_3paths": 380
+    },
+    {
+      "input_idx": 212133,
+      "unique_inputs": 4385,
+      "unique_skeletons": 2370,
+      "cumulative_2paths": 100,
+      "cumulative_3paths": 387
+    },
+    {
+      "input_idx": 214414,
+      "unique_inputs": 4544,
+      "unique_skeletons": 2470,
+      "cumulative_2paths": 100,
+      "cumulative_3paths": 392
+    },
+    {
+      "input_idx": 216695,
+      "unique_inputs": 4701,
+      "unique_skeletons": 2562,
+      "cumulative_2paths": 100,
+      "cumulative_3paths": 398
+    },
+    {
+      "input_idx": 218976,
+      "unique_inputs": 4846,
+      "unique_skeletons": 2653,
+      "cumulative_2paths": 102,
+      "cumulative_3paths": 410
+    },
+    {
+      "input_idx": 221257,
+      "unique_inputs": 4994,
+      "unique_skeletons": 2743,
+      "cumulative_2paths": 102,
+      "cumulative_3paths": 414
+    },
+    {
+      "input_idx": 223538,
+      "unique_inputs": 5147,
+      "unique_skeletons": 2844,
+      "cumulative_2paths": 102,
+      "cumulative_3paths": 422
+    },
+    {
+      "input_idx": 225819,
+      "unique_inputs": 5327,
+      "unique_skeletons": 2953,
+      "cumulative_2paths": 102,
+      "cumulative_3paths": 430
+    },
+    {
+      "input_idx": 228100,
+      "unique_inputs": 5467,
+      "unique_skeletons": 3033,
+      "cumulative_2paths": 102,
+      "cumulative_3paths": 438
+    },
+    {
+      "input_idx": 230381,
+      "unique_inputs": 5636,
+      "unique_skeletons": 3143,
+      "cumulative_2paths": 103,
+      "cumulative_3paths": 446
+    },
+    {
+      "input_idx": 232662,
+      "unique_inputs": 5791,
+      "unique_skeletons": 3238,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 452
+    },
+    {
+      "input_idx": 234943,
+      "unique_inputs": 5983,
+      "unique_skeletons": 3366,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 459
+    },
+    {
+      "input_idx": 237224,
+      "unique_inputs": 6186,
+      "unique_skeletons": 3490,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 467
+    },
+    {
+      "input_idx": 239505,
+      "unique_inputs": 6391,
+      "unique_skeletons": 3619,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 469
+    },
+    {
+      "input_idx": 241786,
+      "unique_inputs": 6575,
+      "unique_skeletons": 3733,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 474
+    },
+    {
+      "input_idx": 244067,
+      "unique_inputs": 6747,
+      "unique_skeletons": 3824,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 475
+    },
+    {
+      "input_idx": 246348,
+      "unique_inputs": 6945,
+      "unique_skeletons": 3951,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 477
+    },
+    {
+      "input_idx": 248629,
+      "unique_inputs": 7113,
+      "unique_skeletons": 4042,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 478
+    },
+    {
+      "input_idx": 250910,
+      "unique_inputs": 7296,
+      "unique_skeletons": 4172,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 483
+    },
+    {
+      "input_idx": 253191,
+      "unique_inputs": 7485,
+      "unique_skeletons": 4287,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 484
+    },
+    {
+      "input_idx": 255472,
+      "unique_inputs": 7668,
+      "unique_skeletons": 4394,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 487
+    },
+    {
+      "input_idx": 257753,
+      "unique_inputs": 7886,
+      "unique_skeletons": 4541,
+      "cumulative_2paths": 104,
+      "cumulative_3paths": 490
+    },
+    {
+      "input_idx": 260034,
+      "unique_inputs": 8069,
+      "unique_skeletons": 4667,
+      "cumulative_2paths": 105,
+      "cumulative_3paths": 495
+    },
+    {
+      "input_idx": 262315,
+      "unique_inputs": 8242,
+      "unique_skeletons": 4764,
+      "cumulative_2paths": 105,
+      "cumulative_3paths": 498
+    },
+    {
+      "input_idx": 264596,
+      "unique_inputs": 8462,
+      "unique_skeletons": 4897,
+      "cumulative_2paths": 105,
+      "cumulative_3paths": 502
+    },
+    {
+      "input_idx": 266877,
+      "unique_inputs": 8654,
+      "unique_skeletons": 5019,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 506
+    },
+    {
+      "input_idx": 269158,
+      "unique_inputs": 8865,
+      "unique_skeletons": 5154,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 509
+    },
+    {
+      "input_idx": 271439,
+      "unique_inputs": 9093,
+      "unique_skeletons": 5285,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 509
+    },
+    {
+      "input_idx": 273720,
+      "unique_inputs": 9305,
+      "unique_skeletons": 5411,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 510
+    },
+    {
+      "input_idx": 276001,
+      "unique_inputs": 9532,
+      "unique_skeletons": 5552,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 514
+    },
+    {
+      "input_idx": 278282,
+      "unique_inputs": 9745,
+      "unique_skeletons": 5685,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 515
+    },
+    {
+      "input_idx": 280563,
+      "unique_inputs": 9946,
+      "unique_skeletons": 5818,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 515
+    },
+    {
+      "input_idx": 282844,
+      "unique_inputs": 10110,
+      "unique_skeletons": 5918,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 516
+    },
+    {
+      "input_idx": 285125,
+      "unique_inputs": 10323,
+      "unique_skeletons": 6054,
+      "cumulative_2paths": 106,
+      "cumulative_3paths": 522
+    },
+    {
+      "input_idx": 287406,
+      "unique_inputs": 10522,
+      "unique_skeletons": 6192,
+      "cumulative_2paths": 107,
+      "cumulative_3paths": 528
+    },
+    {
+      "input_idx": 289687,
+      "unique_inputs": 10760,
+      "unique_skeletons": 6362,
+      "cumulative_2paths": 107,
+      "cumulative_3paths": 538
+    },
+    {
+      "input_idx": 291896,
+      "unique_inputs": 10992,
+      "unique_skeletons": 6514,
+      "cumulative_2paths": 107,
+      "cumulative_3paths": 543
+    }
+  ],
+  "source_coverage_pct": null,
+  "coverage_snapshots": [],
+  "source_lines_covered": 6280
+}

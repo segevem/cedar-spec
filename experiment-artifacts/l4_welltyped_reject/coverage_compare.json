@@ -1,0 +1,3510 @@
+{
+  "units_note": "shared/only_*/jaccard are region-lines; source_lines_covered is accurate executable lines",
+  "guided_approaches": [
+    "hw-slots-off",
+    "hw-welltyped-noslots"
+  ],
+  "specimen_approaches": [
+    "wt-policy-sz12"
+  ],
+  "approaches": {
+    "hw-slots-off": {
+      "source_lines_covered": 6010,
+      "covered_region_lines": 5802
+    },
+    "hw-welltyped-noslots": {
+      "source_lines_covered": 5382,
+      "covered_region_lines": 5202
+    },
+    "wt-policy-sz12": {
+      "source_lines_covered": 5742,
+      "covered_region_lines": 5554
+    }
+  },
+  "pairs": {
+    "wt-policy-sz12_vs_handwritten": {
+      "shared": 5429,
+      "only_a": 125,
+      "only_b": 373,
+      "jaccard": 0.9159777290366121,
+      "by_function": [
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys_00Bc_",
+          "only_a": 47
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker19typecheck_extension",
+          "only_b": 26
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError21expected_one_of_types",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys9_0s_0Bc_",
+          "only_a": 11,
+          "only_b": 4
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17wrong_number_args",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError28function_argument_validation",
+          "only_b": 14
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning21confusable_identifierReEBa_",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError37failed_extension_function_application",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvXs6_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_15ValidationErrorINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics15ValidationErrorE4from",
+          "only_a": 2,
+          "only_b": 10
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19invalid_enum_entity",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning19mixed_script_stringNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning23mixed_script_identifierReEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator10str_checks17permissable_ident",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime13extension_err",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker28expected_comparison_op_types",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCNCNvXs2_NtNtCsB6bMLwiAtR_12cedar_policy5proto6policyNtNtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6policy12TemplateBodyINtNtCs4NRVxsYgnAr_4core7convert7TryFromNtNtNtBb_6models17cedar_policy_core12TemplateBodyE8try_froms_00Bd_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core19from_normalized_str27default_from_normalized_strNtNtNtB4_3ast2id5AnyIdNvYB1p_NtB2_17FromNormalizedStr13describe_selfECsB6bMLwiAtR_12cedar_policy",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvMsl_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprNtB6_4Expr8eq_shapeuEBa_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys5_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys7_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_19typecheck_extensions1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks3_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_in0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_ins_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unary0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typecheck0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks8_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecksa_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23non_lit_ext_constructor",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecksd_0Ba_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19empty_set_forbidden",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddr13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions7decimal13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17datetime_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17duration_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvXs8_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_17ValidationWarningINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17ValidationWarningE4from",
+          "only_b": 6
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator16extension_schemaNtB6_23ArgumentValidationError3newNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNCNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB6_9Validator20validate_enum_entitys_0B8_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMs2_NtNtCsb3ErW39O8Ji_17cedar_policy_core6parser10cst_to_astINtNtB7_4node4NodeINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtB7_3cst5IdentEE12to_any_ident",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError21with_maybe_source_loc",
+          "only_b": 6
+        }
+      ]
+    },
+    "specimen_union_vs_handwritten": {
+      "shared": 5429,
+      "only_a": 125,
+      "only_b": 373,
+      "jaccard": 0.9159777290366121,
+      "by_function": [
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys_00Bc_",
+          "only_a": 47
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker19typecheck_extension",
+          "only_b": 26
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError21expected_one_of_types",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys9_0s_0Bc_",
+          "only_a": 11,
+          "only_b": 4
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17wrong_number_args",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError28function_argument_validation",
+          "only_b": 14
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning21confusable_identifierReEBa_",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError37failed_extension_function_application",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvXs6_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_15ValidationErrorINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics15ValidationErrorE4from",
+          "only_a": 2,
+          "only_b": 10
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19invalid_enum_entity",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning19mixed_script_stringNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning23mixed_script_identifierReEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator10str_checks17permissable_ident",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime13extension_err",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker28expected_comparison_op_types",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCNCNvXs2_NtNtCsB6bMLwiAtR_12cedar_policy5proto6policyNtNtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6policy12TemplateBodyINtNtCs4NRVxsYgnAr_4core7convert7TryFromNtNtNtBb_6models17cedar_policy_core12TemplateBodyE8try_froms_00Bd_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core19from_normalized_str27default_from_normalized_strNtNtNtB4_3ast2id5AnyIdNvYB1p_NtB2_17FromNormalizedStr13describe_selfECsB6bMLwiAtR_12cedar_policy",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvMsl_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprNtB6_4Expr8eq_shapeuEBa_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys5_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys7_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_19typecheck_extensions1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks3_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_in0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_ins_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unary0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typecheck0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks8_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecksa_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23non_lit_ext_constructor",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecksd_0Ba_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19empty_set_forbidden",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddr13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions7decimal13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17datetime_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17duration_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvXs8_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_17ValidationWarningINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17ValidationWarningE4from",
+          "only_b": 6
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator16extension_schemaNtB6_23ArgumentValidationError3newNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNCNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB6_9Validator20validate_enum_entitys_0B8_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMs2_NtNtCsb3ErW39O8Ji_17cedar_policy_core6parser10cst_to_astINtNtB7_4node4NodeINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtB7_3cst5IdentEE12to_any_ident",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError21with_maybe_source_loc",
+          "only_b": 6
+        }
+      ]
+    },
+    "wt-policy-sz12_vs_hw-slots-off": {
+      "shared": 5429,
+      "only_a": 125,
+      "only_b": 373,
+      "jaccard": 0.9159777290366121,
+      "by_function": [
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys_00Bc_",
+          "only_a": 47
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker19typecheck_extension",
+          "only_b": 26
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError21expected_one_of_types",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys9_0s_0Bc_",
+          "only_a": 11,
+          "only_b": 4
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17wrong_number_args",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError28function_argument_validation",
+          "only_b": 14
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning21confusable_identifierReEBa_",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError37failed_extension_function_application",
+          "only_b": 14
+        },
+        {
+          "fn": "_RNvXs6_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_15ValidationErrorINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics15ValidationErrorE4from",
+          "only_a": 2,
+          "only_b": 10
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19invalid_enum_entity",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning19mixed_script_stringNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning23mixed_script_identifierReEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator10str_checks17permissable_ident",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime13extension_err",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker28expected_comparison_op_types",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCNCNvXs2_NtNtCsB6bMLwiAtR_12cedar_policy5proto6policyNtNtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6policy12TemplateBodyINtNtCs4NRVxsYgnAr_4core7convert7TryFromNtNtNtBb_6models17cedar_policy_core12TemplateBodyE8try_froms_00Bd_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core19from_normalized_str27default_from_normalized_strNtNtNtB4_3ast2id5AnyIdNvYB1p_NtB2_17FromNormalizedStr13describe_selfECsB6bMLwiAtR_12cedar_policy",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvMsl_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprNtB6_4Expr8eq_shapeuEBa_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys5_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys7_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_19typecheck_extensions1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks1_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks3_00E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_in0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_ins_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unary0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typecheck0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks0_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks2_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks4_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks6_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks8_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecksa_0E0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23non_lit_ext_constructor",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecksd_0Ba_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19empty_set_forbidden",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddr13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions7decimal13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17datetime_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17duration_from_str00B9_",
+          "only_b": 7
+        },
+        {
+          "fn": "_RNvXs8_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_17ValidationWarningINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17ValidationWarningE4from",
+          "only_b": 6
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator16extension_schemaNtB6_23ArgumentValidationError3newNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNCNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB6_9Validator20validate_enum_entitys_0B8_",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMs2_NtNtCsb3ErW39O8Ji_17cedar_policy_core6parser10cst_to_astINtNtB7_4node4NodeINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtB7_3cst5IdentEE12to_any_ident",
+          "only_b": 6
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError21with_maybe_source_loc",
+          "only_b": 6
+        }
+      ]
+    },
+    "wt-policy-sz12_vs_hw-welltyped-noslots": {
+      "shared": 5079,
+      "only_a": 475,
+      "only_b": 123,
+      "jaccard": 0.8946626739475075,
+      "by_function": [
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys_00Bc_",
+          "only_a": 48
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecks5_0Ba_",
+          "only_a": 28
+        },
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys9_0s_0Bc_",
+          "only_a": 26
+        },
+        {
+          "fn": "_RNvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20levenshtein_distance",
+          "only_a": 23
+        },
+        {
+          "fn": "_RNvXs6_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_15ValidationErrorINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics15ValidationErrorE4from",
+          "only_a": 17
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError21expected_one_of_types",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23unsafe_attribute_access",
+          "only_a": 16
+        },
+        {
+          "fn": "_RINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB5_15ValidationError18incompatible_typesANtNtB7_5types4Typej2_EB9_",
+          "only_a": 16
+        },
+        {
+          "fn": "_RINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB5_15ValidationError18incompatible_typesINtNtCscdodAO9FK5_5alloc3vec3VecNtNtB7_5types4TypeEEB9_",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError24unrecognized_entity_type",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17unsafe_tag_access",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMsg_NtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17validation_errorsNtB5_15AttributeAccess9from_expr",
+          "only_a": 14
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning21confusable_identifierReEBa_",
+          "only_b": 14
+        },
+        {
+          "fn": "_RINvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB5_9Validator20check_if_any_containRNCNvB2_26check_if_in_fixes_resource0EB7_",
+          "only_a": 13
+        },
+        {
+          "fn": "_RINvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB5_9Validator20check_if_any_containRNCNvB2_27check_if_in_fixes_principal0EB7_",
+          "only_a": 13
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError32unsafe_optional_attribute_access",
+          "only_a": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning19mixed_script_stringNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB6_17ValidationWarning23mixed_script_identifierReEBa_",
+          "only_b": 12
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedReEB4_",
+          "only_a": 11
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator10str_checks17permissable_ident",
+          "only_b": 11
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker28expected_comparison_op_types",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys5_00E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_16typecheck_binarys7_00E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_19typecheck_extensions1_00E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks1_00E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNCNvB4_9typechecks3_00E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_in0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_12typecheck_ins_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unary0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_15typecheck_unarys0_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys0_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys2_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys4_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_16typecheck_binarys6_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typecheck0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks0_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks2_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks4_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks6_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecks8_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker19expect_one_of_typesNCNvB4_9typechecksa_0E0Bb_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNvMs5_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator5typesNtB5_10EntityKind17least_upper_bound",
+          "only_a": 10
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedNtNtCscdodAO9FK5_5alloc6string6StringEB4_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCNCNvXs2_NtNtCsB6bMLwiAtR_12cedar_policy5proto6policyNtNtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6policy12TemplateBodyINtNtCs4NRVxsYgnAr_4core7convert7TryFromNtNtNtBb_6models17cedar_policy_core12TemplateBodyE8try_froms_00Bd_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core19from_normalized_str27default_from_normalized_strNtNtNtB4_3ast2id5AnyIdNvYB1p_NtB2_17FromNormalizedStr13describe_selfECsB6bMLwiAtR_12cedar_policy",
+          "only_b": 9
+        },
+        {
+          "fn": "_RINvMsl_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprNtB6_4Expr8eq_shapeuEBa_",
+          "only_b": 9
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker26least_upper_bound_or_errorINtNtCscdodAO9FK5_5alloc3vec3VecINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtB9_5types4TypeEEE0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker26least_upper_bound_or_errorINtNtNtNtCs4NRVxsYgnAr_4core4iter8adapters3map3MapINtNtNtB24_5slice4iter4IterINtNtNtBb_3ast4expr4ExprINtNtB24_6option6OptionNtNtB9_5types4TypeEEENCNCNvB4_9typechecksd_00EE0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker23enforce_strict_equality",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker16typecheck_binarys9_0Ba_",
+          "only_a": 8
+        }
+      ]
+    },
+    "hw-slots-off_vs_hw-welltyped-noslots": {
+      "shared": 5202,
+      "only_a": 600,
+      "only_b": 0,
+      "jaccard": 0.8965873836608066,
+      "by_function": [
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecks5_0Ba_",
+          "only_a": 28
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker19typecheck_extension",
+          "only_a": 26
+        },
+        {
+          "fn": "_RNvXs6_NtNtCsB6bMLwiAtR_12cedar_policy3api3errNtB5_15ValidationErrorINtNtCs4NRVxsYgnAr_4core7convert4FromNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics15ValidationErrorE4from",
+          "only_a": 25
+        },
+        {
+          "fn": "_RNvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20levenshtein_distance",
+          "only_a": 23
+        },
+        {
+          "fn": "_RNvMsg_NtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17validation_errorsNtB5_15AttributeAccess9from_expr",
+          "only_a": 20
+        },
+        {
+          "fn": "_RNCNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB8_20SingleEnvTypechecker16typecheck_binarys9_0s_0Bc_",
+          "only_a": 19
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23unsafe_attribute_access",
+          "only_a": 16
+        },
+        {
+          "fn": "_RINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB5_15ValidationError18incompatible_typesANtNtB7_5types4Typej2_EB9_",
+          "only_a": 16
+        },
+        {
+          "fn": "_RINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB5_15ValidationError18incompatible_typesINtNtCscdodAO9FK5_5alloc3vec3VecNtNtB7_5types4TypeEEB9_",
+          "only_a": 16
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17wrong_number_args",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError28function_argument_validation",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError24unrecognized_entity_type",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError17unsafe_tag_access",
+          "only_a": 14
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError37failed_extension_function_application",
+          "only_a": 14
+        },
+        {
+          "fn": "_RINvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB5_9Validator20check_if_any_containRNCNvB2_26check_if_in_fixes_resource0EB7_",
+          "only_a": 13
+        },
+        {
+          "fn": "_RINvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB5_9Validator20check_if_any_containRNCNvB2_27check_if_in_fixes_principal0EB7_",
+          "only_a": 13
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19invalid_enum_entity",
+          "only_a": 12
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError32unsafe_optional_attribute_access",
+          "only_a": 12
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker9typechecksd_0Ba_",
+          "only_a": 11
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedReEB4_",
+          "only_a": 11
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime13extension_err",
+          "only_a": 11
+        },
+        {
+          "fn": "_RNvMs5_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator5typesNtB5_10EntityKind17least_upper_bound",
+          "only_a": 10
+        },
+        {
+          "fn": "_RINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedNtNtCscdodAO9FK5_5alloc6string6StringEB4_",
+          "only_a": 10
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker26least_upper_bound_or_errorINtNtCscdodAO9FK5_5alloc3vec3VecINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtB9_5types4TypeEEE0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCINvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB7_20SingleEnvTypechecker26least_upper_bound_or_errorINtNtNtNtCs4NRVxsYgnAr_4core4iter8adapters3map3MapINtNtNtB24_5slice4iter4IterINtNtNtBb_3ast4expr4ExprINtNtB24_6option6OptionNtNtB9_5types4TypeEEENCNCNvB4_9typechecksd_00EE0Bb_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker23enforce_strict_equality",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNCNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB6_20SingleEnvTypechecker16typecheck_binarys9_0Ba_",
+          "only_a": 8
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError23non_lit_ext_constructor",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnosticsNtB4_15ValidationError19empty_set_forbidden",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNvXsc_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprINtB5_11ExprBuilderINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtNtB9_9validator5types4TypeEENtNtB9_12expr_builder11ExprBuilder7get_tagB9_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNvXsc_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast4exprINtB5_11ExprBuilderINtNtCs4NRVxsYgnAr_4core6option6OptionNtNtNtB9_9validator5types4TypeEENtNtB9_12expr_builder11ExprBuilder7has_tagB9_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNvNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator11diagnostics17validation_errors25get_suggested_entity_type",
+          "only_a": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddr13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RINvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions7decimal13extension_errNtNtCscdodAO9FK5_5alloc6string6StringEB6_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17datetime_from_str00B9_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RNCNCNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions8datetime17duration_from_str00B9_",
+          "only_a": 7
+        },
+        {
+          "fn": "_RINvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator16extension_schemaNtB6_23ArgumentValidationError3newNtNtCscdodAO9FK5_5alloc6string6StringEBa_",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNCNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB6_9Validator20validate_enum_entitys_0B8_",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNvMs_NtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheckNtB4_20SingleEnvTypechecker16typecheck_binary",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNCNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator4rbacNtB6_9Validator21validate_entity_typess_0B8_",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNvMNtNtCsb3ErW39O8Ji_17cedar_policy_core9evaluator3errNtB2_15EvaluationError21with_maybe_source_loc",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNCINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedNtNtCscdodAO9FK5_5alloc6string6StringE0B6_",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNCINvNtCsb3ErW39O8Ji_17cedar_policy_core11fuzzy_match20fuzzy_search_limitedReE0B6_",
+          "only_a": 6
+        },
+        {
+          "fn": "_RNvMNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheck16typecheck_answerNtB2_15TypecheckAnswer4fail",
+          "only_a": 5
+        },
+        {
+          "fn": "_RNvMNtNtNtCsb3ErW39O8Ji_17cedar_policy_core9validator9typecheck16typecheck_answerNtB2_15TypecheckAnswer9into_fail",
+          "only_a": 5
+        },
+        {
+          "fn": "_RNvXsm_NtNtCsb3ErW39O8Ji_17cedar_policy_core6parser3fmtNtNtB7_3cst5IdentNtNtCs4NRVxsYgnAr_4core3fmt7Display3fmt",
+          "only_a": 5
+        },
+        {
+          "fn": "_RNvNtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddr12parse_prefix",
+          "only_a": 5
+        },
+        {
+          "fn": "_RNvXs_NtNtCsb3ErW39O8Ji_17cedar_policy_core10extensions6ipaddrNtB4_6IPAddrNtNtNtCs4NRVxsYgnAr_4core3str6traits7FromStr8from_str",
+          "only_a": 5
+        },
+        {
+          "fn": "_RNvMsa_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6entityNtB5_9EntityUID3loc",
+          "only_a": 4
+        },
+        {
+          "fn": "_RNvMs0_NtNtCsb3ErW39O8Ji_17cedar_policy_core3ast6entityNtB5_10EntityType3loc",
+          "only_a": 4
+        }
+      ]
+    }
+  },
+  "coverage_map": {
+    "specimen_union": {
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api.rs": {
+        "covered": 43,
+        "total": 2537,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator.rs": {
+        "covered": 74,
+        "total": 115,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr.rs": {
+        "covered": 369,
+        "total": 929,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy.rs": {
+        "covered": 264,
+        "total": 990,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/literal.rs": {
+        "covered": 15,
+        "total": 41,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/expr_builder.rs": {
+        "covered": 28,
+        "total": 160,
+        "module": "expr_builder"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/traits.rs": {
+        "covered": 11,
+        "total": 31,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/api.rs": {
+        "covered": 20,
+        "total": 35,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy_set.rs": {
+        "covered": 43,
+        "total": 361,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities.rs": {
+        "covered": 0,
+        "total": 289,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema.rs": {
+        "covered": 126,
+        "total": 799,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure.rs": {
+        "covered": 0,
+        "total": 263,
+        "module": "transitive_closure"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer/partial_response.rs": {
+        "covered": 0,
+        "total": 308,
+        "module": "authorizer"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/namespace_def.rs": {
+        "covered": 0,
+        "total": 539,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/is_authorized.rs": {
+        "covered": 0,
+        "total": 392,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/tpe.rs": {
+        "covered": 0,
+        "total": 371,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/id.rs": {
+        "covered": 3,
+        "total": 133,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/ast_conversions.rs": {
+        "covered": 0,
+        "total": 518,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/entity.rs": {
+        "covered": 63,
+        "total": 371,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/expr.rs": {
+        "covered": 0,
+        "total": 1054,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/jsonvalue.rs": {
+        "covered": 0,
+        "total": 119,
+        "module": "jsonvalue"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/request.rs": {
+        "covered": 0,
+        "total": 292,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/context.rs": {
+        "covered": 0,
+        "total": 33,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/ast.rs": {
+        "covered": 347,
+        "total": 545,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err.rs": {
+        "covered": 22,
+        "total": 298,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/restricted_expr.rs": {
+        "covered": 44,
+        "total": 288,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure/err.rs": {
+        "covered": 0,
+        "total": 13,
+        "module": "transitive_closure"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/err.rs": {
+        "covered": 0,
+        "total": 182,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/from_normalized_str.rs": {
+        "covered": 0,
+        "total": 27,
+        "module": "from_normalized_str"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/json_schema.rs": {
+        "covered": 0,
+        "total": 1168,
+        "module": "validator"
+      },
+      "/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/thread_local/native/mod.rs": {
+        "covered": 0,
+        "total": 14,
+        "module": "rust"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/check_parse.rs": {
+        "covered": 0,
+        "total": 132,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/fmt.rs": {
+        "covered": 0,
+        "total": 253,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/policy.rs": {
+        "covered": 247,
+        "total": 330,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/request.rs": {
+        "covered": 4,
+        "total": 305,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/annotation.rs": {
+        "covered": 0,
+        "total": 37,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/error_macros.rs": {
+        "covered": 0,
+        "total": 60,
+        "module": "error_macros"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/err.rs": {
+        "covered": 0,
+        "total": 412,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/name.rs": {
+        "covered": 85,
+        "total": 282,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/err.rs": {
+        "covered": 15,
+        "total": 336,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance.rs": {
+        "covered": 10,
+        "total": 287,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance/err.rs": {
+        "covered": 0,
+        "total": 80,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema.rs": {
+        "covered": 0,
+        "total": 64,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/coreschema.rs": {
+        "covered": 0,
+        "total": 306,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/entity_type.rs": {
+        "covered": 55,
+        "total": 71,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types.rs": {
+        "covered": 349,
+        "total": 607,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/partition_nonempty.rs": {
+        "covered": 0,
+        "total": 8,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/entities.rs": {
+        "covered": 0,
+        "total": 252,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/utils.rs": {
+        "covered": 0,
+        "total": 290,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/validator.rs": {
+        "covered": 176,
+        "total": 206,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/id.rs": {
+        "covered": 29,
+        "total": 177,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/validate.rs": {
+        "covered": 0,
+        "total": 66,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/convert.rs": {
+        "covered": 0,
+        "total": 107,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/entities.rs": {
+        "covered": 0,
+        "total": 20,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_errors.rs": {
+        "covered": 3,
+        "total": 6,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/err.rs": {
+        "covered": 0,
+        "total": 181,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics.rs": {
+        "covered": 129,
+        "total": 327,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/response.rs": {
+        "covered": 0,
+        "total": 139,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/policy.rs": {
+        "covered": 0,
+        "total": 188,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/partial_value.rs": {
+        "covered": 20,
+        "total": 50,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/err.rs": {
+        "covered": 0,
+        "total": 89,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator.rs": {
+        "covered": 36,
+        "total": 627,
+        "module": "evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/annotation.rs": {
+        "covered": 6,
+        "total": 51,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/loc.rs": {
+        "covered": 6,
+        "total": 52,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/action.rs": {
+        "covered": 46,
+        "total": 119,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/format.rs": {
+        "covered": 0,
+        "total": 27,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/value.rs": {
+        "covered": 15,
+        "total": 358,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/extension.rs": {
+        "covered": 119,
+        "total": 282,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions.rs": {
+        "covered": 55,
+        "total": 151,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_iterator.rs": {
+        "covered": 44,
+        "total": 46,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/pattern.rs": {
+        "covered": 19,
+        "total": 73,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/value.rs": {
+        "covered": 0,
+        "total": 523,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/policy_set.rs": {
+        "covered": 0,
+        "total": 75,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_warnings.rs": {
+        "covered": 3,
+        "total": 6,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/version.rs": {
+        "covered": 0,
+        "total": 8,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/rbac.rs": {
+        "covered": 216,
+        "total": 259,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck.rs": {
+        "covered": 1152,
+        "total": 1382,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extension_schema.rs": {
+        "covered": 53,
+        "total": 68,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/entities.rs": {
+        "covered": 0,
+        "total": 484,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/parser.rs": {
+        "covered": 0,
+        "total": 45,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions.rs": {
+        "covered": 51,
+        "total": 51,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/request_env.rs": {
+        "covered": 47,
+        "total": 86,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/level_validate.rs": {
+        "covered": 0,
+        "total": 187,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/loader.rs": {
+        "covered": 0,
+        "total": 308,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe.rs": {
+        "covered": 0,
+        "total": 45,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator/err.rs": {
+        "covered": 0,
+        "total": 257,
+        "module": "evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/residual.rs": {
+        "covered": 0,
+        "total": 242,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema_types.rs": {
+        "covered": 0,
+        "total": 82,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/datetime.rs": {
+        "covered": 251,
+        "total": 484,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/types.rs": {
+        "covered": 0,
+        "total": 13,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck/typecheck_answer.rs": {
+        "covered": 87,
+        "total": 96,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/evaluator.rs": {
+        "covered": 0,
+        "total": 374,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/batched_evaluator.rs": {
+        "covered": 0,
+        "total": 85,
+        "module": "batched_evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/partial_evaluation.rs": {
+        "covered": 26,
+        "total": 31,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/ipaddr.rs": {
+        "covered": 51,
+        "total": 64,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/decimal.rs": {
+        "covered": 50,
+        "total": 63,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/datetime.rs": {
+        "covered": 75,
+        "total": 92,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_errors.rs": {
+        "covered": 21,
+        "total": 176,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/to_json_schema.rs": {
+        "covered": 0,
+        "total": 488,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/expr_iterator.rs": {
+        "covered": 105,
+        "total": 105,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast.rs": {
+        "covered": 19,
+        "total": 1337,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/conversion.rs": {
+        "covered": 0,
+        "total": 169,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est.rs": {
+        "covered": 0,
+        "total": 212,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/est_conversions.rs": {
+        "covered": 0,
+        "total": 229,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/scope_constraints.rs": {
+        "covered": 0,
+        "total": 497,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/node.rs": {
+        "covered": 11,
+        "total": 103,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/ast.rs": {
+        "covered": 0,
+        "total": 122,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/expr.rs": {
+        "covered": 0,
+        "total": 483,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/text_to_cst.rs": {
+        "covered": 31,
+        "total": 55,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/ipaddr.rs": {
+        "covered": 130,
+        "total": 256,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/decimal.rs": {
+        "covered": 103,
+        "total": 177,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/raw_name.rs": {
+        "covered": 0,
+        "total": 103,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/partial_evaluation.rs": {
+        "covered": 10,
+        "total": 14,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/json_schema.rs": {
+        "covered": 0,
+        "total": 12,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/capability.rs": {
+        "covered": 31,
+        "total": 38,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest.rs": {
+        "covered": 0,
+        "total": 245,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/err.rs": {
+        "covered": 0,
+        "total": 10,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/type_annotations.rs": {
+        "covered": 0,
+        "total": 99,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/analysis.rs": {
+        "covered": 0,
+        "total": 136,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/slicing.rs": {
+        "covered": 0,
+        "total": 82,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser.rs": {
+        "covered": 8,
+        "total": 129,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/err.rs": {
+        "covered": 0,
+        "total": 12,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast/to_ref_or_refs.rs": {
+        "covered": 0,
+        "total": 280,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/util.rs": {
+        "covered": 5,
+        "total": 29,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst.rs": {
+        "covered": 0,
+        "total": 4,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/fmt.rs": {
+        "covered": 0,
+        "total": 311,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer.rs": {
+        "covered": 0,
+        "total": 84,
+        "module": "authorizer"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/err.rs": {
+        "covered": 0,
+        "total": 3,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/constraints.rs": {
+        "covered": 0,
+        "total": 89,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/str_checks.rs": {
+        "covered": 36,
+        "total": 63,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/unescape.rs": {
+        "covered": 0,
+        "total": 77,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/fuzzy_match.rs": {
+        "covered": 42,
+        "total": 43,
+        "module": "fuzzy_match"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/ops.rs": {
+        "covered": 0,
+        "total": 21,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_visitor.rs": {
+        "covered": 0,
+        "total": 142,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_warnings.rs": {
+        "covered": 0,
+        "total": 3,
+        "module": "validator"
+      }
+    },
+    "handwritten_union": {
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api.rs": {
+        "covered": 43,
+        "total": 2537,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator.rs": {
+        "covered": 74,
+        "total": 115,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr.rs": {
+        "covered": 384,
+        "total": 929,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy.rs": {
+        "covered": 264,
+        "total": 990,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/literal.rs": {
+        "covered": 19,
+        "total": 41,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/expr_builder.rs": {
+        "covered": 28,
+        "total": 160,
+        "module": "expr_builder"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/traits.rs": {
+        "covered": 11,
+        "total": 31,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/api.rs": {
+        "covered": 20,
+        "total": 35,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy_set.rs": {
+        "covered": 43,
+        "total": 361,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities.rs": {
+        "covered": 0,
+        "total": 289,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema.rs": {
+        "covered": 126,
+        "total": 799,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure.rs": {
+        "covered": 0,
+        "total": 263,
+        "module": "transitive_closure"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer/partial_response.rs": {
+        "covered": 0,
+        "total": 308,
+        "module": "authorizer"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/namespace_def.rs": {
+        "covered": 0,
+        "total": 539,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/is_authorized.rs": {
+        "covered": 0,
+        "total": 392,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/tpe.rs": {
+        "covered": 0,
+        "total": 371,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/id.rs": {
+        "covered": 3,
+        "total": 133,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/ast_conversions.rs": {
+        "covered": 0,
+        "total": 518,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/entity.rs": {
+        "covered": 67,
+        "total": 371,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/expr.rs": {
+        "covered": 0,
+        "total": 1054,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/jsonvalue.rs": {
+        "covered": 0,
+        "total": 119,
+        "module": "jsonvalue"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/request.rs": {
+        "covered": 0,
+        "total": 292,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/context.rs": {
+        "covered": 0,
+        "total": 33,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/ast.rs": {
+        "covered": 347,
+        "total": 545,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err.rs": {
+        "covered": 36,
+        "total": 298,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/restricted_expr.rs": {
+        "covered": 44,
+        "total": 288,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure/err.rs": {
+        "covered": 0,
+        "total": 13,
+        "module": "transitive_closure"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/err.rs": {
+        "covered": 0,
+        "total": 182,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/from_normalized_str.rs": {
+        "covered": 12,
+        "total": 27,
+        "module": "from_normalized_str"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/json_schema.rs": {
+        "covered": 0,
+        "total": 1168,
+        "module": "validator"
+      },
+      "/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/thread_local/native/mod.rs": {
+        "covered": 0,
+        "total": 14,
+        "module": "rust"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/check_parse.rs": {
+        "covered": 0,
+        "total": 132,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/fmt.rs": {
+        "covered": 0,
+        "total": 253,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/policy.rs": {
+        "covered": 259,
+        "total": 330,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/request.rs": {
+        "covered": 4,
+        "total": 305,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/annotation.rs": {
+        "covered": 0,
+        "total": 37,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/error_macros.rs": {
+        "covered": 0,
+        "total": 60,
+        "module": "error_macros"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/err.rs": {
+        "covered": 0,
+        "total": 412,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/name.rs": {
+        "covered": 85,
+        "total": 282,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/err.rs": {
+        "covered": 15,
+        "total": 336,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance.rs": {
+        "covered": 13,
+        "total": 287,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance/err.rs": {
+        "covered": 0,
+        "total": 80,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema.rs": {
+        "covered": 0,
+        "total": 64,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/coreschema.rs": {
+        "covered": 0,
+        "total": 306,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/entity_type.rs": {
+        "covered": 55,
+        "total": 71,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types.rs": {
+        "covered": 349,
+        "total": 607,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/partition_nonempty.rs": {
+        "covered": 0,
+        "total": 8,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/entities.rs": {
+        "covered": 0,
+        "total": 252,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/utils.rs": {
+        "covered": 0,
+        "total": 290,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/validator.rs": {
+        "covered": 176,
+        "total": 206,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/id.rs": {
+        "covered": 41,
+        "total": 177,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/validate.rs": {
+        "covered": 0,
+        "total": 66,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/convert.rs": {
+        "covered": 0,
+        "total": 107,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/entities.rs": {
+        "covered": 0,
+        "total": 20,
+        "module": "proto"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_errors.rs": {
+        "covered": 3,
+        "total": 6,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/err.rs": {
+        "covered": 0,
+        "total": 181,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics.rs": {
+        "covered": 205,
+        "total": 327,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/response.rs": {
+        "covered": 0,
+        "total": 139,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/policy.rs": {
+        "covered": 0,
+        "total": 188,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/partial_value.rs": {
+        "covered": 20,
+        "total": 50,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/err.rs": {
+        "covered": 0,
+        "total": 89,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator.rs": {
+        "covered": 39,
+        "total": 627,
+        "module": "evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/annotation.rs": {
+        "covered": 9,
+        "total": 51,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/loc.rs": {
+        "covered": 6,
+        "total": 52,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/action.rs": {
+        "covered": 46,
+        "total": 119,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/format.rs": {
+        "covered": 0,
+        "total": 27,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/value.rs": {
+        "covered": 15,
+        "total": 358,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/extension.rs": {
+        "covered": 119,
+        "total": 282,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions.rs": {
+        "covered": 55,
+        "total": 151,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_iterator.rs": {
+        "covered": 44,
+        "total": 46,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/pattern.rs": {
+        "covered": 20,
+        "total": 73,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/value.rs": {
+        "covered": 0,
+        "total": 523,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/policy_set.rs": {
+        "covered": 0,
+        "total": 75,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_warnings.rs": {
+        "covered": 3,
+        "total": 6,
+        "module": "api"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/version.rs": {
+        "covered": 0,
+        "total": 8,
+        "module": "ffi"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/rbac.rs": {
+        "covered": 222,
+        "total": 259,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck.rs": {
+        "covered": 1095,
+        "total": 1382,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extension_schema.rs": {
+        "covered": 59,
+        "total": 68,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/entities.rs": {
+        "covered": 0,
+        "total": 484,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/parser.rs": {
+        "covered": 0,
+        "total": 45,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions.rs": {
+        "covered": 48,
+        "total": 51,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/request_env.rs": {
+        "covered": 47,
+        "total": 86,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/level_validate.rs": {
+        "covered": 0,
+        "total": 187,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/loader.rs": {
+        "covered": 0,
+        "total": 308,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe.rs": {
+        "covered": 0,
+        "total": 45,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator/err.rs": {
+        "covered": 27,
+        "total": 257,
+        "module": "evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/residual.rs": {
+        "covered": 0,
+        "total": 242,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema_types.rs": {
+        "covered": 0,
+        "total": 82,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/datetime.rs": {
+        "covered": 277,
+        "total": 484,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/types.rs": {
+        "covered": 0,
+        "total": 13,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck/typecheck_answer.rs": {
+        "covered": 87,
+        "total": 96,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/evaluator.rs": {
+        "covered": 0,
+        "total": 374,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/batched_evaluator.rs": {
+        "covered": 0,
+        "total": 85,
+        "module": "batched_evaluator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/partial_evaluation.rs": {
+        "covered": 26,
+        "total": 31,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/ipaddr.rs": {
+        "covered": 55,
+        "total": 64,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/decimal.rs": {
+        "covered": 54,
+        "total": 63,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/datetime.rs": {
+        "covered": 83,
+        "total": 92,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_errors.rs": {
+        "covered": 27,
+        "total": 176,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/to_json_schema.rs": {
+        "covered": 0,
+        "total": 488,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/expr_iterator.rs": {
+        "covered": 105,
+        "total": 105,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast.rs": {
+        "covered": 25,
+        "total": 1337,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/conversion.rs": {
+        "covered": 0,
+        "total": 169,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est.rs": {
+        "covered": 0,
+        "total": 212,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/est_conversions.rs": {
+        "covered": 0,
+        "total": 229,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/scope_constraints.rs": {
+        "covered": 0,
+        "total": 497,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/node.rs": {
+        "covered": 11,
+        "total": 103,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/ast.rs": {
+        "covered": 0,
+        "total": 122,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/expr.rs": {
+        "covered": 0,
+        "total": 483,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/text_to_cst.rs": {
+        "covered": 31,
+        "total": 55,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/ipaddr.rs": {
+        "covered": 150,
+        "total": 256,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/decimal.rs": {
+        "covered": 113,
+        "total": 177,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/raw_name.rs": {
+        "covered": 0,
+        "total": 103,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/partial_evaluation.rs": {
+        "covered": 10,
+        "total": 14,
+        "module": "extensions"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/json_schema.rs": {
+        "covered": 0,
+        "total": 12,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/capability.rs": {
+        "covered": 31,
+        "total": 38,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest.rs": {
+        "covered": 0,
+        "total": 245,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/err.rs": {
+        "covered": 0,
+        "total": 10,
+        "module": "entities"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/type_annotations.rs": {
+        "covered": 0,
+        "total": 99,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/analysis.rs": {
+        "covered": 0,
+        "total": 136,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/slicing.rs": {
+        "covered": 0,
+        "total": 82,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser.rs": {
+        "covered": 12,
+        "total": 129,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/err.rs": {
+        "covered": 0,
+        "total": 12,
+        "module": "tpe"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast/to_ref_or_refs.rs": {
+        "covered": 0,
+        "total": 280,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/util.rs": {
+        "covered": 5,
+        "total": 29,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst.rs": {
+        "covered": 0,
+        "total": 4,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/fmt.rs": {
+        "covered": 5,
+        "total": 311,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer.rs": {
+        "covered": 0,
+        "total": 84,
+        "module": "authorizer"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/err.rs": {
+        "covered": 0,
+        "total": 3,
+        "module": "est"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/constraints.rs": {
+        "covered": 0,
+        "total": 89,
+        "module": "pst"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/str_checks.rs": {
+        "covered": 53,
+        "total": 63,
+        "module": "validator"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/unescape.rs": {
+        "covered": 0,
+        "total": 77,
+        "module": "parser"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/fuzzy_match.rs": {
+        "covered": 42,
+        "total": 43,
+        "module": "fuzzy_match"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/ops.rs": {
+        "covered": 0,
+        "total": 21,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_visitor.rs": {
+        "covered": 0,
+        "total": 142,
+        "module": "ast"
+      },
+      "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_warnings.rs": {
+        "covered": 0,
+        "total": 3,
+        "module": "validator"
+      }
+    }
+  },
+  "diff_map": {
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_errors.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 3,
+      "uncovered": 3,
+      "total": 6,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/json_schema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 12,
+      "total": 12,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/entities.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 20,
+      "total": 20,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/request_env.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 47,
+      "uncovered": 39,
+      "total": 86,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/validator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 176,
+      "uncovered": 30,
+      "total": 206,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/context.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 33,
+      "total": 33,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/parser.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 45,
+      "total": 45,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions.rs": {
+      "only_spec": 3,
+      "only_hw": 0,
+      "shared": 48,
+      "uncovered": 0,
+      "total": 51,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/loc.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 6,
+      "uncovered": 46,
+      "total": 52,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/pattern.rs": {
+      "only_spec": 0,
+      "only_hw": 1,
+      "shared": 19,
+      "uncovered": 53,
+      "total": 73,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/ipaddr.rs": {
+      "only_spec": 0,
+      "only_hw": 20,
+      "shared": 130,
+      "uncovered": 106,
+      "total": 256,
+      "module": "extensions"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/traits.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 11,
+      "uncovered": 20,
+      "total": 31,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_iterator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 44,
+      "uncovered": 2,
+      "total": 46,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/request.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 292,
+      "total": 292,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/ops.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 21,
+      "total": 21,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/to_json_schema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 488,
+      "total": 488,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 349,
+      "uncovered": 258,
+      "total": 607,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/est_conversions.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 229,
+      "total": 229,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 4,
+      "total": 4,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 64,
+      "total": 64,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/type_annotations.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 99,
+      "total": 99,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/datetime.rs": {
+      "only_spec": 0,
+      "only_hw": 8,
+      "shared": 75,
+      "uncovered": 9,
+      "total": 92,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/json_schema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 1168,
+      "total": 1168,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/decimal.rs": {
+      "only_spec": 0,
+      "only_hw": 4,
+      "shared": 50,
+      "uncovered": 9,
+      "total": 63,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_errors.rs": {
+      "only_spec": 0,
+      "only_hw": 6,
+      "shared": 21,
+      "uncovered": 149,
+      "total": 176,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/ast_conversions.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 518,
+      "total": 518,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 3,
+      "total": 3,
+      "module": "est"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/str_checks.rs": {
+      "only_spec": 0,
+      "only_hw": 17,
+      "shared": 36,
+      "uncovered": 10,
+      "total": 63,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/entities.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 484,
+      "total": 484,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 43,
+      "uncovered": 2494,
+      "total": 2537,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/coreschema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 306,
+      "total": 306,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/schema_types.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 82,
+      "total": 82,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/slicing.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 82,
+      "total": 82,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/utils.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 290,
+      "total": 290,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy_set.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 43,
+      "uncovered": 318,
+      "total": 361,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast.rs": {
+      "only_spec": 0,
+      "only_hw": 6,
+      "shared": 19,
+      "uncovered": 1312,
+      "total": 1337,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/deprecated_schema_compat/conversion.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 169,
+      "total": 169,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/entity.rs": {
+      "only_spec": 0,
+      "only_hw": 4,
+      "shared": 63,
+      "uncovered": 304,
+      "total": 371,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/response.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 139,
+      "total": 139,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/residual.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 242,
+      "total": 242,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err/validation_warnings.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 3,
+      "uncovered": 3,
+      "total": 6,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/expr.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 483,
+      "total": 483,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/node.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 11,
+      "uncovered": 92,
+      "total": 103,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer/partial_response.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 308,
+      "total": 308,
+      "module": "authorizer"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/convert.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 107,
+      "total": 107,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/partial_value.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 20,
+      "uncovered": 30,
+      "total": 50,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/format.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 27,
+      "total": 27,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr_visitor.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 142,
+      "total": 142,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/entities.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 252,
+      "total": 252,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/is_authorized.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 392,
+      "total": 392,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/expr.rs": {
+      "only_spec": 0,
+      "only_hw": 15,
+      "shared": 369,
+      "uncovered": 545,
+      "total": 929,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/name.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 85,
+      "uncovered": 197,
+      "total": 282,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/value.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 15,
+      "uncovered": 343,
+      "total": 358,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/scope_constraints.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 497,
+      "total": 497,
+      "module": "est"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/error_macros.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 60,
+      "total": 60,
+      "module": "error_macros"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/partition_nonempty.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 8,
+      "total": 8,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/id.rs": {
+      "only_spec": 0,
+      "only_hw": 12,
+      "shared": 29,
+      "uncovered": 136,
+      "total": 177,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 80,
+      "total": 80,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 13,
+      "total": 13,
+      "module": "transitive_closure"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/annotation.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 37,
+      "total": 37,
+      "module": "est"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/entity_type.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 55,
+      "uncovered": 16,
+      "total": 71,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/namespace_def.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 539,
+      "total": 539,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/types/capability.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 31,
+      "uncovered": 7,
+      "total": 38,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics/validation_warnings.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 3,
+      "total": 3,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 182,
+      "total": 182,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/expr.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 1054,
+      "total": 1054,
+      "module": "est"
+    },
+    "/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/thread_local/native/mod.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 14,
+      "total": 14,
+      "module": "rust"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 12,
+      "total": 12,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/action.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 46,
+      "uncovered": 73,
+      "total": 119,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/policy.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 264,
+      "uncovered": 726,
+      "total": 990,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/level_validate.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 187,
+      "total": 187,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/raw_name.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 103,
+      "total": 103,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator/err.rs": {
+      "only_spec": 0,
+      "only_hw": 27,
+      "shared": 0,
+      "uncovered": 230,
+      "total": 257,
+      "module": "evaluator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/batched_evaluator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 85,
+      "total": 85,
+      "module": "batched_evaluator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/tpe.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 371,
+      "total": 371,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/evaluator.rs": {
+      "only_spec": 0,
+      "only_hw": 3,
+      "shared": 36,
+      "uncovered": 588,
+      "total": 627,
+      "module": "evaluator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/validate.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 66,
+      "total": 66,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 412,
+      "total": 412,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/partial_evaluation.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 10,
+      "uncovered": 4,
+      "total": 14,
+      "module": "extensions"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extension_schema.rs": {
+      "only_spec": 0,
+      "only_hw": 6,
+      "shared": 53,
+      "uncovered": 9,
+      "total": 68,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/jsonvalue.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 119,
+      "total": 119,
+      "module": "jsonvalue"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/analysis.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 136,
+      "total": 136,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/conformance.rs": {
+      "only_spec": 0,
+      "only_hw": 3,
+      "shared": 10,
+      "uncovered": 274,
+      "total": 287,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/restricted_expr.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 44,
+      "uncovered": 244,
+      "total": 288,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 10,
+      "total": 10,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/expr_iterator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 105,
+      "uncovered": 0,
+      "total": 105,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/from_normalized_str.rs": {
+      "only_spec": 0,
+      "only_hw": 12,
+      "shared": 0,
+      "uncovered": 15,
+      "total": 27,
+      "module": "from_normalized_str"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities/json/value.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 523,
+      "total": 523,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest/loader.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 308,
+      "total": 308,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/decimal.rs": {
+      "only_spec": 0,
+      "only_hw": 10,
+      "shared": 103,
+      "uncovered": 64,
+      "total": 177,
+      "module": "extensions"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/entity_manifest.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 245,
+      "total": 245,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/id.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 3,
+      "uncovered": 130,
+      "total": 133,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/policy.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 188,
+      "total": 188,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/entities.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 289,
+      "total": 289,
+      "module": "entities"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/ipaddr.rs": {
+      "only_spec": 0,
+      "only_hw": 4,
+      "shared": 51,
+      "uncovered": 9,
+      "total": 64,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/text_to_cst.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 31,
+      "uncovered": 24,
+      "total": 55,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/fmt.rs": {
+      "only_spec": 0,
+      "only_hw": 5,
+      "shared": 0,
+      "uncovered": 306,
+      "total": 311,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/annotation.rs": {
+      "only_spec": 0,
+      "only_hw": 3,
+      "shared": 6,
+      "uncovered": 42,
+      "total": 51,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/request.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 4,
+      "uncovered": 301,
+      "total": 305,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/version.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 8,
+      "total": 8,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck.rs": {
+      "only_spec": 104,
+      "only_hw": 47,
+      "shared": 1048,
+      "uncovered": 183,
+      "total": 1382,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/unescape.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 77,
+      "total": 77,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/diagnostics.rs": {
+      "only_spec": 16,
+      "only_hw": 92,
+      "shared": 113,
+      "uncovered": 106,
+      "total": 327,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/api/err.rs": {
+      "only_spec": 2,
+      "only_hw": 16,
+      "shared": 20,
+      "uncovered": 260,
+      "total": 298,
+      "module": "api"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/extension.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 119,
+      "uncovered": 163,
+      "total": 282,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/rbac.rs": {
+      "only_spec": 0,
+      "only_hw": 6,
+      "shared": 216,
+      "uncovered": 37,
+      "total": 259,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 15,
+      "uncovered": 321,
+      "total": 336,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions/datetime.rs": {
+      "only_spec": 0,
+      "only_hw": 26,
+      "shared": 251,
+      "uncovered": 207,
+      "total": 484,
+      "module": "extensions"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser.rs": {
+      "only_spec": 0,
+      "only_hw": 4,
+      "shared": 8,
+      "uncovered": 117,
+      "total": 129,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 89,
+      "total": 89,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 126,
+      "uncovered": 673,
+      "total": 799,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/schema/err.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 181,
+      "total": 181,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/literal.rs": {
+      "only_spec": 0,
+      "only_hw": 4,
+      "shared": 15,
+      "uncovered": 22,
+      "total": 41,
+      "module": "ast"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/ast.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 347,
+      "uncovered": 198,
+      "total": 545,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/util.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 5,
+      "uncovered": 24,
+      "total": 29,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/expr_builder.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 28,
+      "uncovered": 132,
+      "total": 160,
+      "module": "expr_builder"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/parser/cst_to_ast/to_ref_or_refs.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 280,
+      "total": 280,
+      "module": "parser"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 74,
+      "uncovered": 41,
+      "total": 115,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/ffi/check_parse.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 132,
+      "total": 132,
+      "module": "ffi"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/authorizer.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 84,
+      "total": 84,
+      "module": "authorizer"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/extensions.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 55,
+      "uncovered": 96,
+      "total": 151,
+      "module": "extensions"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/typecheck/typecheck_answer.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 87,
+      "uncovered": 9,
+      "total": 96,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/ast.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 122,
+      "total": 122,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/cedar_schema/fmt.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 253,
+      "total": 253,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/fuzzy_match.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 42,
+      "uncovered": 1,
+      "total": 43,
+      "module": "fuzzy_match"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/policy.rs": {
+      "only_spec": 0,
+      "only_hw": 12,
+      "shared": 247,
+      "uncovered": 71,
+      "total": 330,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy/src/proto/api.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 20,
+      "uncovered": 15,
+      "total": 35,
+      "module": "proto"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/validator/extensions/partial_evaluation.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 26,
+      "uncovered": 5,
+      "total": 31,
+      "module": "validator"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe/evaluator.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 374,
+      "total": 374,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/transitive_closure.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 263,
+      "total": 263,
+      "module": "transitive_closure"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est/policy_set.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 75,
+      "total": 75,
+      "module": "est"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/pst/constraints.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 89,
+      "total": 89,
+      "module": "pst"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/tpe.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 45,
+      "total": 45,
+      "module": "tpe"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/est.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 212,
+      "total": 212,
+      "module": "est"
+    },
+    "/opt/exp/cedar-spec/cedar/cedar-policy-core/src/ast/types.rs": {
+      "only_spec": 0,
+      "only_hw": 0,
+      "shared": 0,
+      "uncovered": 13,
+      "total": 13,
+      "module": "ast"
+    }
+  }
+}
