@@ -3,5 +3,8 @@
         "./cedar-drt/fuzz/Cargo.toml",
         "./cedar/Cargo.toml",
         "./cedar-lean-cli/Cargo.toml"
-    ]
+    ],
+    "rust-analyzer.cargo.extraEnv": {
+        "LEAN_LIB_DIR": "/local/home/segevem/.elan/toolchains/leanprover--lean4---v4.29.1/lib/lean"
+    }
 }

@@ -34,11 +34,11 @@ set_option linter.unusedVariables false
 set_option match.ignoreUnusedAlts true
 set_option specimen.autoDeriveDeps true
 set_option specimen.multiOutput true
-set_option specimen.textOutput 2
-set_option maxHeartbeats 800000
+set_option specimen.textOutput 3
+set_option maxHeartbeats 40000000
 set_option maxRecDepth 100000
 
-#print Map
+-- #print Map
 
 instance [Arbitrary α] [Arbitrary β] [LT α] [DecidableLT α] :
     Arbitrary (Map α β) where
@@ -58,6 +58,18 @@ deriving instance Plausible.Arbitrary for Attr
 deriving instance Plausible.Arbitrary for
   Var, ExtFun, Int64, BoolType, ExtType, Name, EntityUID, Prim, PatElem, UnaryOp, BinaryOp,
   Qualified, CedarType
+
+instance : Plausible.Arbitrary Expr where
+  arbitrary := return .lit (.bool true)
+
+instance : Plausible.Arbitrary Key where
+  arbitrary := return .attr ""
+
+instance : Enum Expr where
+  enum := pure (.lit (.bool true))
+
+instance : Enum Key where
+  enum := pure (.attr "")
 
 -- instance : Plausible.Arbitrary TypedExpr where
 --   arbitrary := do
@@ -102,10 +114,18 @@ deriving instance DecidableEq for ActionSchemaEntry
 --     return .lit p ty
 
 set_option trace.Meta.synthInstance false
+set_option specimen.scoreType "Scoring.GradedUniformDensityScore"
+-- derive_mutual (fun c => ∃ a b, HasTypeEqNonLit a b c)
+-- derive_mutual
+--   fun a b => ∃ c, HasTypeEqNonLit a b c
+set_option specimen.scoreType "Scoring.GradedUniformDensityScore" in
+#time derive_mutual
+  -- checker (fun c env ty r x tx c' => HasType x c env tx ty c' r),
+  generator (fun env r c ty => ∃ x tx c', HasType x c env tx ty c' r)
 
-derive_mutual
-  (fun c env ty => ∃ x tx c', HasType x c env tx ty c')
 
+
+-- #print EmptyCollection
 /-! ## Test: generate well-typed expressions -/
 
 def testEnv : TypeEnv :=
@@ -121,19 +141,19 @@ def testEnv : TypeEnv :=
         resource := { id := "User", path := [] }
         context := Map.empty } }
 
-#eval do
-  let caps : Capabilities := []
-  let ty : CedarType := .set (.bool .tt)
-  IO.println s!"Generating expressions of type: {repr ty}\n"
-  for structSize in [20] do
-    try
-      let (x, _tx, _c') ← Gen.run
-        (ArbitrarySizedSuchThat.arbitrarySizedST
-          (fun (r : Expr × TypedExpr × Capabilities) => HasType r.1 caps testEnv r.2.1 ty r.2.2) structSize)
-          10
-      IO.println s!"  structSize={structSize}:\n\n{repr x}\n"
-    catch _ =>
-      IO.println s!"  structSize={structSize}:\n\n (failed)\n"
+-- #eval do
+--   let caps : Capabilities := []
+--   let ty : CedarType := .set (.bool .tt)
+--   IO.println s!"Generating expressions of type: {repr ty}\n"
+--   for structSize in [2] do
+--     try
+--       let (x, _tx, _c') ← Gen.runUntil (.some 10)
+--         (ArbitrarySizedSuchThat.arbitrarySizedST
+--       (fun (e, tye, c) => HasType e caps testEnv tye (some ty) c .ok) structSize)
+--           3
+--       IO.println s!"  structSize={structSize}:\n\n{repr x}\n"
+--     catch _ =>
+--       IO.println s!"  structSize={structSize}:\n\n (failed)\n"
 
 /-! ## Property-based test: relational spec agrees with functional spec
 
@@ -143,10 +163,13 @@ then checks each against the functional `Cedar.Validation.typeOf`. -/
 def checkOne (ty : CedarType) (structSize arbSize : Nat) : IO String := do
   let caps : Capabilities := []
   let env := testEnv
-  let (x, tx, c') ← Gen.run
+  let (x, otx, oc') ← Gen.run
     (ArbitrarySizedSuchThat.arbitrarySizedST
-      (fun (r : Expr × TypedExpr × Capabilities) => HasType r.1 caps env r.2.1 ty r.2.2) structSize)
+      (fun (e, tye, c) => HasType e caps env tye (some ty) c .ok) structSize)
     arbSize
+  let (tx, c') := match otx, oc' with
+    | some tx, some c' => (tx, c')
+    | _, _ => unreachable!
   let funcResult := Cedar.Validation.typeOf x caps env
   match funcResult with
   | .ok (funcTx, funcC') =>
@@ -157,11 +180,86 @@ def checkOne (ty : CedarType) (structSize arbSize : Nat) : IO String := do
   | .error e =>
     return s!"ERROR: {repr e} for {repr x}"
 
-#eval checkOne .int 0 3
-#eval checkOne (.bool .ff) 0 3
-#eval checkOne .string 0 3
-#eval checkOne (.bool .tt) 0 3
-#eval checkOne (.bool .anyBool) 2 3
-#eval checkOne (.bool .tt) 2 3
-#eval checkOne (.bool .ff) 2 3
-#eval checkOne (.bool .anyBool) 5 4
+-- -- Test DecOpt for BothLit on two literals (should be true)
+-- #eval (inferInstance : DecOpt (BothLit (.lit (.string "baz")) (.lit (.string "c")))).decOpt 0
+-- -- Test DecOpt for ¬ BothLit on two literals (should be false)
+-- #eval (inferInstance : DecOpt (BothLit (.lit (.string "baz")) (.lit (.string "c")))).decOpt 0
+
+-- #eval (@instDecOptHasType (.binaryApp .eq (.lit (.bool .true)) (.lit (.bool false))) [] testEnv (some (TypedExpr.binaryApp .eq (TypedExpr.lit (.bool true) (.bool .tt)) (TypedExpr.lit (.bool false) (.bool .ff)) (.bool .anyBool)
+-- )) (some (.bool .anyBool)) (some ∅) .ok).decOpt 0
+
+-- #eval (@instDecOptHasType (.binaryApp .eq (.lit (.bool .true)) (.lit (.bool false))) [] testEnv (some (TypedExpr.binaryApp .eq (TypedExpr.lit (.bool true) (.bool .tt)) (TypedExpr.lit (.bool false) (.bool .ff)) (.bool .anyBool)
+-- )) (some (.bool .anyBool)) (some ∅) .ok).decOpt 1
+
+-- #eval (@instDecOptHasType (.binaryApp .eq (.lit (.bool .true)) (.lit (.bool false))) [] testEnv (some (TypedExpr.binaryApp .eq (TypedExpr.lit (.bool true) (.bool .tt)) (TypedExpr.lit (.bool false) (.bool .ff)) (.bool .anyBool)
+-- )) (some (.bool .anyBool)) (some ∅) .ok).decOpt 30
+
+-- #eval Gen.runUntil (attempts := .some 1)
+--             (ArbitrarySizedSuchThat.arbitrarySizedST
+--               (fun (e, tye, c) => HasType e [] testEnv tye (some (.string)) c .ok) 1)
+--             1
+
+def propertyTest (n : Nat) : IO Unit := do
+  let caps : Capabilities := []
+  let env := testEnv
+  let types := #[CedarType.int]
+  let mut passed : Nat := 0
+  let mut failed : Nat := 0
+  let mut genFailed : Nat := 0
+  let mut checkFailed : Nat := 0
+  let sizes : Array Nat := #[4]
+  let mut timings : Array (String × Nat × Nat × Float) := #[]
+  for ty in types do
+    for structSize in sizes do
+      let iters := n / (types.size * sizes.size)
+      let startNs ← IO.monoNanosNow
+      let mut localPassed : Nat := 0
+      let mut localFailed : Nat := 0
+      for _ in List.range iters do
+        try
+          let (x, otx, oc') ← Gen.runUntil (attempts := .some 1)
+            (ArbitrarySizedSuchThat.arbitrarySizedST
+              (fun (e, tye, c) => HasType e caps env tye (some ty) c .ok) structSize)
+            1
+          let (tx, c') := match otx, oc' with
+            | some tx, some c' => (tx, c')
+            | _, _ => unreachable!
+          match true with
+          | true =>
+            let funcResult := Cedar.Validation.typeOf x caps env
+            match funcResult with
+            | .ok (funcTx, funcC') =>
+              if funcTx == tx && funcC' == c' then
+                passed := passed + 1
+                localPassed := localPassed + 1
+              else
+                failed := failed + 1
+                localFailed := localFailed + 1
+                if failed ≤ 5 then
+                  IO.println s!"FAIL: {repr x}\n  rel={repr tx.typeOf} fun={repr funcTx.typeOf}"
+            | .error e =>
+              failed := failed + 1
+              localFailed := localFailed + 1
+              if failed ≤ 5 then
+                IO.println s!"ERROR: {repr e} for {repr x}"
+          | false =>
+            checkFailed := checkFailed + 1
+            if checkFailed ≤ 5 then
+              IO.println s!"CHECKER FALSE: {repr x}\n  ty={repr ty} tx={repr tx.typeOf}"
+        catch _ =>
+          genFailed := genFailed + 1
+      let endNs ← IO.monoNanosNow
+      let elapsedMs := (endNs - startNs).toFloat / 1000000.0
+      timings := timings.push (s!"{repr ty}", structSize, iters, elapsedMs)
+  IO.println s!"\n=== Timing breakdown ==="
+  IO.println "type\tsize\titers\tms\tms/iter"
+  for (tyStr, sz, iters, ms) in timings do
+    let perIter := if iters > 0 then ms / iters.toFloat else 0.0
+    IO.println s!"{tyStr}\t{sz}\t{iters}\t{ms}\t{perIter}"
+  IO.println s!"\n=== Results ({passed + failed + genFailed + checkFailed} attempted) ==="
+  IO.println s!"  Passed:        {passed}"
+  IO.println s!"  Failed:        {failed}"
+  IO.println s!"  Gen failures:  {genFailed}"
+  IO.println s!"  Check failed:  {checkFailed}"
+
+#time #eval propertyTest 10

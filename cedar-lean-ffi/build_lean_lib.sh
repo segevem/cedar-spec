@@ -16,4 +16,7 @@
 # Build command needed for linking Lean lib with Rust code
 cd ../cedar-lean/
 lake update
-lake build Cedar:static Protobuf:static CedarProto:static Cedar.SymCC:static CedarFFI:static Batteries:static
+# CedarGen:static is required because CedarFFI.Generate imports CedarGen relational
+# generators (incl. the WellTypedPolicy generator in CedarGen.Relational.PolicyGen); the
+# Rust FFI links `Cedar_CedarGen`, so its archive must be rebuilt alongside the others.
+lake build Cedar:static Protobuf:static CedarProto:static Cedar.SymCC:static CedarFFI:static CedarGen:static Batteries:static

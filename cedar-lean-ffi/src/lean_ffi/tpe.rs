@@ -80,6 +80,7 @@ mod test {
     #[link(name = "Cedar_Cedar_SymCC", kind = "static")]
     #[link(name = "Cedar_Protobuf", kind = "static")]
     #[link(name = "Cedar_CedarProto", kind = "static")]
+    #[link(name = "Cedar_CedarGen", kind = "static")]
     #[link(name = "batteries_Batteries", kind = "static")]
     #[link(name = "Cedar_CedarFFI", kind = "static")]
     unsafe extern "C" {}

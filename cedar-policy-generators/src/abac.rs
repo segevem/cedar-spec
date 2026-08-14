@@ -169,6 +169,14 @@ impl<'a> Arbitrary<'a> for ConstantPool {
 }
 
 impl ConstantPool {
+    /// Create a ConstantPool with known values (for testing)
+    pub fn new(int_constants: Vec<i64>, string_constants: Vec<SmolStr>) -> Self {
+        Self {
+            int_constants,
+            string_constants,
+        }
+    }
+
     /// Get an arbitrary int constant from the pool.
     /// If there are no int constants in the pool, get a purely arbitrary int constant
     pub fn arbitrary_int_constant(&self, u: &mut Unstructured<'_>) -> Result<i64> {

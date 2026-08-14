@@ -1,0 +1,33 @@
+- [derive_mutual workflow](feedback_derive-mutual-workflow.md) — Check widget output + runtime test generators after derive_mutual
+- [specimen derive_mutual syntax](reference_specimen-derive-mutual-syntax.md) — Syntax, options, input/output conventions, examples
+- [functional-to-relational pitfalls](reference_functional-to-relational-pitfalls.md) — Checklist for converting Cedar's functional typechecker to relational specs for Specimen
+- [Don't overwrite user's test files](feedback_dont-overwrite-schematest.md) — Always re-read from main tree before editing shared files
+- [Experimentation plan](project_experimentation-plan.md) — Specimen vs handwritten generators: metrics, phased runs, targets, variants
+- [specimen_test policy properties](reference_specimen-test-policy-properties.md) — test policy equivalence/never-errors over well-typed inputs; Specimen scheduling fixes
+- [specimen tactic async fix](reference_specimen-tactic-async-fix.md) — unlockAsync makes `specimen` work inside proofs (after intro/have) without disabling async; avoid the roundtrip refactor
+- [specimen id forces check-mode](reference_specimen-id-force-check-mode.md) — wrap output var in `id` so Specimen can't produce it there; forces another premise to source it
+- [specimen weight modifier](reference_specimen-weight-modifier.md) — registerWeightModifier + match ctorName to bias how often a rule is generated (hasTag 14→281)
+- [experiment harness pitfalls](reference_experiment-harness-pitfalls.md) — collect orchestrator drops --guided/--s3 flags; guided local drain is no-op; lean-typeof hangs at sz20 (use sz12)
+
+- [Partial-type-directed typeof experiment](project_partial-typeof-experiment.md) — PartialCedarType demand variant: works, .entity 2x faster, set demand + termination sorry open
+- [relational action-type soundness gap](reference_relational-action-type-soundness-gap.md) — validation-drt aborts on Specimen inputs: WfActionEntry emits non-Action-typed action UIDs (generator gap, not a typechecker bug)
+- [typeof-check CapMerge generator hang](reference_typeof-check-capmerge-generator-hang.md) — Specimen backtrackFuel explosion in CapMerge/TypeOfCheck sz20; repro seed 2e9+98k; needs per-generate timeout guard
+- [enum-hierarchy DRT mismatch](reference_enum-hierarchy-drt-mismatch.md) — all 14 validation-drt mismatches: enum entity w/ hierarchy edge; Lean drops enum ancestors → `in` false → drops error; generator emits invalid schema
+- [Fixed-generator DRT runs](project_fixed-generator-drt-runs.md) — 5 concurrent EC2 validation-drt runs verifying enum-exclusion + closure fix (2026-08-03)
+- [Guided handwritten rebuild](project_guided-handwritten-rebuild.md) — CRITICAL: handwritten must run via cargo-fuzz (guided), not unguided; prior handwritten numbers invalid; logging built+verified, orchestration remaining
+- [id-bty condition speedup](reference_id-bty-condition-speedup.md) — id-wrap bool subtype in WellTypedConditions → ~10x faster cond gen; retune favorConditions → 403 pol/s
+- [run3 operator frequency](reference_run3-operator-frequency.md) — corpus op-histogram specimen vs hw; STRATIFY samples (cold-start pitfall); offset is the one specimen=0 gap
+- [welltyped-generator soundness bugs](project_welltyped-generator-soundness-bugs.md) — 3 gaps vs real `validate`: Bug2 fixed (SelectRemove), Bug3 non-issue, Bug1 (is undeclared) plan to execute
+- [symcc never-errors target](project_symcc-nevererrors-target.md) — built symcc-term-never-errors experiment (hw instrumented + welltyped + dep fix), not launched
+- [symcc coverage differences](reference_symcc-coverage-differences.md) — line + k-path coverage diffs across wt-policy sz12/sz20 vs hw-symcc-plain (transitivity win, offset gap is size-fixable, solve-half uncovered)
+- [generator weight-tuning](reference_generator-weight-tuning.md) — how to change welltyped-gen op weights (favorHasTag in BudgetAware), measure locally (lake env lean harness, toExpr), and validate on AWS; Lub.record boost is inert
+- [DRT mismatch tagNotFound record-projection](project_drt-mismatch-tagnotfound-record-projection.md) — REAL Lean(tagNotFound) vs Rust(accepts) validation divergence on well-formed schema; getTag through {..}.field receiver; found by boosted gen; artifacts in .experiment_holding/mismatch_viol_166262/; §5 == weights inert (structural fix needed) + scratch_eq.lean harness
+- [error+annotation coverage exclusion](reference_error-annotation-coverage-exclusion.md) — sound elision set (2680 lines) for fair coverage: 3 error models, MIR CFG method, err.rs+annotation, spec-0.06%-error caveat; files in cedar-drt/coverage/
+- [coverage-only reuse workflow](reference_coverage-only-reuse-workflow.md) — REUSE_CORPUS_S3ROOT (skip regen, replay existing corpus), COV_FEATURES=profraw,s3 rust-only, throughput at results/<approach>/throughput/, real-wall-clock time_map, plot_over_time_excl.py; S3 runs 041135Z + ci-cov-excl-185731Z
+- [specimen vs hw coverage findings](project_specimen-vs-hw-coverage-findings.md) — fair(excl) ~95% overlap; only-spec ~98 core typechecking, only-hw ~146 eq_shape/warnings/enum; == operand poverty (~99% Lit/Var); working-tree edits list
+- [local line-coverage analysis](reference_local-line-coverage-analysis.md) — 30s local per-line coverage of a cedar file (covrun instrumented harness + llvm-cov + exclusion sets); typecheck.rs uncovered = ill-typed-error branches + slots/partial/AnyEntity; inert typecheck.rs:636 && capability bug
+- [TypeOfError error spec](project_typeof-error-spec.md) — ErrorExpr/TypeErr/PolicyBodyErr augment HasType to generate ill-typed policies faithful to the VALIDATOR; all 9 kinds, nested (Phase 3 = faithful reconstruction not mutator), 400/400 sound+faithful over multi-env; FFI corpus wiring remains
+- [illtyped-policy error corpus](project_illtyped-policy-error-corpus.md) — wired TypeOfError gen as strategy=illtyped-policy; CedarGen.lean native-compile gotcha; 30s smoke ✓
+- [guided drain loss + mapping](reference_guided-drain-loss-and-mapping.md) — WHY guided corpus<count & over-time ends early: lossy tmpfs drain (fixed w/ backpressure in log_input) + wrong probe-vs-collect wall-clock mapping (fixed: map via collect/_fuzz_stats)
+- [symcc crash findings + hardening](project_symcc-crash-findings-and-hardening.md) — symcc-never-errors DRT found Lean tagNotFound on wt policy (unconfirmed cause) + Lean-vs-Rust or-operand-order term divergence; hardened harness to collect+continue (asserts_match_result) instead of panic=abort
+- [early30 coverage zoom](reference_early30-coverage-zoom.md) — cov_early.py fine first-30s source-line curves; specimen saturates <1s, hw crawls; rust-only for val, coarsen steps, counters_hit is wrong scale

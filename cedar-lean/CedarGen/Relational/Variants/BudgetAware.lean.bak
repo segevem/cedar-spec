@@ -1,0 +1,92 @@
+/-
+ Copyright Cedar Contributors
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-/
+
+import CedarGen.Relational.TypeOfLeanBase
+
+/-! # Variant: BudgetAwareScore + balancedCtorWeight (default)
+
+Derives HasType generator with `Scoring.BudgetAwareScore` scoring and
+the default `Scoring.balancedCtorWeight` weighting.
+-/
+
+open CedarGen.Relational.Lean
+open Cedar.Spec
+open Cedar.Data
+open Cedar.Validation
+open Plausible
+open Scoring Schedules
+
+set_option linter.unusedVariables false
+set_option match.ignoreUnusedAlts true
+set_option specimen.autoDeriveDeps true
+set_option specimen.multiOutput true
+set_option specimen.textOutput 3
+set_option maxHeartbeats 40000000
+set_option maxRecDepth 100000
+
+/-- Weight modifier: boost the structural rules that Specimen otherwise under-produces
+relative to the handwritten generator — tags, record literals, and `isEmpty` — so they
+occur more often. Only these constructors are rewritten (matched on the name components);
+every other rule passes through at `baseWeight`.
+
+Rationale for the non-tag additions (both confirmed sparse in the full-corpus histogram):
+* `record` / `HasTypeRecord.cons`: record literals are non-boolean, so they are legal only
+  in the minority of "polymorphic" slots and lose rule-selection to ~30 cheaper rules; the
+  `record` rule gets a strong boost and `cons` is favored over the empty-`{}` base case so
+  boosted records actually carry fields. (`nil` is left at base weight — the size bound still
+  keeps records small.)
+* `unaryAppIsEmpty`: produces `bool` (never locked out) and its set argument is already
+  abundant, so it is purely a selection issue — a boost moves it a lot and cheaply.
+
+Defined at the ROOT namespace (not inside `Variant.BudgetAware`), mirroring
+`steepQualityWeight`. `getActiveWeightModifier` resolves the `specimen.weightModifier`
+option string as a literal `Name` via `env.contains`, so a namespaced def
+(`Variant.BudgetAware.favorHasTag`) would never match the option value
+`"favorHasTag"` — and the `initialize` registry isn't populated yet at same-file
+derive time. Root-level definition makes the same-file fallback resolve it. -/
+def favorHasTag (baseWeight : Nat) (ctorName : Lean.Name) (_outputIndices : List Nat)
+    (_deriveSort : DeriveSort) (_scoreBadness : Nat) (_isRec : Bool) (_size : Nat)
+    (_numBase _numRec : Nat) (_numRecCalls : Nat) : Nat :=
+  match ctorName with
+  -- tags (unchanged)
+  | .str _ "hasTagAnyBool" => baseWeight * 2 + 1
+  | .str _ "hasTagTt"      => baseWeight * 2 + 1
+  | .str _ "hasTagFf"      => baseWeight * 2 + 1
+  | .str _ "getTag"        => baseWeight * 2 + 1
+  -- record literals: boost the rule, and favor fields over the empty record. NOTE: this — not a
+  -- `Lub.record` boost — is what drives `LubRecord` coverage, because `Lub` is scheduled as a
+  -- CHECK (not a generator) in the derive, so boosting `Lub.record` is inert. LubRecord fires only
+  -- when the freely-generated eq/ite operands are record-typed, so raising the record SUPPLY is
+  -- the only lever (and it's what costs throughput).
+  | .str (.str _ "HasType") "record"     => baseWeight * 8 + 1
+  -- favor record fields over the empty `{}` (free: records are too rare for their size to affect
+  -- throughput, and fuller records exercise LubRecord's field-wise recursion more).
+  | .str (.str _ "HasTypeRecord") "cons" => baseWeight * 6 + 1
+  -- isEmpty: MODERATE boost — the ×50 backtracking was the whole ~40% throughput cost; ×10 keeps
+  -- ~2.5× baseline coverage at near-baseline speed (isEmpty is size-capped at sz12 regardless).
+  | .str _ "unaryAppIsEmpty"             => baseWeight * 10 + 1
+  | _                                    => baseWeight
+
+initialize registerWeightModifier `favorHasTag favorHasTag ``favorHasTag
+
+namespace Variant.BudgetAware
+
+set_option specimen.scoreType "Scoring.BudgetAwareScore" in
+set_option specimen.weightModifier "favorHasTag" in
+scoped derive_mutual
+  generator (fun env c ty => ∃ x cout, HasType x c env ty cout)
+
+end Variant.BudgetAware

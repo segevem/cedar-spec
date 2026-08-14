@@ -27,7 +27,7 @@ use crate::datatypes::{
 };
 use crate::err::FfiError;
 use crate::lean_object::{
-    OwnedLeanObject, call_lean_ffi_takes_obj_and_protobuf,
+    OwnedLeanObject, call_lean_ffi_function, call_lean_ffi_takes_obj_and_protobuf,
     call_lean_ffi_takes_obj_protobuf_and_string, call_lean_ffi_takes_protobuf,
 };
 use crate::messages::*;
@@ -51,8 +51,12 @@ mod test_implementation;
 #[link(name = "Cedar_Cedar_SymCC", kind = "static")]
 #[link(name = "Cedar_Protobuf", kind = "static")]
 #[link(name = "Cedar_CedarProto", kind = "static")]
-#[link(name = "batteries_Batteries", kind = "static")]
+#[link(name = "Cedar_CedarGen", kind = "static")]
 #[link(name = "Cedar_CedarFFI", kind = "static")]
+#[link(name = "specimen_Specimen", kind = "static")]
+#[link(name = "plausible_Plausible", kind = "static")]
+#[link(name = "proofwidgets_ProofWidgets", kind = "static")]
+#[link(name = "batteries_Batteries", kind = "static")]
 unsafe extern "C" {
     fn runCheckNeverErrors(schema: *mut lean_object, req: *mut lean_object) -> *mut lean_object;
     fn runCheckNeverErrorsWithCex(
@@ -284,6 +288,12 @@ unsafe extern "C" {
     fn initialize_Cedar_CedarFFI(builtin: u8, ob: *mut lean_object) -> *mut lean_object;
 
     fn loadProtobufSchema(req: *mut lean_object) -> *mut lean_object;
+
+    fn generateTypeOfProto(req: *mut lean_object) -> *mut lean_object;
+    fn generateSchemaTypeOfProto(req: *mut lean_object) -> *mut lean_object;
+    fn illtypedSelfCheck(req: *mut lean_object) -> *mut lean_object;
+    fn roundtripPolicySetProto(req: *mut lean_object) -> *mut lean_object;
+    fn roundtripSchemaProto(req: *mut lean_object) -> *mut lean_object;
 
     #[cfg(test)]
     static ffiTestString: *mut lean_object;
@@ -1275,6 +1285,67 @@ impl CedarLeanFfi {
                 lean_err_obj.as_rust_str()?.to_string(),
             )),
         }
+    }
+
+    /// Generate well-typed expressions and return protobuf-encoded PolicySet bytes.
+    pub fn generate_typeof_proto(&self, params: &serde_json::Value) -> Result<Vec<u8>, FfiError> {
+        let request_bytes = params.to_string().into_bytes();
+        let arg = OwnedLeanObject::new_array_from_buf(&request_bytes);
+        let response = unsafe { call_lean_ffi_function(generateTypeOfProto, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        Ok(bytes.to_vec())
+    }
+
+    /// Generate a random well-formed schema + well-typed expression and return protobuf bytes.
+    pub fn generate_schema_typeof_proto(
+        &self,
+        params: &serde_json::Value,
+    ) -> Result<Vec<u8>, FfiError> {
+        let request_bytes = params.to_string().into_bytes();
+        let arg = OwnedLeanObject::new_array_from_buf(&request_bytes);
+        let response = unsafe { call_lean_ffi_function(generateSchemaTypeOfProto, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        Ok(bytes.to_vec())
+    }
+
+    /// Run the ill-typed generator self-check COMPILED: generate the error corpus and
+    /// validate each policy with the Lean `validate` before any proto encoding. Returns a
+    /// JSON UTF-8 byte string `{envs, generated, rejected, accepted, samples:[repr,...]}`.
+    /// `accepted > 0` means the generator emitted a well-typed policy (unsound).
+    pub fn illtyped_self_check(&self, params: &serde_json::Value) -> Result<Vec<u8>, FfiError> {
+        let request_bytes = params.to_string().into_bytes();
+        let arg = OwnedLeanObject::new_array_from_buf(&request_bytes);
+        let response = unsafe { call_lean_ffi_function(illtypedSelfCheck, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        Ok(bytes.to_vec())
+    }
+
+    /// Decode a protobuf-encoded `PolicySet`, link its templates into concrete
+    /// policies in the Lean spec, and re-encode them with the Lean encoder.
+    ///
+    /// This drives both the Lean decoder (`CedarProto`) and the Lean encoder
+    /// (`CedarProto.Encode.encodePolicies`) so a caller can check cross-language
+    /// proto fidelity: `Rust encode -> here -> Rust decode` should preserve the
+    /// policy set. Returns empty bytes if the Lean decode fails.
+    pub fn roundtrip_policyset_proto(&self, proto_bytes: &[u8]) -> Result<Vec<u8>, FfiError> {
+        let arg = OwnedLeanObject::new_array_from_buf(proto_bytes);
+        let response = unsafe { call_lean_ffi_function(roundtripPolicySetProto, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        Ok(bytes.to_vec())
+    }
+
+    /// Decode a protobuf-encoded `Schema`, link it into a `Cedar.Validation.Schema`
+    /// in the Lean spec, and re-encode it with the Lean encoder (`encodeSchema`).
+    ///
+    /// Companion to [`Self::roundtrip_policyset_proto`] for schemas: it drives the
+    /// Lean schema decoder and encoder, including the ancestor⇄descendant inversion,
+    /// so a caller can check `Rust encode -> here -> Rust decode` preserves the
+    /// schema. Returns empty bytes if the Lean decode fails.
+    pub fn roundtrip_schema_proto(&self, proto_bytes: &[u8]) -> Result<Vec<u8>, FfiError> {
+        let arg = OwnedLeanObject::new_array_from_buf(proto_bytes);
+        let response = unsafe { call_lean_ffi_function(roundtripSchemaProto, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        Ok(bytes.to_vec())
     }
 }
 
@@ -2356,5 +2427,499 @@ action "" appliesTo {
             )
             .unwrap()
         );
+    }
+
+    /// Cross-language proto roundtrip: `Rust encode -> Lean decode -> Lean encode
+    /// -> Rust decode` must preserve a `PolicySet`.
+    ///
+    /// This exercises the Lean codec on both sides — `CedarProto` decoding and
+    /// `CedarProto.Encode.encodePolicies` re-encoding, including the scope-constraint
+    /// paths (`==` / `in` / `is` / `is .. in`) that a bare-expr encoder can't reach.
+    /// We compare two *decode outputs* (`reference` = Rust's own decode of its
+    /// encoding, `actual` = Rust's decode of the Lean roundtrip). Comparing decode
+    /// outputs cancels benign representation choices (e.g. `action in Action::"a"`
+    /// vs `action in [Action::"a"]`, or how empty conditions render) so the assertion
+    /// isolates genuine Lean encode/decode infidelities. Comparison is by the
+    /// id-independent multiset of `Policy` display strings.
+    mod proto_roundtrip {
+        use super::{Policy, PolicyId, PolicySet, Schema};
+        use crate::CedarLeanFfi;
+        use arbitrary::Unstructured;
+        use cedar_policy::proto::traits::Protobuf;
+        use cedar_policy_generators::{
+            schema::Schema as GenSchema, schema_gen::SchemaGen, settings::ABACSettings,
+        };
+        use proptest::prelude::*;
+
+        /// One shared FFI handle for all proptest cases: the Lean runtime is
+        /// thread-bound and its `Drop` finalizes the thread, so we init once
+        /// (never dropped) rather than churning init/finalize per case.
+        fn shared_ffi() -> &'static CedarLeanFfi {
+            static FFI: std::sync::OnceLock<CedarLeanFfi> = std::sync::OnceLock::new();
+            FFI.get_or_init(CedarLeanFfi::new)
+        }
+
+        /// DIAGNOSTIC: drive the welltyped-policy generator via FFI (Lean-encode), then
+        /// Rust-DECODE the bytes and strict-validate. The Lean PBT proves the *original*
+        /// policies are 100% well-typed, so any Rust rejection here is introduced by the
+        /// Lean-encode → Rust-decode roundtrip. Dump the first ~10 failing (decoded) policies
+        /// + the decoded schema's declared entity types + the strict errors, so we can compare
+        /// against the Lean originals (same seeds) and localize the corruption.
+        ///   cargo test -p cedar-lean-ffi dump_illtyped_roundtrip -- --ignored --nocapture
+        #[test]
+        #[ignore]
+        fn dump_illtyped_roundtrip() {
+            use cedar_policy::{ValidationMode, Validator};
+            fn ru32(b: &[u8], p: usize) -> (usize, usize) {
+                (u32::from_le_bytes([b[p], b[p + 1], b[p + 2], b[p + 3]]) as usize, p + 4)
+            }
+            let ffi = shared_ffi();
+            let mut found = 0;
+            'outer: for seed in 0..8u64 {
+                let params = serde_json::json!({
+                    "seed": seed, "size": 12, "schema_size": 12,
+                    "strategy": "welltyped-policy", "count": 60
+                });
+                let buf = ffi.generate_schema_typeof_proto(&params).expect("ffi generate");
+                let (slen, mut pos) = ru32(&buf, 0);
+                let schema = match Schema::decode(&buf[pos..pos + slen]) { Ok(s) => s, Err(_) => continue };
+                pos += slen;
+                // Decoded schema's declared entity types (Debug shows the full schema).
+                let schema_dbg = format!("{schema:?}");
+                let (cnt, np0) = ru32(&buf, pos); pos = np0;
+                for idx in 0..cnt {
+                    let (plen, np) = ru32(&buf, pos); pos = np;
+                    let ps = match PolicySet::decode(&buf[pos..pos + plen]) { Ok(p) => p, Err(_) => { pos += plen; continue } };
+                    pos += plen;
+                    let res = Validator::new(schema.clone()).validate(&ps, ValidationMode::Strict);
+                    if !res.validation_passed() {
+                        let errs: Vec<String> = res.validation_errors().map(|e| e.to_string()).collect();
+                        eprintln!("=== FAIL seed={seed} idx={idx} (#{found}) ===");
+                        eprintln!("  DECODED POLICY: {ps}");
+                        eprintln!("  ERRORS: {errs:?}");
+                        if found == 0 { eprintln!("  DECODED SCHEMA (seed {seed}): {schema_dbg}"); }
+                        found += 1;
+                        if found >= 10 { break 'outer; }
+                    }
+                }
+            }
+            eprintln!("\n=== shown {found} failing (decoded) policies ===");
+        }
+
+        /// Same generator settings the validation DRT fuzz targets use.
+        fn settings() -> ABACSettings {
+            ABACSettings {
+                enable_additional_attributes: true,
+                ..ABACSettings::type_directed()
+            }
+        }
+
+        /// Drive `cedar-policy-generators` (the same infra the DRT fuzzers use) from a
+        /// random byte buffer to produce a schema + a policy over it, converted to the
+        /// public `cedar_policy` API types. Returns `None` when the generator runs out
+        /// of entropy or the schema/policy can't be converted — those cases are skipped,
+        /// not failures.
+        fn generate(buf: &[u8]) -> Option<(Schema, PolicySet)> {
+            let mut u = Unstructured::new(buf);
+            let gen_schema = GenSchema::arbitrary(settings(), &mut u).ok()?;
+            let hierarchy = gen_schema.arbitrary_hierarchy(&mut u).ok()?;
+            // Static policy only: the Lean `encodePolicies` doesn't model template slots.
+            let policy = gen_schema
+                .arbitrary_static_policy(&hierarchy, &mut u)
+                .ok()?;
+            let schema = Schema::try_from(gen_schema).ok()?;
+            let policyset = policy.into_policy_set();
+            Some((schema, policyset))
+        }
+
+        /// Canonicalize a schema for order-insensitive comparison. `ValidatorSchema`'s
+        /// `PartialEq` treats several repeated fields (notably enum choices, stored as an
+        /// ordered `NonEmpty`) as ordered, but the Lean spec models them as *sets* and so
+        /// re-emits them sorted. We compare via the protobuf model with every order-
+        /// insensitive repeated field sorted; its `map` fields (attributes/context)
+        /// already compare order-independently.
+        fn schema_canon(
+            vs: &cedar_policy_core::validator::ValidatorSchema,
+        ) -> cedar_policy::proto::models::Schema {
+            let mut m = cedar_policy::proto::models::Schema::from(vs);
+            // These repeated fields are sets in the Lean model (ancestors/descendants,
+            // enum choices, applies-to types), so sort AND dedup: Lean re-emits them as
+            // sorted, duplicate-free sets, while cedar keeps declaration order/dups.
+            for e in &mut m.entity_decls {
+                e.descendants.sort_by_key(|n| format!("{n:?}"));
+                e.descendants.dedup();
+                e.enum_choices.sort();
+                e.enum_choices.dedup();
+            }
+            m.entity_decls.sort_by_key(|e| format!("{:?}", e.name));
+            for a in &mut m.action_decls {
+                a.descendants.sort_by_key(|u| format!("{u:?}"));
+                a.descendants.dedup();
+                a.principal_types.sort_by_key(|n| format!("{n:?}"));
+                a.principal_types.dedup();
+                a.resource_types.sort_by_key(|n| format!("{n:?}"));
+                a.resource_types.dedup();
+            }
+            m.action_decls.sort_by_key(|a| format!("{:?}", a.name));
+            m
+        }
+
+        /// Id-independent structural fingerprint: sorted `Policy` display strings
+        /// with annotation lines stripped. Cedar's `Display` omits the policy id but
+        /// renders annotations as leading `@name("...")` lines; the Lean spec doesn't
+        /// model annotations (they're authorization-irrelevant metadata), so we compare
+        /// over the annotation-free policy — the part the Lean codec can preserve.
+        fn fingerprint(ps: &PolicySet) -> Vec<String> {
+            let mut v: Vec<String> = ps
+                .policies()
+                .map(|p| {
+                    p.to_string()
+                        .lines()
+                        .filter(|l| !l.trim_start().starts_with('@'))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .collect();
+            v.sort();
+            v
+        }
+
+        /// Roundtrip one static policy and assert the Lean codec preserved it.
+        fn assert_roundtrip(ffi: &CedarLeanFfi, src: &str) {
+            let mut pset = PolicySet::new();
+            let pol = Policy::parse(Some(PolicyId::new("policy0")), src)
+                .unwrap_or_else(|e| panic!("policy should parse: {src}: {e}"));
+            pset.add(pol).unwrap();
+            let bytes0 = pset.encode();
+            let reference = PolicySet::decode(&bytes0[..]).unwrap();
+            let lean_bytes = ffi.roundtrip_policyset_proto(&bytes0).unwrap();
+            assert!(
+                !lean_bytes.is_empty(),
+                "Lean returned empty bytes for {src}"
+            );
+            let actual = PolicySet::decode(&lean_bytes[..]).unwrap();
+            assert_eq!(
+                fingerprint(&reference),
+                fingerprint(&actual),
+                "mismatch for {src}"
+            );
+        }
+
+        /// Deterministic exhaustive sweep of every scope-constraint form (the code
+        /// Diagnostic: decode a corpus batch from S3 and count slots / annotations /
+        /// templates in the policies each arm actually generated. Confirms whether the
+        /// slots-off arm really produced slot-free policies.
+        #[test]
+        #[ignore]
+        fn inspect_corpus_batches() {
+            for arm in ["r2_hw-slots-off", "r2_hw-slots-on", "hw-slots-off_late", "hw-slots-on_late", "wt-policy-sz12"] {
+                let data = match std::fs::read(format!("/tmp/l4res/{arm}.bin")) {
+                    Ok(d) => d,
+                    Err(_) => { eprintln!("{arm}: no batch file"); continue; }
+                };
+                let (mut pos, mut n, mut slots, mut annots, mut templates, mut multi) = (0usize, 0u32, 0u32, 0u32, 0u32, 0u32);
+                while pos + 4 <= data.len() {
+                    let len = u32::from_le_bytes([data[pos], data[pos+1], data[pos+2], data[pos+3]]) as usize;
+                    pos += 4;
+                    if pos + len > data.len() { break; }
+                    let rec = &data[pos..pos+len];
+                    pos += len;
+                    if rec.len() < 4 { continue; }
+                    let sl = u32::from_le_bytes([rec[0], rec[1], rec[2], rec[3]]) as usize;
+                    if 4 + sl > rec.len() { continue; }
+                    if let Ok(ps) = PolicySet::decode(&rec[4+sl..]) {
+                        n += 1;
+                        if ps.templates().count() > 0 { templates += 1; }
+                        if ps.policies().count() + ps.templates().count() > 1 { multi += 1; }
+                        // definitive slot check: any template with >=1 slot
+                        if ps.templates().any(|t| t.slots().count() > 0) { slots += 1; }
+                        let s = ps.to_string();
+                        if s.contains('@') { annots += 1; }
+                    }
+                }
+                eprintln!("{arm:<16} inputs={n:<7} with_slots={slots:<6} with_annotations={annots:<6} with_template={templates:<6} multi_policy={multi}");
+            }
+        }
+
+        /// Tabulate which scope-constraint FORMS each corpus actually emits, to check the
+        /// welltyped-policy generator captures the full grammar (any/==/in/is/is..in for
+        /// principal & resource; any/==/in/in[list] for action).
+        #[test]
+        #[ignore]
+        fn scope_form_distribution() {
+            use cedar_policy::{ActionConstraint, PrincipalConstraint, ResourceConstraint};
+            for arm in ["wt-policy-sz12", "hw-slots-off", "hw-slots-off_late", "hw-slots-on_late"] {
+                let data = match std::fs::read(format!("/tmp/l4res/{arm}.bin")) {
+                    Ok(d) => d,
+                    Err(_) => continue,
+                };
+                // principal: any,eq,in,is,ismem ; action: any,eq,in1,inN ; resource: any,eq,in,is,ismem
+                let (mut p, mut a, mut r) = ([0u64; 5], [0u64; 4], [0u64; 5]);
+                let (mut pos, mut n) = (0usize, 0u64);
+                while pos + 4 <= data.len() {
+                    let len = u32::from_le_bytes([data[pos], data[pos+1], data[pos+2], data[pos+3]]) as usize;
+                    pos += 4;
+                    if pos + len > data.len() { break; }
+                    let rec = &data[pos..pos+len];
+                    pos += len;
+                    if rec.len() < 4 { continue; }
+                    let sl = u32::from_le_bytes([rec[0], rec[1], rec[2], rec[3]]) as usize;
+                    if 4 + sl > rec.len() { continue; }
+                    if let Ok(ps) = PolicySet::decode(&rec[4+sl..]) {
+                        for pol in ps.policies() {
+                            n += 1;
+                            match pol.principal_constraint() {
+                                PrincipalConstraint::Any => p[0] += 1,
+                                PrincipalConstraint::Eq(_) => p[1] += 1,
+                                PrincipalConstraint::In(_) => p[2] += 1,
+                                PrincipalConstraint::Is(_) => p[3] += 1,
+                                PrincipalConstraint::IsIn(_, _) => p[4] += 1,
+                            }
+                            match pol.action_constraint() {
+                                ActionConstraint::Any => a[0] += 1,
+                                ActionConstraint::Eq(_) => a[1] += 1,
+                                ActionConstraint::In(v) if v.len() == 1 => a[2] += 1,
+                                ActionConstraint::In(_) => a[3] += 1,
+                            }
+                            match pol.resource_constraint() {
+                                ResourceConstraint::Any => r[0] += 1,
+                                ResourceConstraint::Eq(_) => r[1] += 1,
+                                ResourceConstraint::In(_) => r[2] += 1,
+                                ResourceConstraint::Is(_) => r[3] += 1,
+                                ResourceConstraint::IsIn(_, _) => r[4] += 1,
+                            }
+                        }
+                    }
+                }
+                eprintln!("== {arm} (n={n}) ==");
+                eprintln!("  principal any={} ==={} in={} is={} is..in={}", p[0], p[1], p[2], p[3], p[4]);
+                eprintln!("  action    any={} ==={} in={} in[list]={}", a[0], a[1], a[2], a[3]);
+                eprintln!("  resource  any={} ==={} in={} is={} is..in={}", r[0], r[1], r[2], r[3], r[4]);
+            }
+        }
+
+        /// Count `when`/`unless` clauses per policy in the specimen corpus — tests whether
+        /// the generator asks for MULTIPLE conditions (each a separate HasType search).
+        #[test]
+        #[ignore]
+        fn condition_clause_count() {
+            for arm in ["wt-policy-sz12"] {
+                let data = match std::fs::read(format!("/tmp/l4res/{arm}.bin")) { Ok(d)=>d, Err(_)=>continue };
+                let mut hist = std::collections::BTreeMap::new();
+                let (mut pos, mut n, mut total_clauses) = (0usize, 0u64, 0u64);
+                while pos + 4 <= data.len() {
+                    let len = u32::from_le_bytes([data[pos],data[pos+1],data[pos+2],data[pos+3]]) as usize;
+                    pos += 4; if pos+len > data.len() { break; }
+                    let rec=&data[pos..pos+len]; pos+=len;
+                    if rec.len()<4 { continue; }
+                    let sl=u32::from_le_bytes([rec[0],rec[1],rec[2],rec[3]]) as usize;
+                    if 4+sl>rec.len() { continue; }
+                    if let Ok(ps)=PolicySet::decode(&rec[4+sl..]) {
+                        for pol in ps.policies() {
+                            n+=1;
+                            let s=pol.to_string();
+                            let c = s.matches("when {").count() + s.matches("unless {").count();
+                            *hist.entry(c).or_insert(0u64)+=1;
+                            total_clauses += c as u64;
+                        }
+                    }
+                }
+                eprintln!("== {arm}: {n} policies, avg clauses/policy = {:.2} ==", total_clauses as f64 / n.max(1) as f64);
+                for (c,cnt) in &hist { eprintln!("     {c} clause(s): {cnt} policies"); }
+            }
+        }
+
+        /// Tally extension-function usage per corpus (which generator emits more extensions,
+        /// and which specific functions), to explain the extension coverage residual.
+        #[test]
+        #[ignore]
+        fn extension_usage() {
+            let fns = [
+                "decimal(", "ip(", "datetime(", "duration(",
+                ".isIpv4(", ".isIpv6(", ".isLoopback(", ".isMulticast(", ".isInRange(",
+                ".lessThan(", ".lessThanOrEqual(", ".greaterThan(", ".greaterThanOrEqual(",
+                ".offset(", ".durationSince(", ".toDate(", ".toTime(",
+                ".toMilliseconds(", ".toSeconds(", ".toMinutes(", ".toHours(", ".toDays(",
+            ];
+            for arm in ["wt-policy-sz12", "hw-slots-off_late", "hw-slots-on_late"] {
+                let data = match std::fs::read(format!("/tmp/l4res/{arm}.bin")) { Ok(d)=>d, Err(_)=>continue };
+                let mut counts = std::collections::BTreeMap::new();
+                let (mut pos, mut n, mut with_ext) = (0usize, 0u64, 0u64);
+                while pos + 4 <= data.len() {
+                    let len = u32::from_le_bytes([data[pos],data[pos+1],data[pos+2],data[pos+3]]) as usize;
+                    pos += 4;
+                    if pos+len > data.len() { break; }
+                    let rec=&data[pos..pos+len]; pos+=len;
+                    if rec.len()<4 { continue; }
+                    let sl=u32::from_le_bytes([rec[0],rec[1],rec[2],rec[3]]) as usize;
+                    if 4+sl>rec.len() { continue; }
+                    if let Ok(ps)=PolicySet::decode(&rec[4+sl..]) {
+                        n+=1;
+                        let s=ps.to_string();
+                        let mut any=false;
+                        for f in fns { let c=s.matches(f).count(); if c>0 { *counts.entry(f).or_insert(0u64)+=c as u64; any=true; } }
+                        if any { with_ext+=1; }
+                    }
+                }
+                eprintln!("== {arm}: {n} policies, {with_ext} use >=1 extension ==");
+                for (f, c) in &counts {
+                    eprintln!("     {f:<22} {c}");
+                }
+            }
+        }
+
+        /// Probe: after decode, is a static policy reconstructed as a `Template` (which
+        /// eagerly builds an EST lossless -> exercises `est/*`) or a static `Policy`
+        /// (Empty lossless -> no `est/*`)? Compare Rust-encoded vs Lean-encoded corpora.
+        #[test]
+        fn est_probe_templates_vs_policies() {
+            let mut pset = PolicySet::new();
+            pset.add(
+                Policy::parse(
+                    Some(PolicyId::new("policy0")),
+                    "permit(principal == User::\"a\", action, resource) when { true };",
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let rust_bytes = pset.encode();
+            let rust_dec = PolicySet::decode(&rust_bytes[..]).unwrap();
+            let lean_bytes = shared_ffi().roundtrip_policyset_proto(&rust_bytes).unwrap();
+            let lean_dec = PolicySet::decode(&lean_bytes[..]).unwrap();
+            eprintln!(
+                "RUST-encoded decode: templates={} policies={}",
+                rust_dec.templates().count(),
+                rust_dec.policies().count()
+            );
+            eprintln!(
+                "LEAN-encoded decode: templates={} policies={}",
+                lean_dec.templates().count(),
+                lean_dec.policies().count()
+            );
+        }
+
+        /// paths added in `CedarProto.Encode`), with and without a `when` clause.
+        #[test]
+        fn sweep_scopes() {
+            let principals = [
+                "principal",
+                "principal == User::\"a\"",
+                "principal in Group::\"g\"",
+                "principal is User",
+                "principal is User in Group::\"g\"",
+            ];
+            let actions = [
+                "action",
+                "action == Action::\"view\"",
+                "action in Action::\"a\"",
+                "action in [Action::\"a\", Action::\"b\"]",
+            ];
+            let resources = [
+                "resource",
+                "resource == Photo::\"p\"",
+                "resource in Album::\"al\"",
+                "resource is Photo",
+                "resource is Photo in Album::\"al\"",
+            ];
+            let ffi = shared_ffi();
+            for p in principals {
+                for a in actions {
+                    for r in resources {
+                        for cond in ["", " when { principal == resource }"] {
+                            assert_roundtrip(ffi, &format!("permit({p}, {a}, {r}){cond};"));
+                        }
+                    }
+                }
+            }
+        }
+
+        proptest! {
+            // A random byte buffer drives the generator; 4 KiB is enough entropy for a
+            // schema + a policy while keeping most cases productive (few skips).
+            #![proptest_config(ProptestConfig::with_cases(2000))]
+
+            /// Policy-set proto roundtrip over randomly generated policies.
+            #[test]
+            fn policyset_proto_roundtrip(buf in prop::collection::vec(any::<u8>(), 512..4096)) {
+                let Some((_schema, pset)) = generate(&buf) else {
+                    return Ok(()); // not enough entropy this case; skip
+                };
+                let bytes0 = pset.encode();
+                let reference = PolicySet::decode(&bytes0[..])
+                    .expect("Rust should decode its own PolicySet encoding");
+
+                let ffi = shared_ffi();
+                let lean_bytes = ffi
+                    .roundtrip_policyset_proto(&bytes0)
+                    .expect("Lean roundtrip FFI call should succeed");
+                prop_assert!(
+                    !lean_bytes.is_empty(),
+                    "Lean returned empty bytes (decode/link failed) for policies:\n{pset}"
+                );
+                let actual = PolicySet::decode(&lean_bytes[..])
+                    .expect("Rust should decode the Lean-re-encoded PolicySet");
+
+                prop_assert_eq!(
+                    fingerprint(&reference),
+                    fingerprint(&actual),
+                    "PolicySet changed across the Lean proto roundtrip for policies:\n{}",
+                    pset
+                );
+            }
+
+            /// Schema proto roundtrip over randomly generated schemas. Compares the
+            /// two decode outputs as `ValidatorSchema`s (order-independent `PartialEq`).
+            #[test]
+            fn schema_proto_roundtrip(buf in prop::collection::vec(any::<u8>(), 512..4096)) {
+                use cedar_policy_core::validator::ValidatorSchema;
+                let Some((schema, _pset)) = generate(&buf) else {
+                    return Ok(()); // not enough entropy this case; skip
+                };
+                let bytes0 = schema.encode();
+                let reference = Schema::decode(&bytes0[..])
+                    .expect("Rust should decode its own Schema encoding");
+
+                let ffi = shared_ffi();
+                let lean_bytes = ffi
+                    .roundtrip_schema_proto(&bytes0)
+                    .expect("Lean schema roundtrip FFI call should succeed");
+                prop_assert!(
+                    !lean_bytes.is_empty(),
+                    "Lean returned empty bytes (schema decode failed)"
+                );
+                let actual = Schema::decode(&lean_bytes[..])
+                    .expect("Rust should decode the Lean-re-encoded Schema");
+
+                let r: &ValidatorSchema = reference.as_ref();
+                let a: &ValidatorSchema = actual.as_ref();
+                if schema_canon(r) != schema_canon(a) {
+                    let rc = schema_canon(r);
+                    let ac = schema_canon(a);
+                    eprintln!("=== SCHEMA MISMATCH ===");
+                    for e in &rc.entity_decls {
+                        eprintln!("REF entity {:?} descendants={:?} enum={:?} attrs={:?} tags={}",
+                            e.name, e.descendants, e.enum_choices,
+                            e.attributes.keys().collect::<Vec<_>>(), e.tags.is_some());
+                    }
+                    for e in &ac.entity_decls {
+                        eprintln!("ACT entity {:?} descendants={:?} enum={:?} attrs={:?} tags={}",
+                            e.name, e.descendants, e.enum_choices,
+                            e.attributes.keys().collect::<Vec<_>>(), e.tags.is_some());
+                    }
+                    for a2 in &rc.action_decls {
+                        eprintln!("REF action {:?} desc={:?} p={:?} r={:?}",
+                            a2.name, a2.descendants, a2.principal_types, a2.resource_types);
+                    }
+                    for a2 in &ac.action_decls {
+                        eprintln!("ACT action {:?} desc={:?} p={:?} r={:?}",
+                            a2.name, a2.descendants, a2.principal_types, a2.resource_types);
+                    }
+                }
+                prop_assert!(
+                    schema_canon(r) == schema_canon(a),
+                    "Schema changed across the Lean proto roundtrip"
+                );
+            }
+        }
     }
 }

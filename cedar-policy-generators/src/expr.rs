@@ -1349,3 +1349,417 @@ fn record_type_with_attr(attr_name: SmolStr, attr_type: Type) -> Type {
         },
     )]))
 }
+
+#[cfg(test)]
+mod faithful_test {
+    //! Test module for generating expressions from known byte buffers.
+    //! Used to validate that the Lean faithful port produces the same results.
+
+    use super::*;
+    use crate::abac::{AvailableExtensionFunctions, ConstantPool, UnknownPool};
+    use crate::schema::Schema;
+    use crate::settings::ABACSettings;
+    use arbitrary::Unstructured;
+    use smol_str::SmolStr;
+
+    fn fixed_settings() -> ABACSettings {
+        ABACSettings {
+            match_types: false,
+            max_depth: 2,
+            max_width: 3,
+            enable_additional_attributes: false,
+            enable_like: true,
+            enable_action_groups_and_attrs: false,
+            enable_arbitrary_func_call: false,
+            enable_unknowns: false,
+            enable_action_in_constraints: false,
+            total_action_request_env_limit: 10,
+            max_actions: 5,
+        }
+    }
+
+    fn fixed_pool() -> ConstantPool {
+        ConstantPool::new(
+            vec![0, 1, -1, 42, 100],
+            vec![
+                SmolStr::from("hello"),
+                SmolStr::from("world"),
+                SmolStr::from("test"),
+            ],
+        )
+    }
+
+    /// Create a Schema from a cedar schema string with a fixed pool.
+    fn fixed_schema() -> Schema {
+        use cedar_policy_core::validator::json_schema;
+
+        // Use JSON schema format which has stable parsing
+        let schema_json = serde_json::json!({
+            "": {
+                "entityTypes": {
+                    "User": {
+                        "shape": {
+                            "type": "Record",
+                            "attributes": {
+                                "name": { "type": "String" },
+                                "age": { "type": "Long" },
+                                "active": { "type": "Boolean" }
+                            }
+                        }
+                    },
+                    "Document": {
+                        "shape": {
+                            "type": "Record",
+                            "attributes": {
+                                "owner": { "type": "Entity", "name": "User" },
+                                "title": { "type": "String" }
+                            }
+                        }
+                    }
+                },
+                "actions": {
+                    "view": {
+                        "appliesTo": {
+                            "principalTypes": ["User"],
+                            "resourceTypes": ["Document"],
+                            "context": {
+                                "type": "Record",
+                                "attributes": {
+                                    "reason": { "type": "String" }
+                                }
+                            }
+                        }
+                    },
+                    "edit": {
+                        "appliesTo": {
+                            "principalTypes": ["User"],
+                            "resourceTypes": ["Document"],
+                            "context": { "type": "Record", "attributes": {} }
+                        }
+                    }
+                }
+            }
+        });
+
+        let frag: json_schema::Fragment<cedar_policy_core::validator::RawName> =
+            serde_json::from_value(schema_json).expect("valid json schema");
+
+        let pool_bytes = vec![0u8; 50];
+        let mut u = Unstructured::new(&pool_bytes);
+        Schema::from_raw_schemafrag(frag, fixed_settings(), &mut u)
+            .expect("schema from fragment")
+    }
+
+    /// Generate an expression from a byte buffer with the fixed setup.
+    /// Returns the expression as a string, or an error description.
+    fn gen_expr_from_bytes(expr_bytes: &[u8], max_depth: usize) -> String {
+        let schema = fixed_schema();
+        let settings = fixed_settings();
+        let pool = fixed_pool();
+        let ext_funcs = AvailableExtensionFunctions::create(&settings);
+        let unknown_pool = UnknownPool::default();
+
+        let mut u = Unstructured::new(expr_bytes);
+        let mut gen = ExprGenerator {
+            schema: &schema,
+            settings: &settings,
+            constant_pool: &pool,
+            unknown_pool: &unknown_pool,
+            ext_funcs: &ext_funcs,
+            hierarchy: None,
+        };
+
+        match gen.generate_expr(max_depth, &mut u) {
+            Ok(expr) => format!("{expr}"),
+            Err(e) => format!("ERROR({e:?})"),
+        }
+    }
+
+    #[test]
+    fn print_schema_info() {
+        let schema = fixed_schema();
+        println!("Entity types: {:?}", schema.entity_types);
+        println!("Principal types: {:?}", schema.principal_types);
+        println!("Resource types: {:?}", schema.resource_types);
+        println!("Actions: {:?}", schema.actions_eids);
+        println!("Schema repr: {:?}", schema.schema);
+    }
+
+    /// Print test vectors for the Lean side at depth 0 (only literal_or_var).
+    /// At depth 0, generate_expr calls generate_literal_or_var directly.
+    #[test]
+    fn depth0_test_vectors() {
+        // depth=0: immediately calls generate_literal_or_var
+        // generate_literal_or_var:
+        //   ratio(1,4): int_in_range::<u8>(1..=4), true if <= 1
+        //   if true → Expr::var(u.arbitrary::<Var>())
+        //     Var: int_in_range::<u8>(0..=3)
+        //   if false → generate_literal
+        //     gen!(u, 11=>bool, 10=>int, 10=>string, 20=>uid, 4=>arbitrary_uid)
+        //     total = 55, int_in_range::<u8>(0..=54)
+
+        let test_cases: &[(&str, &[u8])] = &[
+            // ratio(1,4): int_in_range(1..=4), delta=3, result=1+(byte%4)
+            // true if result<=1, i.e., byte%4==0
+            //
+            // byte=0: 1+(0%4)=1, 1<=1 → true → var
+            // Var: int_in_range(0..=3), delta=3, result=byte%4
+            // ratio(1,4): int_in_range::<u8>(1..=4), delta=3, result=1+(byte%4)
+            // true if result<=1, i.e., byte%4==0. So byte=0→true, byte=1,2,3→false
+            //
+            // Var: derived Arbitrary reads u32 (4 bytes), uses Lemire:
+            //   index = (u64::from(u32_val) * 4) >> 32
+            //   0→Principal, 1→Action, 2→Resource, 3→Context
+            //   u32 for Principal: need (val*4)>>32 == 0, i.e., val < 2^30 = 1073741824
+            //   u32 for Action: (val*4)>>32 == 1, i.e., val in [1073741824, 2147483648)
+            //   u32 for Resource: (val*4)>>32 == 2, i.e., val in [2147483648, 3221225472)
+            //   u32 for Context: (val*4)>>32 == 3, i.e., val >= 3221225472
+            //
+            // u32 bytes are big-endian in int_in_range_impl (first byte is MSB)
+            // val = bytes[0]<<24 | bytes[1]<<16 | bytes[2]<<8 | bytes[3]
+            //   Actually: it's (arbitrary_int << 8) | byte, built left to right
+            //   So first byte is MSB.
+            //
+            // u32::arbitrary reads 4 bytes LITTLE-ENDIAN via fill_buffer + from_le_bytes
+            // Then: index = (u64::from(val) * 4) >> 32
+            // For Principal: val < 2^30. LE bytes [0,0,0,0] → val=0 → idx=0
+            ("var_principal", &[0, 0, 0, 0, 0]),
+            // For Action: need val in [2^30, 2^31). val=0x40000000. LE: [0x00, 0x00, 0x00, 0x40]
+            ("var_action", &[0, 0x00, 0x00, 0x00, 0x40]),
+            // For Resource: val=0x80000000. LE: [0x00, 0x00, 0x00, 0x80]
+            ("var_resource", &[0, 0x00, 0x00, 0x00, 0x80]),
+            // For Context: val=0xC0000000. LE: [0x00, 0x00, 0x00, 0xC0]
+            ("var_context", &[0, 0x00, 0x00, 0x00, 0xC0]),
+            //
+            // ratio byte=1: 1+(1%4)=2, 2<=1→false → literal
+            // generate_literal: gen!(11,10,10,20,4) total=55
+            //   int_in_range(0..=54), delta=54, result=byte%55
+            //   byte=0: 0%55=0, 0<11→bool
+            //     u.arbitrary::<bool>(): int_in_range(0..=1), byte%2
+            ("lit_false", &[1, 0, 0]),   // ratio→false, lit=0→bool, bool=0→false
+            ("lit_true", &[1, 0, 1]),    // ratio→false, lit=0→bool, bool=1→true
+            //
+            // lit byte=11: 11%55=11, 11>=11 → int branch (11<=x<21)
+            //   u.choose(&pool.int_constants): choose_index(5)
+            //   int_in_range::<usize>(0..=4), delta=4
+            //   For usize on 64-bit: reads 1 byte since delta<256
+            //   result = byte%5
+            ("lit_int_0", &[1, 11, 0]),     // ratio→false, lit=11→int, idx=0%5=0→pool[0]=0
+            ("lit_int_42", &[1, 11, 3]),    // ratio→false, lit=11→int, idx=3%5=3→pool[3]=42
+            ("lit_int_100", &[1, 11, 4]),   // ratio→false, lit=11→int, idx=4%5=4→pool[4]=100
+            //
+            // lit byte=21: 21%55=21, 21>=21 → string branch (21<=x<31)
+            //   u.choose(&pool.string_constants): choose_index(3)
+            //   int_in_range::<usize>(0..=2), delta=2, result=byte%3
+            ("lit_str_hello", &[1, 21, 0]), // string idx=0→"hello"
+            ("lit_str_world", &[1, 21, 1]), // string idx=1→"world"
+            ("lit_str_test", &[1, 21, 2]),  // string idx=2→"test"
+        ];
+
+        println!("=== Depth 0 Test Vectors ===");
+        println!("Schema: entity type 'a' (enum [\"\"]); action \"action\" {{principal:[a], resource:[a]}}");
+        println!("Pool: ints=[0,1,-1,42,100], strings=[\"hello\",\"world\",\"test\"]");
+        println!();
+
+        for (name, bytes) in test_cases {
+            let result = gen_expr_from_bytes(bytes, 0);
+            println!("{name:20} bytes={bytes:?} => {result}");
+        }
+    }
+
+    /// Replay bytes produced by the Lean faithful generator (with nontrivial schema)
+    /// and verify the Rust ExprGenerator produces the same expression.
+    #[test]
+    fn replay_lean_bytes() {
+        let lean_cases: &[(&str, &[u8], &str)] = &[
+            // Depth 0 (all padded with 64 zero bytes)
+            ("d0_int_1", &[153,184,21,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "1"),
+            ("d0_uid_user", &[51,143,168,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "User::\"\""),
+            ("d0_var_principal", &[172,140,59,21,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "principal"),
+            ("d0_str_test", &[45,243,50,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "\"test\""),
+            ("d0_var_action", &[236,90,206,245,70,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "action"),
+            ("d0_var_ctx", &[60,250,51,251,222,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "context"),
+            ("d0_bool_true", &[238,5,225,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "true"),
+            ("d0_str_hello", &[205,243,207,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "\"hello\""),
+        ];
+
+        println!("\n=== Lean→Rust Replay (total=45) ===");
+        let mut pass = 0;
+        let mut fail = 0;
+        for (name, bytes, expected) in lean_cases {
+            let result = gen_expr_from_bytes(bytes, if name.starts_with("d1") { 1 } else { 0 });
+            let matches = result == *expected;
+            if matches {
+                pass += 1;
+                println!("  PASS {name:20} => {result}");
+            } else {
+                fail += 1;
+                println!("  FAIL {name:20} => {result} (expected: {expected})");
+            }
+        }
+        println!("\n  {pass} passed, {fail} failed");
+        assert_eq!(fail, 0, "Some Lean→Rust replays failed");
+    }
+
+    /// Test that String::arbitrary with zero-padded buffer produces ""
+    #[test]
+    fn test_uid_string_arbitrary_with_padding() {
+        // ratio=1 (false → literal), gen=31 (UID branch, 31<51), uniform=0 (principal)
+        // Then: principal_type → User (0 bytes), generate_uid_with_type(User) → Eid::arbitrary
+        // With padding zeros, String::arbitrary reads tail → size=0 → ""
+        let mut bytes: Vec<u8> = vec![1, 31, 0];
+        bytes.extend(vec![0u8; 64]);
+        let result = gen_expr_from_bytes(&bytes, 0);
+        println!("principal uid: {result}");
+        assert_eq!(result, "User::\"\"");
+
+        // uniform=1 → action uid (choose from 2 actions, 1 byte)
+        let mut bytes2: Vec<u8> = vec![1, 31, 1, 0]; // extra byte for choose_index(2)
+        bytes2.extend(vec![0u8; 64]);
+        let result2 = gen_expr_from_bytes(&bytes2, 0);
+        println!("action uid: {result2}");
+        assert_eq!(result2, "Action::\"edit\"");
+
+        // uniform=2 → resource uid → Document::""
+        let mut bytes3: Vec<u8> = vec![1, 31, 2];
+        bytes3.extend(vec![0u8; 64]);
+        let result3 = gen_expr_from_bytes(&bytes3, 0);
+        println!("resource uid: {result3}");
+        assert_eq!(result3, "Document::\"\"");
+    }
+
+    /// More depth-1 vectors including UIDs and getAttr
+    #[test]
+    fn replay_lean_depth1_extended() {
+        let lean_cases: &[(&str, &[u8], &str)] = &[
+            // !Document::""
+            ("d1_not_doc", &[218,249,49,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "!Document::\"\""),
+            // Document::"".owner (getAttr)
+            ("d1_getattr_owner", &[169,75,179,135,214,151,224,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "Document::\"\".owner"),
+            // "test" == User::""
+            ("d1_eq_test_user", &[7,125,137,98,154,215,219,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "\"test\" == User::\"\""),
+            // !User::""
+            ("d1_not_user", &[153,150,157,180,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "!User::\"\""),
+        ];
+
+        println!("\n=== Lean→Rust Depth 1 Extended ===");
+        let mut pass = 0;
+        let mut fail = 0;
+        for (name, bytes, expected) in lean_cases {
+            let result = gen_expr_from_bytes(bytes, 1);
+            let matches = result == *expected;
+            if matches { pass += 1; println!("  PASS {name:20} => {result}"); }
+            else { fail += 1; println!("  FAIL {name:20} => {result} (expected: {expected})"); }
+        }
+        println!("\n  {pass} passed, {fail} failed");
+        assert_eq!(fail, 0, "Some depth-1 extended replays failed");
+    }
+
+    /// Test set/record/hasTag branches
+    #[test]
+    fn replay_lean_set_record() {
+        let lean_cases: &[(&str, &[u8], &str)] = &[
+            // All constructed with: outer byte % 5 = 4 → inner gen
+            // Sub-expr "false" = [1, 0, 0] (ratio=1→literal, gen=0→bool, bool=0→false)
+            // Sub-expr "principal" = [0, 0, 0, 0, 0] (ratio=0→var, u32=0→Principal)
+
+            // record empty: inner=28(record), count byte=0(%4=0)
+            ("d1_record_empty", &[4, 28, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "{}"),
+            // set empty: inner=27(set), count byte=0(%4=0)
+            ("d1_set_empty", &[4, 27, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "[]"),
+            // set with 1 element (false): inner=27(set), count byte=1(%4=1), sub=[1,0,0]
+            ("d1_set_one", &[4, 27, 1, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "[false]"),
+            // in/mem: inner=14(14<20→mem), sub1=false[1,0,0], sub2=false[1,0,0]
+            ("d1_in", &[4, 14, 1, 0, 0, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false in false"),
+            // isEmpty: inner=23, sub=false[1,0,0]
+            ("d1_isempty", &[4, 23, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false.isEmpty()"),
+            // is: inner=26, sub-expr first then entity_type
+            //   sub=principal[0,0,0,0,0] (5 bytes), then choose_index(2)=byte→entity_types[idx]
+            ("d1_is", &[4, 26, 0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "principal is Document"),
+            // neg: inner=13, sub=false[1,0,0]
+            ("d1_neg", &[4, 13, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "-(false)"),
+            // add: inner=10, sub1=false[1,0,0], sub2=false[1,0,0]
+            ("d1_add", &[4, 10, 1, 0, 0, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false + false"),
+            // getAttr: inner=30, attr chosen first then sub-expr
+            //   gen!(1=>arb_str, 6=>schema_attr): byte=1(%7=1, >=1→schema_attr)
+            //   choose_index(numAttrs): byte=3→attrs[3] (Rust says "age")
+            //   then sub-expr false=[1,0,0]
+            ("d1_getattr", &[4, 30, 1, 3, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false.age"),
+            // hasAttr: inner=37, uniform!(schema_attr, arb_str)
+            //   byte=0(%2=0→schema_attr), choose_index byte=0→attrs[0] (Rust says "owner")
+            //   then sub-expr false=[1,0,0]
+            ("d1_hasattr", &[4, 37, 0, 0, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false has owner"),
+            // hasTag: inner=41, uniform!(generate_expr, val(schema_attr))
+            //   byte=1(%2=1→val(schema_attr)), choose_index byte=0→attrs[0]="owner"
+            //   then sub-expr false=[1,0,0]
+            ("d1_hastag", &[4, 41, 1, 0, 1, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "false.hasTag(\"owner\")"),
+            // Lean-generated: true.name (getAttr with correct 5-attr index)
+            ("d1_lean_getattr_name", &[84,31,214,144,246,166,181,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+             "true.name"),
+        ];
+
+        println!("\n=== Set/Record/Branch Tests ===");
+        let mut pass = 0;
+        let mut fail = 0;
+        for (name, bytes, expected) in lean_cases {
+            let result = gen_expr_from_bytes(bytes, 1);
+            let matches = result == *expected;
+            if matches { pass += 1; println!("  PASS {name:25} => {result}"); }
+            else { fail += 1; println!("  FAIL {name:25} => {result} (expected: {expected})"); }
+        }
+        println!("\n  {pass} passed, {fail} failed");
+        assert_eq!(fail, 0, "Set/record replays failed");
+    }
+
+    /// Debug a specific failing buffer - trace what Rust sees
+    #[test]
+    fn debug_remaining_trace() {
+        // Failing case: depth=6, 268 bytes
+        // Lean: (if (User::"" == bEdNt0l26eq::...::J1R2UrJtAI::"") then ... else ...)
+        // Rust: (if (User::"" == bEdNt0l26eq::...::J1R2UrJtAI::"") then ... else ...) -- DIFFERENT sub-expr
+        let buf: &[u8] = &[12, 59, 225, 172, 40, 101, 206, 147, 141, 34, 218, 107, 52, 133, 68, 160, 111, 168, 64, 216, 65, 30, 179, 145, 55, 136, 144, 61, 133, 140, 39, 86, 244, 0, 47, 128, 132, 103, 178, 9, 173, 136, 158, 229, 16, 241, 2, 27, 60, 140, 200, 170, 105, 127, 163, 100, 226, 229, 144, 44, 199, 123, 218, 226, 123, 243, 80, 235, 34, 32, 247, 182, 186, 101, 65, 134, 95, 140, 27, 11, 111, 110, 178, 82, 33, 226, 237, 41, 183, 66, 90, 102, 218, 80, 123, 206, 233, 219, 254, 14, 241, 89, 163, 77, 207, 209, 167, 110, 57, 130, 122, 234, 20, 34, 144, 101, 29, 58, 89, 218, 33, 65, 160, 204, 19, 13, 26, 57, 175, 37, 73, 94, 188, 28, 199, 131, 246, 75, 44, 27, 84, 237, 7, 112, 48, 28, 197, 152, 39, 182, 114, 221, 209, 43, 37, 112, 236, 186, 125, 155, 162, 54, 219, 134, 92, 205, 246, 71, 16, 76, 38, 150, 46, 138, 35, 49, 121, 66, 197, 118, 179, 175, 214, 8, 68, 43, 222, 167, 229, 32, 41, 64, 94, 3, 161, 114, 247, 223, 129, 158, 184, 166, 82, 180, 233, 86, 106, 250, 144, 143, 14, 28, 179, 206, 160, 43, 158, 200, 224, 157, 21, 56, 29, 154, 134, 237, 80, 199, 253, 188, 184, 186, 5, 167, 223, 120, 211, 29, 45, 143, 174, 12, 86, 205, 13, 93, 76, 70, 81, 12, 103, 134, 229, 181, 192, 206, 81, 113, 28, 66, 67, 215, 175, 175, 1, 0, 0, 0];
+
+        println!("=== Buffer Analysis ===");
+        println!("Total: {} bytes", buf.len());
+        println!("Last 10: {:?}", &buf[buf.len()-10..]);
+        // Lean says there are 4 tail entries (last 4 bytes: [1, 0, 0, 0])
+        // Tail entries reversed at end. Last byte = entry[0], second-to-last = entry[1], etc.
+        println!("Tail bytes (last 4): {:?}", &buf[buf.len()-4..]);
+        println!();
+
+        // What does Rust produce?
+        let result = gen_expr_from_bytes(buf, 6);
+        println!("Rust result: {result}");
+        println!();
+
+        // Now trace String::arbitrary calls
+        // Let's manually simulate what generate_expr does with this buffer
+        // by calling String::arbitrary at various points
+        println!("=== String::arbitrary at decreasing remaining ===");
+        for consumed_from_front in (0..buf.len()).step_by(20) {
+            if consumed_from_front >= buf.len() { break; }
+            let sub_buf = &buf[consumed_from_front..];
+            let mut u = Unstructured::new(sub_buf);
+            let remaining_before = u.len();
+            match <String as Arbitrary>::arbitrary(&mut u) {
+                Ok(s) => println!("  front_consumed={consumed_from_front} remaining={remaining_before}: String={:?} (len={}) remaining_after={}", s, s.len(), u.len()),
+                Err(e) => println!("  front_consumed={consumed_from_front} remaining={remaining_before}: ERROR {e:?}"),
+            }
+        }
+    }
+}

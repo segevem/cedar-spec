@@ -1,0 +1,17 @@
+# SymCC never-errors term-DRT: specimen (well-typed by construction) vs handwritten, parallel
+# to the validation experiment. TARGET must be symcc-term-never-errors (launch with
+# TARGET=symcc-term-never-errors); coverage for every arm comes from replaying the streamed
+# corpus through the instrumented cedar-drt-coverage SymccTermDrt(NeverErrors) oracle.
+#
+#   symcc-wt-policy-sz12 : specimen welltyped-policy generator (compilable by construction)
+#   hw-symcc-plain       : handwritten arbitrary, instrumented, logs only COMPILED inputs (unsteered)
+#   hw-symcc-welltyped   : handwritten arbitrary + Corpus::Reject on !is_well_typed (steers libFuzzer
+#                          toward compilable inputs) — the fair well-typed handwritten arm
+# So: hw-symcc-plain vs hw-symcc-welltyped = steering/compile-rate effect; hw-symcc-welltyped vs
+#     symcc-wt-policy-sz12 = fair well-typed specimen-vs-handwritten symbolic-compiler comparison.
+# SymCC uses static policies by construction, so there is no slots variant.
+#
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+symcc-wt-policy-sz12   lean-schema-typeof   welltyped-policy   12
+hw-symcc-plain         type-directed        -                  20   symcc-term-drt-never-errors
+hw-symcc-welltyped     type-directed        -                  20   symcc-welltyped-term-drt-never-errors

@@ -1,0 +1,8 @@
+# 1-hour error-semantics coverage experiment (2026-08-11). TARGET=validation-drt, 20 reps.
+# err (all ill-typed) vs wt (all well-typed) vs mixed (~50/50) vs handwritten (type-directed,
+# all inputs -> both kinds). Dropped default(budget-aware): a weaker+slower subset of welltyped-policy.
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+err-policy-sz20     lean-schema-typeof   illtyped-policy     20
+wt-policy-sz20      lean-schema-typeof   welltyped-policy    20
+mixed-sz20          lean-schema-typeof   mixed-policy        20
+hw-slots-off        type-directed        -                   20   validation-drt-type-directed-noslots

@@ -1,0 +1,11 @@
+# Error-semantics coverage experiment (2026-08-11). TARGET=validation-drt.
+# Compares the NEW ill-typed (error) corpus against the well-typed specimen corpus and the
+# handwritten (type-directed) generator, for both error-path and well-typed baselines.
+# Fused specimen arms (inline coverage): illtyped-policy vs welltyped-policy.
+# Guided handwritten arms (coverage via faithful replay): all-inputs (hits error paths) vs welltyped-only.
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+err-policy-sz20         lean-schema-typeof   illtyped-policy     20
+wt-policy-sz20          lean-schema-typeof   welltyped-policy    20
+default-sz20            lean-schema-typeof   budget-aware        20
+hw-slots-off            type-directed        -                   20   validation-drt-type-directed-noslots
+hw-welltyped-noslots    type-directed        -                   20   validation-welltyped-drt-noslots

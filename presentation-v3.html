@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Specimen × Cedar — Final Readout</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+  <style>
+    /* Amazon Ember (self-hosted, from Amazon's public asset CDN) */
+    @font-face { font-family: "Amazon Ember"; src: url("fonts/AmazonEmber-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Amazon Ember"; src: url("fonts/AmazonEmber-Medium.ttf") format("truetype"); font-weight: 500 700; font-style: normal; font-display: swap; }
+    :root {
+      --r-background-color: #202B38;   /* Squid Ink, deepened for contrast */
+      --r-main-color: #EEF3F8;
+      --r-heading-color: #FFFFFF;
+      --r-link-color: #FFB13D;
+      --squid: #202B38; --anchor: #161E2D; --smile: #FF9900;
+      /* bright, high-contrast accents for a dark canvas */
+      --cedar: #9CCC65; --spec: #C9B3FF; --blue: #7FC4FF; --green: #5CE08A; --red: #FF8A7A;
+    }
+    .reveal { font-family: "Amazon Ember", "AmazonEmber", "Ember", "Helvetica Neue", Arial, sans-serif; }
+    .reveal .slides { text-align: center; }
+    .reveal section { padding: 0.5em !important; }
+    .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; color: #fff; text-transform: none; }
+    .reveal h1 { font-size: 1.7em; }
+    .reveal h2 { font-size: 1.2em; margin-bottom: 0.35em; }
+    .reveal h2 .accent, .reveal .accent { color: var(--smile); }
+    .reveal p, .reveal li { font-size: 0.7em; color: var(--r-main-color); }
+    .reveal em { color: #fff; font-style: italic; }
+    /* Inside light panels, emphasis must not be white-on-white */
+    .reveal .col-card em, .reveal .highlight-box em { color: #6a3fa0; font-weight: 600; }
+    .reveal .col-card strong, .reveal .highlight-box strong { color: inherit; }
+    /* inline code: inherit the surrounding text color (legible on dark bg AND light cards), subtle chip */
+    .reveal code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+    .reveal :not(pre) > code { color: inherit; background: rgba(130,145,165,0.18); padding: 0 0.28em; border-radius: 4px; }
+
+    .reveal .icon-row { display: flex; justify-content: center; gap: 1.4em; margin: 0.7em 0; align-items: center; }
+    .reveal .icon-card { text-align: center; padding: 0.5em; }
+    .reveal .icon-card i { font-size: 1.7em; margin-bottom: 0.3em; display: block; }
+    .reveal .icon-card .label { font-size: 0.6em; font-weight: 600; color: #fff; }
+    .reveal .icon-card .sub { font-size: 0.48em; color: #BAC6D2; margin-top: 0.2em; }
+    .reveal .arrow { color: #8395A6; }
+
+    .reveal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; text-align: center; }
+    /* default cards are LIGHT panels on the dark canvas (clean AWS look) */
+    .reveal .col-card { background: #f4f6f9; border-radius: 10px; padding: 0.8em; }
+    .reveal .col-card pre { border: 1px solid #e0e4ec; }
+    @keyframes selectorPulse {
+      0%, 100% { box-shadow: 0 0 0 2px var(--green), 0 0 6px rgba(92,224,138,0.35); }
+      50%      { box-shadow: 0 0 0 3px var(--green), 0 0 18px rgba(92,224,138,0.75); }
+    }
+    .reveal .selected-schedule { animation: selectorPulse 1.6s ease-in-out infinite; }
+    .reveal .col-card i { font-size: 1.5em; margin-bottom: 0.3em; display: block; }
+    .reveal .col-card h3 { margin: 0.2em 0; font-size: 0.78em; color: #1a2330; }
+    .reveal .col-card p { font-size: 0.56em; color: #4a5560; margin: 0.1em 0; }
+
+    .reveal .dim { color: #AEBCC9; }
+    .reveal .small { font-size: 0.55em; }
+    .reveal pre code.hljs { background: transparent; padding: 0; color: #24292e; }
+    .reveal pre { font-size: 0.45em; box-shadow: none; }
+    .reveal pre code { padding: 10px; }
+    .reveal .highlight-box { background: #f4f6f9; border-left: 4px solid var(--smile); padding: 10px 16px; margin: 0.6em auto; text-align: left; font-size: 0.62em; max-width: 86%; color: #2a3440; border-radius: 6px; }
+    .reveal .highlight-box strong { color: #1a2330; }
+
+    .reveal .slide-number { font-size: 20px !important; font-weight: 700; color: #232F3E; background: var(--smile); padding: 5px 12px; border-radius: 999px; right: 22px; bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .reveal .slide-number a { color: #232F3E; }
+
+    /* framed diagrams / figures on the dark canvas */
+    .reveal figure { margin: 0; }
+    .reveal .diagram-card { background: #f7f9fc; border-radius: 14px; padding: 8px 16px; display: inline-block; box-shadow: 0 8px 26px rgba(0,0,0,0.35); }
+    .reveal .fig-card { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 26px rgba(0,0,0,0.35); }
+    .reveal .result-fig { max-height: 430px; border-radius: 4px; display: block; }
+    .reveal .caption { font-size: 0.56em; color: #C6D0DA; margin-top: 0.5em; max-width: 44em; margin-left: auto; margin-right: auto; line-height: 1.3; }
+    .reveal .stat-row { display: flex; justify-content: center; gap: 1.8em; margin-top: 0.6em; flex-wrap: wrap; }
+    .reveal .stat .num { font-size: 1.4em; font-weight: 800; }
+    .reveal .stat .lbl { font-size: 0.44em; color: #BAC6D2; max-width: 12em; margin: 0 auto; }
+    .reveal .tag { display: inline-block; font-size: 0.85em; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--smile); color: #232F3E; }
+
+    .reveal table.results { font-size: 0.5em; width: 94%; margin: 0.3em auto; border-collapse: collapse; color: #e7edf3; }
+    .reveal table.results th { background: rgba(255,153,0,0.18); color: #fff; padding: 6px 8px; border: 1px solid rgba(255,255,255,0.14); }
+    .reveal table.results td { padding: 6px 8px; border: 1px solid rgba(255,255,255,0.14); vertical-align: top; }
+    .reveal table.results tr.spec-col td { background: rgba(198,180,239,0.16); }
+
+    /* Table of contents + recurring spotlight recap */
+    .reveal .toc { list-style: none; margin: 0.5em auto 0; padding: 0; max-width: 21em; text-align: left; }
+    .reveal .toc .toc-item { display: flex; align-items: center; gap: 0.7em; padding: 0.42em 0.8em; margin: 0.34em 0; border-radius: 10px; background: rgba(255,255,255,0.05); border-left: 4px solid transparent; transition: opacity .4s ease, transform .4s ease, background .4s ease; }
+    .reveal .toc .toc-num { font-weight: 800; color: var(--smile); font-size: 0.9em; min-width: 1.1em; text-align: center; }
+    .reveal .toc .toc-ic { color: #CBD5DF; width: 1.3em; text-align: center; }
+    .reveal .toc .toc-tx { font-size: 0.6em; color: #fff; }
+    .reveal .toc .toc-tx small { display: block; color: #AEBCC9; font-size: 0.82em; font-weight: 400; }
+    .reveal .toc-recap .toc-item { opacity: 0.26; filter: grayscale(1); }
+    .reveal .toc-recap .toc-item.active { opacity: 1; filter: none; transform: scale(1.06); background: rgba(255,153,0,0.14); border-left-color: var(--smile); box-shadow: 0 6px 22px rgba(0,0,0,0.4); }
+    .reveal .eyebrow { font-size: 0.5em; letter-spacing: 0.18em; text-transform: uppercase; color: var(--smile); font-weight: 700; margin-bottom: 0.2em; }
+
+    /* breadcrumb rail */
+    .reveal .breadcrumbs { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 0.45em; z-index: 30; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    .reveal .breadcrumbs.show { opacity: 1; }
+    .reveal .breadcrumbs .bc { font-size: 11px; font-weight: 600; color: #8ea0b2; background: rgba(255,255,255,0.06); padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); }
+    .reveal .breadcrumbs .bc.active { color: #232F3E; background: var(--smile); border-color: var(--smile); }
+  </style>
+</head>
+<body>
+<!-- shared SVG assets: the bug-space diagram, reused across Act 2 slides -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="bug"><g stroke="#5c1a1a" stroke-width="1.7" stroke-linecap="round"><line x1="-9" y1="-5" x2="-16" y2="-10"/><line x1="-10" y1="1" x2="-17" y2="1"/><line x1="-9" y1="7" x2="-16" y2="12"/><line x1="9" y1="-5" x2="16" y2="-10"/><line x1="10" y1="1" x2="17" y2="1"/><line x1="9" y1="7" x2="16" y2="12"/></g><circle cx="0" cy="-12" r="4.5" fill="#3a1414"/><circle cx="0" cy="0" r="12" fill="#e34948"/><line x1="0" y1="-9" x2="0" y2="11" stroke="#3a1414" stroke-width="1.7"/><circle cx="-5" cy="-3" r="2.1" fill="#3a1414"/><circle cx="5" cy="-3" r="2.1" fill="#3a1414"/><circle cx="-4.5" cy="5" r="1.9" fill="#3a1414"/><circle cx="4.5" cy="5" r="1.9" fill="#3a1414"/></g>
+  <g id="space"><path d="M150,300 C135,175 250,100 420,90 C585,80 725,86 870,148 C975,190 1000,320 950,428 C905,522 730,528 565,518 C405,508 235,515 176,428 C148,384 158,340 150,300 Z" fill="#eef3fb" stroke="#c9d6ea" stroke-width="2"/><text x="205" y="140" font-size="18" font-weight="700" fill="#8a94a4">input space</text></g>
+  <g id="bugs3"><use href="#bug" x="470" y="185"/><use href="#bug" x="720" y="330"/><use href="#bug" x="255" y="450"/></g>
+  <g id="dots"><circle cx="314" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="293" cy="292" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="359" cy="170" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="344" cy="190" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="367" cy="242" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="337" cy="288" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="346" cy="349" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="398" cy="156" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="404" cy="221" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="386" cy="243" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="415" cy="303" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="412" cy="339" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="452" cy="126" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="456" cy="143" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="442" cy="196" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="463" cy="244" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="456" cy="310" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="442" cy="335" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="438" cy="395" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="520" cy="166" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="515" cy="216" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="494" cy="250" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="507" cy="307" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="495" cy="353" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="511" cy="382" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="568" cy="101" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="550" cy="157" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="548" cy="190" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="545" cy="267" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="573" cy="297" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="577" cy="346" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="570" cy="414" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="606" cy="102" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="620" cy="166" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="601" cy="215" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="620" cy="251" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="594" cy="303" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="613" cy="335" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="607" cy="393" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="648" cy="151" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="659" cy="218" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="662" cy="238" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="667" cy="304" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="670" cy="338" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="650" cy="387" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="698" cy="165" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="721" cy="219" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="706" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="734" cy="294" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="722" cy="345" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="707" cy="401" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="762" cy="152" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="785" cy="202" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="774" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="755" cy="312" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="753" cy="340" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="756" cy="384" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="818" cy="216" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="833" cy="256" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="835" cy="297" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="806" cy="342" r="4.6" fill="#7a5fd0" opacity="0.72"/><circle cx="858" cy="255" r="4.6" fill="#7a5fd0" opacity="0.72"/></g>
+</defs></svg>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ FRONT MATTER ============ -->
+
+<!-- 1: TITLE -->
+<section data-background-gradient="linear-gradient(135deg, #232F3E 0%, #161E2D 100%)">
+  <img src="cedar_logo.svg" style="height:1.7em; margin-bottom:0.35em;" alt="Cedar">
+  <div style="display:flex; justify-content:center; align-items:center; gap:1.6em; margin-bottom:0.5em;">
+    <i class="fa-solid fa-shield-halved" style="font-size:1.4em; color:#7FC4FF;"></i>
+    <i class="fa-solid fa-arrow-right" style="font-size:0.85em; color:#6b7a8a;"></i>
+    <i class="fa-solid fa-magnifying-glass-chart" style="font-size:1.4em; color:#C9B3FF;"></i>
+    <i class="fa-solid fa-arrow-right" style="font-size:0.85em; color:#6b7a8a;"></i>
+    <i class="fa-solid fa-dice" style="font-size:1.4em; color:#9CCC65;"></i>
+  </div>
+  <h1 style="font-size:1.5em; line-height:1.18; max-width:16em; margin:0 auto;">Automatically Deriving Good Generators<br>for <span style="color:#9CCC65;">Cedar</span> Using <span style="color:#C9B3FF;">Specimen</span></h1>
+  <div style="width:5em; height:3px; background:var(--smile); margin:0.9em auto 0.7em; border-radius:2px;"></div>
+  <p style="font-size:0.82em; margin:0; font-weight:600; color:#fff;">Segev Elazar Mittelman &middot; <span style="color:#C9B3FF;">@segevem</span> &middot; Applied Science Intern</p>
+  <p class="dim small" style="margin-top:0.4em;">Manager: Katie Hough &nbsp;&middot;&nbsp; Mentor: John Kastner</p>
+</section>
+
+<!-- 2: ROADMAP (TOC) -->
+<section data-background-gradient="linear-gradient(135deg, #232F3E 0%, #161E2D 100%)">
+  <h2>Roadmap</h2>
+  <ul class="toc">
+    <li class="toc-item" data-i="1"><span class="toc-num">1</span><i class="fa-solid fa-triangle-exclamation toc-ic"></i><span class="toc-tx">The Problem</span></li>
+    <li class="toc-item" data-i="2"><span class="toc-num">2</span><i class="fa-solid fa-bullseye toc-ic"></i><span class="toc-tx">What Makes a Generator "Good"</span></li>
+    <li class="toc-item" data-i="3"><span class="toc-num">3</span><i class="fa-solid fa-magnifying-glass-chart toc-ic"></i><span class="toc-tx">Specimen: Deriving Generators as Optimization</span></li>
+    <li class="toc-item" data-i="4"><span class="toc-num">4</span><i class="fa-solid fa-diagram-project toc-ic"></i><span class="toc-tx">Applying Specimen to Cedar</span></li>
+    <li class="toc-item" data-i="5"><span class="toc-num">5</span><i class="fa-solid fa-chart-line toc-ic"></i><span class="toc-tx">Results &amp; Takeaways</span></li>
+  </ul>
+</section>
+
+
+<section data-section="1">
+  <div class="eyebrow">What is Cedar?</div>
+  <h2>A language for writing and enforcing authorization policies</h2>
+  <div style="display:flex; align-items:center; gap:1.2em; justify-content:center; margin:0.3em 0 0.5em;">
+    <img src="cedar_logo.svg" alt="Cedar" style="height:90px;">
+    <div style="text-align:left; max-width:560px;">
+      <p style="margin:0 0 0.4em; color:var(--blue);">
+        <i class="fa-solid fa-shield-halved"></i>
+        "Can this <b>principal</b> do this <b>action</b> on this <b>resource</b>?"
+      </p>
+    </div>
+  </div>
+  <pre style="font-size:0.44em; text-align:left; background:#f4eefb; border-left:4px solid #9b59b6; border-radius:8px; padding:0.5em 0.8em;"><code class="language-haskell">permit ( principal == User::"alice",
+         action    == Action::"view",
+         resource  in  Album::"vacation" )
+when { resource.owner == principal };</code></pre>
+  <aside class="notes">
+    Let me start with what we're protecting. Cedar is a language for writing and enforcing authorization policies: it answers "can this principal do this action on this resource?" — the kind of check that gates every request to a service. This little policy is Cedar: permit alice to view the vacation album, but only when she owns the resource. Everything in this talk is about gaining confidence that the engine deciding this is right.
+  </aside>
+</section>
+
+<section data-section="1">
+  <div class="eyebrow">How we test it</div>
+  <h2>We test Cedar differentially: one input, two engines, any mismatch is a bug</h2>
+  <div class="diagram-card">
+  <svg viewBox="10 40 1160 394" style="width:1080px; max-width:92vw; max-height:440px;" xmlns="http://www.w3.org/2000/svg" font-family="'Amazon Ember', Helvetica, Arial, sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa0a6"/></marker>
+      <marker id="arG" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5a9e3a"/></marker>
+      <marker id="arV" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#7a5fd0"/></marker>
+      <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/></filter>
+    </defs>
+    <path d="M175,235 H250 V110 H352" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M175,235 H250 V360 H352" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M642,110 H726" fill="none" stroke="#5a9e3a" stroke-width="3" marker-end="url(#arG)"/>
+    <path d="M642,360 H726" fill="none" stroke="#7a5fd0" stroke-width="3" marker-end="url(#arV)"/>
+    <path d="M912,110 H1000 V196" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M912,360 H1000 V284" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M1042,240 H1096" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M497,176 L525,210 L510,210 L510,270 L525,270 L497,304 L469,270 L484,270 L484,210 L469,210 Z" fill="#9aa0a6"/>
+    <text x="537" y="232" font-size="20" font-weight="700" fill="#52514e">Differential</text>
+    <text x="537" y="256" font-size="20" font-weight="700" fill="#52514e">testing</text>
+    <rect x="25" y="180" width="150" height="110" rx="16" fill="#e5e7eb" filter="url(#sh)"/>
+    <text x="100" y="243" text-anchor="middle" font-size="24" font-weight="700" fill="#1a1a2e">Input</text>
+    <rect x="352" y="48" width="290" height="124" rx="14" fill="#b5d99c" filter="url(#sh)"/>
+    <text x="378" y="98" font-size="30" font-weight="800" fill="#1a1a2e">Cedar</text>
+    <text x="378" y="132" font-size="24" font-weight="600" fill="#1a1a2e">specification</text>
+    <text x="378" y="158" font-size="17" font-weight="800" fill="#2f6b1f">proven &#10003;</text>
+    <image href="lean_logo.svg" x="536" y="58" width="100" height="38"/>
+    <rect x="352" y="298" width="290" height="124" rx="14" fill="#C9B3FF" filter="url(#sh)"/>
+    <text x="378" y="352" font-size="30" font-weight="800" fill="#1a1a2e">Cedar</text>
+    <text x="378" y="388" font-size="24" font-weight="600" fill="#1a1a2e">production</text>
+    <foreignObject x="560" y="322" width="66" height="66"><i class="fa-brands fa-rust" style="font-size:52px;color:#1a1a2e;"></i></foreignObject>
+    <rect x="726" y="66" width="186" height="88" rx="14" fill="#dbedca" filter="url(#sh)"/>
+    <text x="819" y="118" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a2e">Output</text>
+    <rect x="726" y="316" width="186" height="88" rx="14" fill="#e2d8f7" filter="url(#sh)"/>
+    <text x="819" y="368" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a2e">Output</text>
+    <path d="M1000,196 L1042,240 L1000,284 L958,240 Z" fill="#9aa0a6" filter="url(#sh)"/>
+    <text x="1000" y="236" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">=</text>
+    <text x="1000" y="260" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">?</text>
+    <text x="1058" y="222" font-size="20" font-weight="700" fill="#52514e">no</text>
+    <foreignObject x="1100" y="212" width="60" height="60"><i class="fa-solid fa-bug" style="font-size:48px;color:#c0392b;"></i></foreignObject>
+    <g class="fragment" data-fragment-index="1">
+      <rect x="25" y="180" width="150" height="110" rx="16" fill="none" stroke="#e67e22" stroke-width="4.5"/>
+      <text x="100" y="150" text-anchor="middle" font-size="30" font-weight="800" fill="#e67e22">?</text>
+    </g>
+  </svg>
+  </div>
+  <p class="caption">The method is only as strong as the <b>inputs</b> we feed both sides.
+    <span class="fragment" data-fragment-index="1" style="display:block; margin-top:0.15em;"><strong style="color:var(--smile);">But where do the inputs come from?</strong></span>
+  </p>
+  <aside class="notes">
+    How do we get that confidence? Differential randomized testing. We take one random input — a schema, a policy, a request — and feed the exact same thing to two engines: our Lean specification, which carries machine-checked correctness theorems, and the Rust production implementation. If they ever disagree, that disagreement is a bug. It's a beautiful method, but notice the load-bearing assumption on this slide: it's only as good as the inputs we feed both sides. If we never generate the input that triggers a bug, we never find it. So the whole game comes down to input generation.
+  </aside>
+</section>
+
+<section data-section="1">
+  <div class="eyebrow">The catch</div>
+  <h2>Those inputs come from a hand-tuned generator that cost months to build</h2>
+  <div class="two-col" style="grid-template-columns:1.75fr 1fr; align-items:center;">
+    <div class="fig-card" style="padding:0.25em; width:100%;">
+      <img class="result-fig" src="generator_commits.png" alt="generator commit history" style="max-height:510px; width:100%;">
+    </div>
+    <div class="col-card">
+      <div class="stat-row" style="flex-direction:column; gap:0.5em;">
+        <div class="stat"><div class="num" style="color:var(--smile)">~5,400</div><div class="lbl">lines of Rust</div></div>
+        <div class="stat"><div class="num" style="color:var(--red)">~6 months</div><div class="lbl">to build</div></div>
+      </div>
+      <p style="color:#1c2b38; margin-top:0.5em;">
+        Hand-written, hand-maintained, hand-tuned to satisfy the Cedar type system.
+      </p>
+    </div>
+  </div>
+  <aside class="notes">
+    Here's the catch. Those inputs come from a generator that is entirely handwritten — about 5,400 lines of Rust that took roughly six months to build, and it's still hand-maintained and hand-tuned every time the language evolves. Why so much effort? Because to be useful the inputs must be well-typed: they have to satisfy the full, intricate constraints of the Cedar type system, or the interesting code paths never get exercised. This generator is exactly what gives us confidence in the Rust implementation — it's genuinely needed. But it's a heavy, ongoing tax. The question that drives this project: can we get generators this good automatically?
+  </aside>
+</section>
+
+
+<section data-section="2">
+  <div class="eyebrow">The goal</div>
+  <p style="font-size:1.5em; font-weight:700; color:#fff; max-width:16em; margin:0.6em auto 0; line-height:1.3;">Lift the burden: <span class="accent">automate</span> the generator.</p>
+  <p class="fragment" style="font-size:1.5em; font-weight:700; color:#fff; max-width:16em; margin:0.6em auto 0; line-height:1.3;">But it must be <span class="accent">as good as the handwritten one</span>.</p>
+  <p class="fragment" style="font-size:1.5em; font-weight:800; color:var(--smile); margin-top:0.7em; text-decoration:underline; text-decoration-color:var(--smile); text-underline-offset:8px; text-decoration-thickness:3px;">So what makes a generator <em class="accent">good</em>?</p>
+  <aside class="notes">Two things at once. First, lift the burden — instead of hand-writing and hand-tuning the generator, derive it automatically. But, second, a derived generator is only worth anything if it's good — ideally as good as the handwritten one we're replacing. Which forces the question the rest of this section answers: what does "good" even mean for a generator?</aside>
+</section>
+
+<section data-section="2">
+  <div class="eyebrow">The real measure</div>
+  <h2>How well does it find bugs?</h2>
+  <div style="display:flex; justify-content:center; align-items:flex-start; gap:1.9em; margin:1.1em 0 0.4em;">
+    <span style="position:relative; display:inline-block;"><i class="fa-solid fa-bug" style="font-size:2.8em; color:#e34948;"></i><i class="fa-solid fa-circle-check" style="position:absolute; top:-0.1em; right:-0.35em; font-size:1.05em; color:var(--green); background:#202B38; border-radius:50%;"></i></span>
+    <span style="position:relative; display:inline-block;"><i class="fa-solid fa-bug" style="font-size:2.8em; color:#e34948; opacity:0.28;"></i><i class="fa-solid fa-circle-xmark" style="position:absolute; top:-0.1em; right:-0.35em; font-size:1.05em; color:var(--red); background:#202B38; border-radius:50%;"></i></span>
+    <span style="position:relative; display:inline-block;"><i class="fa-solid fa-bug" style="font-size:2.8em; color:#e34948;"></i><i class="fa-solid fa-circle-check" style="position:absolute; top:-0.1em; right:-0.35em; font-size:1.05em; color:var(--green); background:#202B38; border-radius:50%;"></i></span>
+    <span style="position:relative; display:inline-block;"><i class="fa-solid fa-bug" style="font-size:2.8em; color:#e34948; opacity:0.28;"></i><i class="fa-solid fa-circle-xmark" style="position:absolute; top:-0.1em; right:-0.35em; font-size:1.05em; color:var(--red); background:#202B38; border-radius:50%;"></i></span>
+    <span style="position:relative; display:inline-block;"><i class="fa-solid fa-bug" style="font-size:2.8em; color:#e34948; opacity:0.28;"></i><i class="fa-solid fa-circle-xmark" style="position:absolute; top:-0.1em; right:-0.35em; font-size:1.05em; color:var(--red); background:#202B38; border-radius:50%;"></i></span>
+  </div>
+  <p style="font-size:1.15em; font-weight:700; color:#fff; margin:0.3em 0 0;">caught <span class="accent">2</span> of 5</p>
+  <p class="caption">The measure we actually want: <strong style="color:#fff;">bugs found &divide; bugs present</strong>. But real bugs are hidden — we can't compute it.</p>
+  <aside class="notes">
+    A good generator has a shot at finding a bug if one is present. If we could see every bug, "good" would be simple to measure: run the generator and count how many bugs it catches versus misses — bugs found over bugs present. But real bugs are hidden; if we knew where they were, we'd just fix them. So this measure isn't available at generation time — we need something we can actually compute, which is the next slide.
+  </aside>
+</section>
+
+<section data-section="2">
+  <div class="eyebrow">So we approximate</div>
+  <h2>Can't see the bugs &rarr; chase throughput &amp; coverage</h2>
+  <div style="display:flex; align-items:center; justify-content:center; gap:0.7em;">
+    <div class="icon-card fragment" data-fragment-index="1" style="background:rgba(127,196,255,0.16); border-radius:12px; flex:0 0 auto;">
+      <i class="fa-solid fa-gauge-high" style="color:var(--blue)"></i>
+      <div class="label">Throughput</div><div class="sub">many draws</div>
+    </div>
+    <div class="diagram-card" style="padding:6px 14px;">
+      <svg viewBox="0 0 1100 600" style="width:720px; max-width:62vw; max-height:420px;" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+        <use href="#space"/>
+        <use href="#bugs3"/>
+        <g class="fragment" data-fragment-index="1"><use href="#dots"/></g>
+        <g class="fragment" data-fragment-index="2">
+          <circle cx="486" cy="170" r="12" fill="#27ae60"/><path d="M480,170 l4.5,4.5 l8,-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="736" cy="315" r="12" fill="#27ae60"/><path d="M730,315 l4.5,4.5 l8,-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="255" y="486" text-anchor="middle" font-size="18" font-weight="800" fill="#c0392b">missed</text>
+          <text x="255" y="505" text-anchor="middle" font-size="13" fill="#8a8a8a">(never sampled)</text>
+        </g>
+      </svg>
+    </div>
+    <div class="icon-card fragment" data-fragment-index="2" style="background:rgba(92,224,138,0.16); border-radius:12px; flex:0 0 auto;">
+      <i class="fa-solid fa-shapes" style="color:var(--green)"></i>
+      <div class="label">Coverage</div><div class="sub">wide spread</div>
+    </div>
+  </div>
+  <p class="caption">More draws (throughput) &times; wider spread (coverage) &rArr; better odds on a hidden bug &mdash; and the bar to clear is the handwritten generator.</p>
+  <aside class="notes">
+    Since we can't target hidden bugs, we maximize the two things that make a hit likely. Throughput — draws per second, so more shots on goal. And coverage — how widely those draws spread across the input space and the engine's code paths, so we aren't clustered in one corner. More draws times wider spread means better odds that some draw lands on whatever bug is hiding — and both are cheap to measure, unlike bug-count. The bar we have to clear is concrete: the existing handwritten generator. Every derived generator is judged on throughput and coverage against it.
+  </aside>
+</section>
+
+<section data-section="2">
+  <div class="eyebrow">What kills throughput</div>
+  <h2>Rejection sampling: guess-and-check throws most draws away</h2>
+  <div class="two-col" style="align-items:stretch;">
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#7a0000; margin-top:0; white-space:nowrap;">✗ Guess &amp; check</h3>
+      <pre style="font-size:0.34em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.7em; margin:0;"><code class="language-haskell">def genBST (lo hi : Nat) : Gen Tree := do
+  let t ← genTree              -- any random tree
+  if isBST lo hi t then
+    pure t                     -- keep it
+  else
+    genBST lo hi               -- ✗ reject, try again</code></pre>
+      <p style="color:#7a0000; font-size:0.5em; margin:0.45em 0 0; font-weight:600;">Almost every tree fails the check.</p>
+    </div>
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#1c5c2e; margin-top:0; white-space:nowrap;">✓ Build by construction</h3>
+      <pre style="font-size:0.34em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.7em; margin:0;"><code class="language-haskell">def genBST (lo hi : Nat) : Gen Tree := do
+  if lo > hi then pure .leaf else do
+    let x ← choose lo hi   -- key in [lo,hi]
+    let l ← genBST lo x
+    let r ← genBST x hi
+    pure (.node l x r)</code></pre>
+      <p style="color:#1c5c2e; font-size:0.5em; margin:0.45em 0 0; font-weight:600;">Every draw is a valid BST.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    So what wrecks throughput? Rejection sampling — guess-and-check. Here are two generators for the same thing, a binary search tree with keys in a range. On the left, the natural-but-naive one: generate any random tree, then test whether it happens to be a search tree; if not, throw it away and try again. As the tree grows, almost every random tree fails that test, so you burn nearly all your draws on rejects — throughput collapses. On the right, the same goal built by construction: pick each key already inside its valid interval and recurse, so every single draw is a valid BST, no retries. And notice the tell: rejection sampling is the retry branch — the "else, try again." It's right there in the source. That's the hook for the next slide: if we can spot that pattern without running the generator, we can approximate throughput statically.
+  </aside>
+</section>
+
+
+<section data-section="3">
+  <div class="eyebrow">Enter Specimen</div>
+  <h2>Specimen turns choosing a generator into a search: a spec in, a generator out</h2>
+  <div class="icon-row" style="margin-top:0.9em;">
+    <div class="icon-card"><i class="fa-solid fa-scroll" style="color:var(--cedar)"></i><div class="label">A spec</div><div class="sub">an inductive relation</div></div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card"><i class="fa-solid fa-magnifying-glass-chart" style="color:var(--spec)"></i><div class="label">Specimen</div><div class="sub">enumerate &amp; score schedules</div></div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card"><i class="fa-solid fa-dice" style="color:var(--green)"></i><div class="label">A generator</div><div class="sub">valid inputs, by construction</div></div>
+  </div>
+  <p class="caption">Based on Rocq's QuickChick and my <em>Testing Theorems, Fully Automatically</em> (OOPSLA&nbsp;'26). My work made it handle Cedar's type system.</p>
+  <aside class="notes">
+    So the search we just motivated already exists as a tool: Specimen. The interface is exactly what you'd want — a spec goes in, a generator comes out. You hand it an inductive relation, it enumerates the candidate schedules and scores them statically, and it emits a generator that produces valid inputs by construction, no runs required. Specimen is based on Rocq's QuickChick and on my OOPSLA 2026 paper, Testing Theorems, Fully Automatically. What this project adds is making it actually handle something as large and intricate as Cedar's type system, which is the rest of the talk. Next: what exactly is that spec, and how does Specimen search it?
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">Specimen's domain</div>
+  <h2>Deriving generators for inductive relations</h2>
+  <div class="two-col" style="align-items:stretch;">
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#3a1f6e; margin-top:0;">The relation</h3>
+      <pre style="font-size:0.34em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.6em; margin:0;"><code class="language-haskell">inductive BST :
+    Nat → Nat → Tree → Prop where
+  | leaf : lo ≤ hi → BST lo hi .leaf
+  | node :
+      lo ≤ x ≤ hi →
+      BST lo x l →
+      BST x hi r →
+      BST lo hi (.node l x r)</code></pre>
+    </div>
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#1c5c2e; margin-top:0;">A mode → a generator</h3>
+      <pre style="font-size:0.4em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.7em; margin:0;"><code class="language-haskell">derive_mutual
+  generator (fun lo hi =&gt; ∃ t, BST lo hi t)</code></pre>
+      <p style="color:#1c2b38; font-size:0.5em; margin:0.5em 0 0;">Inputs <code>lo hi</code>, output <code>t</code>.</p>
+    </div>
+  </div>
+  <p class="caption" style="max-width:44em;">Fix a <strong style="color:#fff;">mode</strong> — which arguments are inputs, which is the output. The generator builds <code>t</code> by <strong style="color:#fff;">randomly applying a rule</strong> that fits, further constraining it, and <strong style="color:#fff;">recursing</strong>.</p>
+  <aside class="notes">Specimen consumes an inductive relation in Lean — here BST, the same one we'll come back to. You point derive_mutual at it in a chosen mode: the mode says which of the relation's arguments are inputs and which is the output. Given the bounds lo and hi, produce a tree t with BST lo hi t. The derived generator builds t by construction: to produce a value it randomly selects one of the relation's rules whose conclusion can produce the target — leaf or node — applies it, which further constrains the output and creates sub-goals, and recurses on those sub-goals. The structure comes from the rules themselves; it doesn't reject-and-retry at the top. How it runs each rule's hypotheses — the ordering — is the knob Specimen tunes, next.</aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">Reading a rule as a schedule</div>
+  <h2>The <code>leaf</code> rule has one schedule — nothing to search</h2>
+  <div class="two-col" style="align-items:stretch; max-width:820px; margin:0.4em auto;">
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#3a1f6e; margin-top:0;">The rule</h3>
+      <pre style="font-size:0.42em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.7em; margin:0;"><code class="language-haskell">| leaf :
+    lo ≤ hi →
+    BST lo hi .leaf</code></pre>
+    </div>
+    <div class="col-card" style="padding:0.55em 0.7em;">
+      <h3 style="color:#1c5c2e; margin-top:0;">Its only schedule</h3>
+      <pre style="font-size:0.42em; text-align:left; background:#fff; border-radius:6px; padding:0.5em 0.7em; margin:0;"><code class="language-haskell">do
+  check lo ≤ hi
+  return .leaf</code></pre>
+    </div>
+  </div>
+  <p class="caption">Both bounds are inputs, so <code>lo ≤ hi</code> is only <em>checked</em> — one generator, nothing to search.</p>
+  <aside class="notes">
+    Start with the easy rule. leaf says the empty tree is a BST whenever lo ≤ hi. Both bounds are inputs — the mode gives them — so the single hypothesis lo ≤ hi has nothing to produce; it can only be checked against the values already in hand. One hypothesis, both arguments bound, means exactly one schedule: check lo ≤ hi, then return the leaf. No ordering choice, nothing to search. The interesting case is node, where there are several hypotheses and the order genuinely matters.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">What Specimen searches over</div>
+  <h2>The <code>node</code> rule: three orderings of its hypotheses</h2>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.7em; max-width:97%; margin:0.2em auto; align-items:start; text-align:left;">
+    <div class="col-card fragment" data-fragment-index="1" style="padding:0.5em 0.65em;">
+      <h3 style="color:#7a3f00; margin:0 0 0.35em; font-size:0.5em; white-space:nowrap;">bound second &middot; 1 check</h3>
+      <pre style="font-size:0.32em; text-align:left; background:#fff; color:#24292e; border-radius:6px; padding:0.5em 0.6em; margin:0;">do
+  (l, x) ← BST lo x l
+<span class="fragment highlight-red" data-fragment-index="4">  check lo ≤ x ≤ hi</span>
+  r ← BST x hi r
+  return (node l x r)</pre>
+    </div>
+    <div class="col-card fragment" data-fragment-index="2" style="padding:0.5em 0.65em;">
+      <h3 style="color:#7a0000; margin:0 0 0.35em; font-size:0.5em; white-space:nowrap;">bound third &middot; 1 check, late</h3>
+      <pre style="font-size:0.32em; text-align:left; background:#fff; color:#24292e; border-radius:6px; padding:0.5em 0.6em; margin:0;">do
+  (l, x) ← BST lo x l
+  r ← BST x hi r
+<span class="fragment highlight-red" data-fragment-index="4">  check lo ≤ x ≤ hi</span>
+  return (node l x r)</pre>
+    </div>
+    <div class="col-card fragment" data-fragment-index="3" style="position:relative; padding:0.5em 0.65em;">
+      <h3 style="color:#1c5c2e; margin:0 0 0.35em; font-size:0.5em; white-space:nowrap;">bound first &middot; 0 checks &#10003;</h3>
+      <pre style="font-size:0.32em; text-align:left; background:#fff; color:#24292e; border-radius:6px; padding:0.5em 0.6em; margin:0;">do
+  x ← lo ≤ x ≤ hi
+  l ← BST lo x l
+  r ← BST x hi r
+  return (node l x r)</pre>
+      <div class="selected-schedule fragment" data-fragment-index="5" style="position:absolute; inset:0; border-radius:10px; pointer-events:none;"></div>
+    </div>
+  </div>
+  <div class="icon-row" style="margin-top:0.3em; font-size:0.72em;">
+    <div class="icon-card"><i class="fa-solid fa-industry" style="color:var(--green)"></i><div class="label">produce</div><div class="sub"><code>a ← P a</code></div></div>
+    <div class="icon-card"><i class="fa-solid fa-ban" style="color:var(--red)"></i><div class="label">check</div><div class="sub"><code>check P a</code></div></div>
+  </div>
+  <p class="caption fragment" data-fragment-index="5">The heuristic scores <b style="color:var(--green)">fewest checks</b> best — so across these orderings it keeps <em>bound first</em>.</p>
+  <aside class="notes">
+    Now node, which has real choices — its hypotheses are the bound lo ≤ x ≤ hi and the two subtree relations. Let me show the orderings that go wrong first. Bound second: let the left subtree run first, which produces the key x, but x wasn't constrained against hi, so the bound becomes a check before the right subtree — one check, one place to reject. Bound third: build both subtrees, then check the bound at the very end — still one check, but now you've wasted all that work before rejecting. Both of these check, and a check is a rejection. Now the winner: put the bound first — produce x directly inside the interval, and both subtrees follow with no failures. Zero checks, nothing rejected. That's the schedule Specimen keeps, and the whole search is just finding it.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">The heuristic</div>
+  <h2>Score each schedule on how likely — and how fast — it produces valid data</h2>
+  <div class="two-col" style="max-width:900px; margin:0.4em auto;">
+    <div class="col-card">
+      <i class="fa-solid fa-shield-halved" style="color:var(--green)"></i>
+      <h3 style="color:#1c5c2e; margin-top:0;">Valid by construction</h3>
+      <p style="color:#1c2b38;">How likely each draw is valid — fewer checks, fewer rejections.</p>
+    </div>
+    <div class="col-card">
+      <i class="fa-solid fa-gauge-high" style="color:var(--blue)"></i>
+      <h3 style="color:#1a3a6e; margin-top:0;">Fast to produce</h3>
+      <p style="color:#1c2b38;">How quickly it runs — cheap steps, little backtracking.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    Read <b>statically</b> off each schedule — an ordering of a rule's hypotheses. Specimen scores them all and keeps the <b>best per rule</b>: that's the generator.
+  </div>
+  <aside class="notes">
+    Here's the heuristic itself. For a candidate schedule, Specimen estimates two things, both without ever running it. First, how likely it is to produce valid data by construction — a schedule with fewer checks rejects fewer draws, so more of what it makes is usable. Second, how fast it produces — cheap steps and little backtracking. Those two together are the score. And what it scores over are schedules: recall a schedule is one ordering of a rule's hypotheses, so each inductive rule has a small space of behavior-distinct orderings. Specimen enumerates that space, scores every schedule statically, and keeps the best one for each rule. Assemble the best schedule for every rule and you have the derived generator. No runs anywhere in the loop — that's what makes searching the whole space affordable.
+  </aside>
+</section>
+
+
+<section data-section="4">
+  <div class="eyebrow">The mismatch</div>
+  <h2>But Specimen needs a relation — and Cedar's typechecker is a one-way function</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#7a3f00; margin-top:0;"><i class="fa-solid fa-arrow-right-long"></i> Function <code>typeOf</code></h3>
+      <p style="color:#1c2b38;">Unidirectional: <br><code>expr &rarr; type</code>. <br>Can't run it backward to <em>produce</em> exprs of a target type.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;"><i class="fa-solid fa-arrows-left-right"></i> Relation <code>HasType</code></h3>
+      <p style="color:#1c2b38;">Multi-directional: <br><code>HasType e t</code>. <br>Specimen can invert it into a <em>generator</em>.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    Specimen derives generators from <b>inductive relations</b>, not functions.
+  </div>
+  <aside class="notes">
+    So Specimen wants an inductive relation to invert. But Cedar's Lean specification isn't written that way — its typechecker is a function, typeOf, that maps an expression to its type. Functions are one-way: typeOf takes an expression and tells you the type, but you can't run it backward to ask "give me an expression of this type," which is exactly the generator we want. A relation, HasType e t, doesn't privilege a direction — you can fix either side and solve for the other. That's what Specimen needs. So the first job in applying Specimen to Cedar is converting the functional typechecker into a relational form.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">The conversion</div>
+  <h2>Claude rewrites <code>typeOf</code> as a relation — then we test it against the original</h2>
+  <svg viewBox="0 -20 1000 320" style="width:86%; max-height:330px; margin:0.15em auto 0; display:block;" xmlns="http://www.w3.org/2000/svg" font-family="'Amazon Ember', Helvetica, Arial, sans-serif">
+    <defs>
+      <marker id="arF" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa0a6"/></marker>
+      <marker id="arFo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#FF9900"/></marker>
+      <marker id="arFg" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2fb96b"/></marker>
+    </defs>
+    <!-- loop-back arc: mismatch -> Claude fixes the relation -->
+    <path d="M835,120 C835,40 690,16 500,16 C310,16 165,40 165,120" fill="none" stroke="#FF9900" stroke-width="3" marker-end="url(#arFo)"/>
+    <text x="500" y="11" text-anchor="middle" font-size="18" font-weight="700" fill="#FF9900">mismatch &rarr; Claude fixes the relation</text>
+    <!-- forward arrows -->
+    <path d="M300,170 H360" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#arF)"/>
+    <path d="M635,170 H695" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#arF)"/>
+    <!-- Box A: Claude writes relation -->
+    <rect x="30" y="125" width="270" height="90" rx="14" fill="#f4f6f9" stroke="#9b59b6" stroke-width="2.5"/>
+    <text x="165" y="165" text-anchor="middle" font-size="20" font-weight="800" fill="#1a2330">Claude writes HasType</text>
+    <text x="165" y="191" text-anchor="middle" font-size="15" fill="#52514e">candidate relation</text>
+    <!-- Box B: Derive generator -->
+    <rect x="360" y="125" width="275" height="90" rx="14" fill="#f4f6f9" stroke="#4a90d9" stroke-width="2.5"/>
+    <text x="497" y="165" text-anchor="middle" font-size="20" font-weight="800" fill="#1a2330">Derive a generator</text>
+    <text x="497" y="191" text-anchor="middle" font-size="15" fill="#52514e">Specimen inverts it</text>
+    <!-- Box C: Test vs typeOf -->
+    <rect x="695" y="125" width="275" height="90" rx="14" fill="#f4f6f9" stroke="#2fb96b" stroke-width="2.5"/>
+    <text x="832" y="163" text-anchor="middle" font-size="20" font-weight="800" fill="#1a2330">Test vs <tspan font-family="monospace" font-size="18">typeOf</tspan></text>
+    <text x="832" y="189" text-anchor="middle" font-size="15" fill="#52514e">are its policies well-typed?</text>
+    <!-- exit down: all pass -->
+    <path d="M832,215 V252" fill="none" stroke="#2fb96b" stroke-width="3" marker-end="url(#arFg)"/>
+    <text x="848" y="240" font-size="14" font-weight="700" fill="#2fb96b">all pass</text>
+    <rect x="705" y="254" width="255" height="44" rx="12" fill="#dbedca" stroke="#2fb96b" stroke-width="2"/>
+    <text x="832" y="282" text-anchor="middle" font-size="18" font-weight="800" fill="#1a2330">Faithful relation &#10003;</text>
+  </svg>
+  <p class="caption"><strong style="color:#fff;">~1,200 lines, 44 relations.</strong> No proof — but the loop caught real gaps where the relation drifted.</p>
+  <aside class="notes">
+    I did that conversion with Claude, mostly Opus 4.8: it restates the functional typeOf as an inductive relation, HasType, about 1,200 lines and 44 inductive relations covering the language. But LLMs hallucinate — I can't just trust that the relation faithfully captures the typechecker. So I close the loop with Specimen itself: I derive a generator from the candidate relation, generate policies with it, and run those policies back through the real functional typeOf to confirm they actually get the intended type. There's no formal equivalence proof between the relation and the function — but this differential check is cheap and it caught real gaps where the relation drifted from the spec. That's the safety net around the LLM.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Where I started</div>
+  <h2>The Specimen I inherited wasn't ready for something Cedar-sized</h2>
+  <div class="two-col" style="gap:0.9em;">
+    <!-- TL -->
+    <div style="position:relative; height:225px;">
+      <div class="col-card fragment fade-out" data-fragment-index="1" style="position:absolute; inset:0; margin:0; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-lock" style="color:#7a0000;"></i>
+        <h3 style="color:#7a0000; margin:0.15em 0;">Fixed heuristic &amp; weighting</h3>
+        <p style="color:#1c2b38;">One built-in score and weighting — nothing to tune.</p>
+      </div>
+      <div class="col-card fragment fade-in" data-fragment-index="1" style="position:absolute; inset:0; margin:0; background:#e6f7ec; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-sliders" style="color:#2f9e5b;"></i>
+        <h3 style="color:#1c5c2e; margin:0.15em 0;">Modular scoring + weighting</h3>
+        <p style="color:#1c2b38;">Pick the score &amp; weights at the derive site.</p>
+      </div>
+    </div>
+    <!-- TR -->
+    <div style="position:relative; height:225px;">
+      <div class="col-card fragment fade-out" data-fragment-index="2" style="position:absolute; inset:0; margin:0; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-eye-slash" style="color:#7a0000;"></i>
+        <h3 style="color:#7a0000; margin:0.15em 0;">No introspection</h3>
+        <p style="color:#1c2b38;">A poor generator failed silently — no way to see why.</p>
+      </div>
+      <div class="col-card fragment fade-in" data-fragment-index="2" style="position:absolute; inset:0; margin:0; background:#e6f7ec; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-eye" style="color:#2f9e5b;"></i>
+        <h3 style="color:#1c5c2e; margin:0.15em 0;">Structure &amp; quality display</h3>
+        <p style="color:#1c2b38;">Per-rule scores, timings, chosen schedule.</p>
+      </div>
+    </div>
+    <!-- BL -->
+    <div style="position:relative; height:225px;">
+      <div class="col-card fragment fade-out" data-fragment-index="3" style="position:absolute; inset:0; margin:0; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-arrows-to-circle" style="color:#7a0000;"></i>
+        <h3 style="color:#7a0000; margin:0.15em 0;">Single-output modes only</h3>
+        <p style="color:#1c2b38; font-family:ui-monospace,Menlo,monospace; font-size:0.66em; margin:0.25em 0 0.1em;">∃ e, HasType e τ</p>
+        <p style="color:#4a5560;">one output — <code>τ</code> must be given</p>
+      </div>
+      <div class="col-card fragment fade-in" data-fragment-index="3" style="position:absolute; inset:0; margin:0; background:#e6f7ec; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-diagram-project" style="color:#2f9e5b;"></i>
+        <h3 style="color:#1c5c2e; margin:0.15em 0;">Multi-output modes</h3>
+        <p style="color:#1c2b38; font-family:ui-monospace,Menlo,monospace; font-size:0.66em; margin:0.25em 0 0.1em;">∃ e τ, HasType e τ</p>
+        <p style="color:#4a5560;">two outputs at once — <code>e</code> and <code>τ</code></p>
+      </div>
+    </div>
+    <!-- BR -->
+    <div style="position:relative; height:225px;">
+      <div class="col-card fragment fade-out" data-fragment-index="4" style="position:absolute; inset:0; margin:0; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-hand" style="color:#7a0000;"></i>
+        <h3 style="color:#7a0000; margin:0.15em 0;">Manual dependency derivation</h3>
+        <p style="color:#1c2b38;">Each dependency hand-wired — about 20 minutes.</p>
+      </div>
+      <div class="col-card fragment fade-in" data-fragment-index="4" style="position:absolute; inset:0; margin:0; background:#e6f7ec; display:flex; flex-direction:column; justify-content:center;">
+        <i class="fa-solid fa-arrows-spin" style="color:#2f9e5b;"></i>
+        <h3 style="color:#1c5c2e; margin:0.15em 0;">Automatic mutual derivation</h3>
+        <p style="color:#1c2b38;">The whole dependency web derives at once.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    Before the results, the honest engineering story — because none of this worked out of the box. The Specimen I started from had four limits that a target as large as Cedar immediately exposed, and I'll flip each one to what I built for it. One: its scoring heuristic and weighting were fixed — one built-in strategy — so I made scoring and weighting modular, chosen at the derive site. Two: it had no introspection, a bad generator just failed silently — so I added the live readout, per-rule scores and schedules. Three: it only supported single-output modes, so it couldn't produce a relation with several outputs at once, like HasType — so I added multi-output modes. Four: deriving each dependency was manual, about twenty minutes of hand-wiring apiece — so I made derivation automatic and mutual, the whole web at once. Those four were step zero — making Specimen capable of Cedar at all.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Advancement · visibility</div>
+  <h2>A live readout of the selected generator</h2>
+  <div class="two-col" style="grid-template-columns:1fr 1fr; align-items:center; gap:1.4em;">
+    <img class="result-fig" src="slides-assets/hastype_derive_readout.png" alt="Specimen infoview readout for the HasType derive" style="max-height:520px; width:auto; margin:0 auto; border:1px solid #5f6f82; border-radius:8px;">
+    <div style="text-align:left; font-size:0.82em;">
+      <p style="color:#9fb0c0; margin:0 0 0.6em;">per rule:</p>
+      <p style="margin:0.5em 0; color:var(--r-main-color);"><i class="fa-solid fa-ranking-star" style="color:var(--smile)"></i> &nbsp;<b>score</b> <span style="color:#9fb0c0; font-size:0.8em;">density · fabrication · selectivity · locality</span></p>
+      <p style="margin:0.5em 0; color:var(--r-main-color);"><i class="fa-solid fa-clock" style="color:var(--blue)"></i> &nbsp;<b>time to construct</b></p>
+      <p style="margin:0.5em 0; color:var(--r-main-color);"><i class="fa-solid fa-list-check" style="color:var(--green)"></i> &nbsp;<b>selected schedule</b></p>
+    </div>
+  </div>
+  <aside class="notes">
+    A live readout — introspection base Specimen didn't have. This is the real HasType derivation, the selected generator. Per rule it shows three things: the score, broken into density, fabrication, selectivity, and locality; the time to construct that sub-generator; and the exact schedule it chose. So I can see which rules are strong or weak instead of it silently succeeding or failing. Reaching this readout also needed two enabling advancements: multi-output modes, so HasType produces its several outputs at once, and automatic mutual derivation, so the whole dependency web builds together instead of twenty minutes of hand-wiring each.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Advancement · scoring</div>
+  <h2>Dependency-aware scoring fixed scheduling; BudgetAware got real throughput</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-plus" style="color:var(--red)"></i>
+      <div class="label">InitialScore</div>
+      <div class="sub">local sum — ignores dependencies</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-layer-group" style="color:var(--blue)"></i>
+      <div class="label">DensityScore</div>
+      <div class="sub">dependency-aware · Testing Theorems parity</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-gauge-high" style="color:var(--green)"></i>
+      <div class="label">BudgetAwareScore</div>
+      <div class="sub">check severity · recursion sizing</div>
+    </div>
+  </div>
+  <pre style="font-size:0.4em; text-align:left; background:#fff; color:#24292e; border:1px solid #e0e4ec; border-radius:8px; padding:0.55em 0.9em; max-width:660px; margin:0.5em auto 0;"><code class="language-haskell">set_option specimen.scoreType "Scoring.BudgetAwareScore" in
+derive_mutual
+  generator (fun env =&gt; ∃ p, WellTypedPolicy env p)</code></pre>
+  <p class="caption">Parity with <em>Testing Theorems</em> scoring improved scheduling but not full Cedar; distinguishing <b>expensive vs cheap checks</b> and preferring <b>recursive calls</b> did.</p>
+  <aside class="notes">
+    Now scoring, in two steps. First I brought Specimen to parity with the dependency-aware scoring from my Testing Theorems paper — a score that folds in the density of the sub-relations a rule depends on, not just the rule's own premises. That noticeably improved the rule scheduling, but it still couldn't handle full Cedar. So I added more: rules that distinguish the severity of checks — some checks are cheap, others are expensive to compute and really hurt throughput — plus sizing considerations, like preferring recursive calls over unrelated ones so the generator builds structure instead of thrashing, and more. Together those give BudgetAwareScore, and that's what finally produced good throughput. You select it with one set_option at the derive site.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Advancement · weighting</div>
+  <h2>A weight modifier lifts a starved rule — <code>hasTag</code> to 63×</h2>
+  <div class="two-col" style="grid-template-columns:0.92fr 1.08fr; align-items:center; gap:1em;">
+    <pre style="font-size:0.42em; text-align:left; background:#fff; color:#24292e; border:1px solid #e0e4ec; border-radius:8px; padding:0.55em 0.85em; margin:0;"><code class="language-haskell">-- bias how often each rule fires
+def favorHasTag (base : Nat) (rule : Name) : Nat :=
+  match rule with
+  | "hasTag" =&gt; base * 2 + 1   -- boost
+  | _        =&gt; base
+
+set_option specimen.weightModifier "favorHasTag" in …</code></pre>
+    <div class="fig-card" style="padding:0.3em;">
+      <img class="result-fig" src="slides-assets/symcc_hastag_boost.png" alt="construct presence fold-change, Specimen vs handwritten — hasTag boosted 63x" style="max-height:520px; width:auto;">
+    </div>
+  </div>
+  <aside class="notes">
+    Weighting is modular too, and it's literally a small function you write. favorHasTag takes a rule's base weight and returns a new one: for the starved tag rule it bumps the weight; everything else passes through unchanged. You select it with one set_option at the derive site — no change to the relation. The graph is the effect: fold-change in how often each construct appears, Specimen versus handwritten. HasTag goes from basically absent in the handwritten corpus, 0.27% of policies, to 17% under Specimen — a 63x boost, the single most Specimen-favored construct. That's how I fill in the rare-construct tail without touching the spec.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Putting it to work</div>
+  <h2>With honest scores and a live readout, LLM-supported iteration converged</h2>
+  <svg viewBox="0 -20 1000 320" style="width:86%; max-height:330px; margin:0.15em auto 0; display:block;" xmlns="http://www.w3.org/2000/svg" font-family="'Amazon Ember', Helvetica, Arial, sans-serif">
+    <defs>
+      <marker id="arI" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa0a6"/></marker>
+      <marker id="arIo" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#FF9900"/></marker>
+      <marker id="arIg" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2fb96b"/></marker>
+    </defs>
+    <!-- loop-back arc: read -> tune (adjust and re-derive) -->
+    <path d="M835,125 C835,40 690,16 500,16 C310,16 165,40 165,125" fill="none" stroke="#FF9900" stroke-width="3" marker-end="url(#arIo)"/>
+    <text x="500" y="11" text-anchor="middle" font-size="18" font-weight="700" fill="#FF9900">readout flags a starving or backtracking rule</text>
+    <!-- forward arrows -->
+    <path d="M322,170 H360" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#arI)"/>
+    <path d="M635,170 H695" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#arI)"/>
+    <!-- Box A: three remedies -->
+    <rect x="30" y="112" width="290" height="116" rx="14" fill="#f4f6f9" stroke="#9b59b6" stroke-width="2.5"/>
+    <text x="175" y="138" text-anchor="middle" font-size="17" font-weight="800" fill="#1a2330">Adjust — three remedies</text>
+    <text x="175" y="163" text-anchor="middle" font-size="13" font-weight="700" fill="#6a3fa0">① relation rule — constrain the data</text>
+    <text x="175" y="184" text-anchor="middle" font-size="13" font-weight="700" fill="#b5651d">② ordering heuristic — better score</text>
+    <text x="175" y="205" text-anchor="middle" font-size="13" font-weight="700" fill="#2e6da4">③ weight modifier — boost a rare rule</text>
+    <!-- Box B: derive -->
+    <rect x="360" y="125" width="275" height="90" rx="14" fill="#f4f6f9" stroke="#4a90d9" stroke-width="2.5"/>
+    <text x="497" y="165" text-anchor="middle" font-size="20" font-weight="800" fill="#1a2330">Specimen derives</text>
+    <text x="497" y="191" text-anchor="middle" font-size="15" fill="#52514e">picks the best schedule</text>
+    <!-- Box C: read readout -->
+    <rect x="695" y="125" width="275" height="90" rx="14" fill="#f4f6f9" stroke="#e08a1e" stroke-width="2.5"/>
+    <text x="832" y="165" text-anchor="middle" font-size="20" font-weight="800" fill="#1a2330">Read the readout</text>
+    <text x="832" y="191" text-anchor="middle" font-size="15" fill="#52514e">schedule + per-rule scores</text>
+    <!-- exit down: converged -->
+    <path d="M832,215 V252" fill="none" stroke="#2fb96b" stroke-width="3" marker-end="url(#arIg)"/>
+    <text x="848" y="240" font-size="14" font-weight="700" fill="#2fb96b">converged</text>
+    <rect x="690" y="254" width="285" height="44" rx="12" fill="#dbedca" stroke="#2fb96b" stroke-width="2"/>
+    <text x="832" y="282" text-anchor="middle" font-size="18" font-weight="800" fill="#1a2330">Good throughput &amp; coverage &#10003;</text>
+  </svg>
+  <p class="caption">The readout flags a weak rule; fix the <b style="color:#c77dff">relation</b>, the <b style="color:#ffb454">heuristic</b>, or the <b style="color:#7fb4ff">weights</b>, re-derive — until every feature is exercised.</p>
+  <aside class="notes">
+    With those in hand — dependency-aware scores and a live readout — iteration became a tight loop instead of a slog. I did LLM-supported iteration: derive, look at the chosen schedule and the per-rule scores, and spot the rule that's starving or backtracking. And there are three different remedies depending on the cause. Sometimes the relation rule itself is written in a way that doesn't properly constrain the data — so no ordering can avoid guessing — and the fix is to tighten the relation. Other times the relation is fine and the ordering heuristic just needs improving, so Specimen picks a better schedule. And sometimes a rule is simply too rare — the automatic weighting under-fires it — and a one-line weight modifier boosts it without touching anything else. The readout tells me which case I'm in. I kept going until the generator Specimen selected had good throughput and good coverage across the input grammar — every language feature actually exercised. At that point it was ready to race the handwritten one. Which brings me to results.
+  </aside>
+</section>
+
+
+<section data-section="5">
+  <div class="eyebrow">Evaluation setup</div>
+  <h2>Two real DRT targets, hour-long runs, 20 reps</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-bullseye" style="color:var(--cedar)"></i>
+      <div class="label">2 targets</div>
+      <div class="sub">validator · symbolic compiler</div>
+    </div>
+    <div class="icon-card">
+      <i class="fa-solid fa-clock" style="color:var(--blue)"></i>
+      <div class="label">up to 1 hour</div>
+      <div class="sub">n ≈ 20 reps · 95% bootstrap confidence interval</div>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.5em;">
+    Handwritten runs <b>coverage-guided</b> (cargo-fuzz); Specimen emits <b>valid inputs by construction</b>, at two term sizes — <b>12 &amp; 20</b> (bigger &rarr; deeper policies).
+  </div>
+  <div class="icon-row" style="margin-top:0.45em; font-size:0.82em;">
+    <div class="icon-card"><i class="fa-solid fa-chart-line" style="color:var(--green)"></i><div class="label">line coverage</div></div>
+    <div class="icon-card"><i class="fa-solid fa-gauge-high" style="color:var(--blue)"></i><div class="label">throughput</div></div>
+    <div class="icon-card"><i class="fa-solid fa-sitemap" style="color:var(--spec)"></i><div class="label">k-path coverage</div></div>
+    <div class="icon-card"><i class="fa-solid fa-shapes" style="color:var(--smile)"></i><div class="label">construct diversity</div></div>
+  </div>
+  <aside class="notes">
+    The setup. I evaluate on two real differential-testing targets: the validator and the symbolic compiler. Each run is up to an hour, repeated about 20 times, with 95% bootstrap confidence intervals, so the numbers are statistically honest rather than one lucky run. One point on coverage: the Lean spec simply cannot represent about 2,680 lines of Rust error-handling code — those paths have no counterpart in the spec, so no spec-derived generator could ever hit them. I exclude those lines when comparing the modelable core. And note the handicap runs against me: the handwritten generator gets coverage-guided fuzzing via cargo-fuzz — feedback steering it toward new code — whereas Specimen just emits valid inputs blindly, by construction, with no feedback loop.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Line coverage over time</div>
+  <h2>Specimen reaches its coverage plateau in seconds; handwritten takes ~25 min</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_overlaid.png" alt="symcc line coverage over time" style="max-height:360px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_overlaid.png" alt="validator line coverage over time" style="max-height:360px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Line coverage over the hour on both targets, 20 reps with confidence bands. Specimen at sizes 12 and 20 jumps to its plateau within seconds and holds; the handwritten coverage-guided fuzzer climbs slowly and only plateaus after roughly 25 minutes. On the symbolic compiler Specimen plateaus a little higher; on the validator's modelable core they finish within tens of lines. Either way Specimen gets there essentially instantly, with no coverage guidance.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Line coverage — plateau (zoom)</div>
+  <h2>Zoomed in: handwritten wins on all lines (its error paths); the modelable lines are tied</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_over_time_zoom_overlaid.png" alt="symcc line coverage plateau, zoomed, all lines vs excluded" style="max-height:360px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_over_time_zoom_overlaid.png" alt="validator line coverage plateau, zoomed, all lines vs excluded" style="max-height:360px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Zoomed to the plateau, and now split into two curves per generator. Dashed is all lines: the handwritten generator runs well ahead, because it reaches the error-handling and annotation code the spec simply can't represent — on the validator it ends near 5,800. Solid excludes those out-of-scope lines — the lines the spec can actually model — and there the two are tied, within tens of lines, handwritten a hair above. So handwritten's lead is almost entirely code no spec-derived generator could reach; on the modelable core it's a dead heat, with no coverage guidance on Specimen's side.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">The first 30 seconds</div>
+  <h2>Within the first seconds Specimen has already saturated</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_first30s.png" alt="symcc coverage in the first 30 seconds" style="max-height:360px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_first30s.png" alt="validator coverage in the first 30 seconds" style="max-height:360px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Zoom into just the first thirty seconds. Specimen is essentially flat at its plateau almost immediately — under a second — while the handwritten fuzzer is still crawling up from the bottom. This is the same data as the previous slide, just early; it's the clearest picture of "instant."
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Throughput over time</div>
+  <h2>Cumulative valid inputs — size 12 outruns handwritten; size 20 trades speed for depth</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_throughput.png" alt="symcc throughput over time" style="max-height:360px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_throughput.png" alt="validator throughput over time" style="max-height:360px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Cumulative valid inputs produced over the hour. At size 12 Specimen runs several times the handwritten rate; at size 20 it's slower — bigger policies cost more to build — which is the deliberate trade for depth and diversity we see next. Both are produced with zero coverage guidance.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">k-path (grammar) coverage over time</div>
+  <h2>3-path coverage: size 20 leads on symcc; handwritten overtakes late on the validator</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_3paths_zoom.png" alt="symcc cumulative 3-path coverage" style="max-height:360px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_3paths_zoom.png" alt="validator cumulative 3-path coverage" style="max-height:360px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Grammar coverage, measured as the cumulative number of distinct 3-paths — length-3 chains of AST constructs — the generator has produced. On the symbolic compiler, size 20 pulls far ahead of both size 12 and handwritten — the bigger, deeper policies exercise far more construct combinations. On the validator it's closer, and by the end the handwritten generator actually overtakes both Specimen sizes on raw 3-path count. So the size-20 throughput cost buys real grammar diversity on symcc, and it's the one place handwritten's coverage-guidance still shows on the validator.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Constructs each generator favors</div>
+  <h2>Specimen exercises constructs the handwritten generator rarely emits</h2>
+  <div class="two-col" style="align-items:start; gap:0.9em;">
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Validator</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/validation_presence.png" alt="validator: constructs Specimen favors vs handwritten" style="max-height:450px; width:100%;"></div>
+    </div>
+    <div>
+      <div style="font-size:0.5em; color:#B7C3CF; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.25em;">Symbolic compiler</div>
+      <div class="fig-card" style="padding:0.25em; display:block;"><img class="result-fig" src="slides-assets/symcc_presence.png" alt="symbolic compiler: constructs Specimen favors vs handwritten" style="max-height:450px; width:100%;"></div>
+    </div>
+  </div>
+  <aside class="notes">
+    On the validator, the fold-change view: which constructs each generator favors, Specimen versus handwritten, on a log axis. Specimen reaches deep into the grammar — constructs it emits in a real fraction of policies barely appear in the handwritten corpus. That structural diversity, per policy, is where the derived generator clearly beats the hand-tuned one.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">It found real bugs</div>
+  <h2>The derived generator surfaced three genuine spec-vs-Rust divergences</h2>
+  <div class="two-col" style="margin-bottom:0.4em;">
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;">1 · Actions escape their reserved type</h3>
+      <p style="color:#1c2b38;">Lean accepts an action UID of <em>any</em> entity type (e.g. <code>name::"doc1"</code>); Rust rejects.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;">2 · Extension types lose their qualifier</h3>
+      <p style="color:#1c2b38;">Schema <code>Cedar::duration</code> vs a <code>duration(...)</code> result: Rust rejects; Lean's <code>ExtType</code> collapses them and accepts.</p>
+    </div>
+  </div>
+  <div class="highlight-box">
+    3 · Spurious <code>tagNotFound</code> on a projected-record <code>getTag</code> — Lean stores records as a
+    non-canonical ordered list, so the receiver decodes in a different attribute order and misses the
+    capability. <b>Fix: sort record attrs on decode.</b>
+  </div>
+  <aside class="notes">
+    And it earned its keep — three real divergences between the spec and Rust, each surfaced inside these hour-long runs. One: actions escaping the reserved Action type. Lean happily accepts an action whose UID has any entity type, like name colon-colon "doc1", where Rust correctly rejects it — actions are supposed to live in a reserved namespace. Two: extension types losing their qualifier. A schema attribute typed as Cedar::duration versus a value produced by the duration extension function — Rust distinguishes them and rejects the mismatch, but Lean's ExtType enum collapses the two and accepts. Three, the subtle one: a spurious tagNotFound on getTag through a projected record. Lean rejects a perfectly valid policy that Rust accepts, because Lean stores records as a non-canonical ordered list — so getTag's receiver can decode attributes in a different order and lose track of the capability that proves the tag exists. The fix is to sort record attributes on decode. Three genuine bugs from a declarative relation.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Bug deep-dive · #3</div>
+  <h2>A valid <code>getTag</code> Lean rejects — because it stores records in a non-canonical order</h2>
+  <div class="two-col" style="align-items:stretch;">
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;">The policy</h3>
+      <p style="color:#1c2b38;">Read a tag off a <b>projected record</b> — <code>({…}).getTag(k)</code>.</p>
+      <p style="color:#1c5c2e; font-weight:700;">Rust: well-typed &#10003;</p>
+      <p style="color:#7a0000; font-weight:700;">Lean: <code>tagNotFound</code> &#10007;</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#7a3f00; margin-top:0;">Why Lean is wrong</h3>
+      <p style="color:#1c2b38;">Records are stored as an <b>ordered list</b>, not canonicalized.</p>
+      <p style="color:#1c2b38;">The projected receiver decodes attributes in a <em>different order</em>.</p>
+      <p style="color:#1c2b38;">The <b>capability</b> proving the tag exists is keyed to that order &rarr; lost.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    <b>Fix:</b> canonicalize — sort record attributes on decode. A genuine spec bug, surfaced by a generator no one hand-tuned.
+  </div>
+  <aside class="notes">
+    Let me explain the subtle one, because it shows the payoff. The policy reads a tag off a record that's been projected — a getTag on a record expression. Rust's validator says it's well-typed; Lean's says tagNotFound and rejects it. Neither is a generator bug — it's a real divergence in the spec. The cause: Lean stores records as an ordered list of attributes that isn't canonicalized, so when the projected receiver is decoded its attributes can come back in a different order. Cedar tracks, as a capability, the fact that a given tag is known to exist — and that capability is keyed to the attribute order, so under the reordering it gets lost, and the typechecker concludes the tag might not be there. The fix is to canonicalize records on decode by sorting their attributes. The point for this talk: a declarative relation, with a generator nobody hand-tuned, surfaced a genuine bug in the specification.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Takeaways</div>
+  <h2>One relational spec of the validator yields a near-complete generator for valid Cedar</h2>
+  <div class="two-col">
+    <div class="col-card" style="text-align:left;">
+      <h3 style="color:#1c5c2e; margin-top:0; text-align:center;"><i class="fa-solid fa-trophy"></i> Why it's a win</h3>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; Covers the <b>valid fragment</b> of Cedar almost entirely — from one relational spec.</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Saturates coverage in seconds</b> — ideal for short campaigns (a bugfix, a new feature).</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; Weighting is <b>derived automatically</b> — a single constructor override, vs hand-weighting every constructor.</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Free with the spec:</b> if the Lean model goes relational, the generator updates with it.</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Sound:</b> 0 spurious mismatches over ~2.9M validations.</p>
+    </div>
+    <div class="col-card" style="text-align:left;">
+      <h3 style="color:#3a1f6e; margin-top:0; text-align:center;"><i class="fa-solid fa-forward"></i> Next steps</h3>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Specify the error semantics</b> — cover the validator's erroring paths the spec can't yet model.</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Coverage-guided Specimen</b> — feed coverage back into the schedule search.</p>
+      <p style="color:#1c2b38; margin:0.3em 0;">&bull; <b>Drop-in adoption</b> in Cedar's fuzzing pipeline.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    The takeaways. The core result: from a single relational spec based on the functional validator, Specimen derives a very good generator for the valid — almost entirely valid — fragment of Cedar policies. A few things that makes worthwhile. It saturates line coverage in seconds, which makes it ideal for short fuzzing campaigns — exactly when you're iterating on a bugfix or a new feature and don't want a half-hour warmup. Its weighting heuristics are derived automatically from the scored quality of each typing rule; the only hand-tuning is a single constructor override, whereas a handwritten generator has to be carefully weighted by hand for every constructor. And if the Lean model ever switches over to the relational spec, the generator comes for free with any update to the spec. It's also sound — zero spurious mismatches over about 2.9 million validations. Next steps: write a specification of the error semantics so we cover the erroring portions of the validator that the spec currently can't represent; feed coverage back into the schedule search for a guided Specimen; and drop it into Cedar's real fuzzing pipeline. Thank you.
+  </aside>
+</section>
+
+
+
+</div>
+
+<!-- breadcrumb rail (outside .slides so it doesn't scale) -->
+<div class="breadcrumbs">
+  <span class="bc" data-i="1">1 Problem</span>
+  <span class="bc" data-i="2">2 Good gen</span>
+  <span class="bc" data-i="3">3 Specimen</span>
+  <span class="bc" data-i="4">4 Cedar</span>
+  <span class="bc" data-i="5">5 Results</span>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'none',
+    width: 1200,
+    height: 700,
+    margin: 0.04,
+    minScale: 0.2,
+    maxScale: 2.0,
+    plugins: [RevealHighlight, RevealNotes]
+  });
+
+  // Breadcrumb rail: show + highlight the chip for the current slide's data-section.
+  const bc = document.querySelector('.breadcrumbs');
+  function updateBreadcrumbs(slide) {
+    const sec = slide && slide.dataset ? slide.dataset.section : null;
+    if (!sec) { bc.classList.remove('show'); return; }
+    bc.classList.add('show');
+    bc.querySelectorAll('.bc').forEach(c => c.classList.toggle('active', c.dataset.i === sec));
+  }
+  Reveal.on('ready', e => updateBreadcrumbs(e.currentSlide));
+  Reveal.on('slidechanged', e => updateBreadcrumbs(e.currentSlide));
+</script>
+</body>
+</html>

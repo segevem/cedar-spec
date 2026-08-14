@@ -1,0 +1,16 @@
+{
+  "reps": 6,
+  "target": "validation-drt",
+  "storage": "s3",
+  "seed_base": 0,
+  "seed_stride": 1000000000,
+  "bootstrap_resamples": 10000,
+  "git_commit": "unknown",
+  "approaches": [
+    {"name": "handwritten", "generator": "type-directed", "strategy": "budget-aware", "lean_size": 20, "N": 16161, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000]},
+    {"name": "steep-tags-sz12", "generator": "lean-schema-typeof", "strategy": "steep-tags", "lean_size": 12, "N": 267632, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000]},
+    {"name": "steep-tags-sz20", "generator": "lean-schema-typeof", "strategy": "steep-tags", "lean_size": 20, "N": 24199, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000]},
+    {"name": "typeof-check-sz12", "generator": "lean-schema-typeof", "strategy": "typeof-check", "lean_size": 12, "N": 203552, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000]},
+    {"name": "typeof-check-sz20", "generator": "lean-schema-typeof", "strategy": "typeof-check", "lean_size": 20, "N": 1893, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000]}
+  ]
+}

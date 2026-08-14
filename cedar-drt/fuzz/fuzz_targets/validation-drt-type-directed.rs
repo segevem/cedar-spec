@@ -15,7 +15,13 @@
  */
 
 #![no_main]
-use cedar_drt_inner::{fuzz_target, validation_drt};
+use cedar_drt_inner::{fuzz_target, guided_log, validation_drt};
 
-// Type-directed fuzzing of (strict) validation.
-fuzz_target!(|input: validation_drt::FuzzTargetInput<true>| validation_drt::fuzz_target(input));
+// Type-directed fuzzing of (strict) validation. This is the PLAIN guided baseline for
+// the coverage experiment: with CEDAR_FUZZ_LOG_DIR set, `fuzz_target` logs every valid
+// input for the guided-collection drain; `install_stats_at_exit` flushes CEDAR_FUZZ_STATS.
+fuzz_target!(|input: validation_drt::FuzzTargetInput<true, true>| {
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(guided_log::install_stats_at_exit);
+    validation_drt::fuzz_target(input);
+});

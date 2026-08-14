@@ -162,6 +162,91 @@ pub fn run_val_test(
     );
 }
 
+/// Non-panicking variant of [`compare_validation_results`]: returns `Err(msg)`
+/// on a mismatch instead of `panic!`-ing. Used by long-running experiment
+/// harnesses so a discovered mismatch is captured as data and the run
+/// continues, rather than aborting the process (panic unwinding is unreliable
+/// in the Lean-linked binary — a Lean-object `Drop` during unwind double-faults).
+pub fn compare_validation_results_checked(
+    policies: &PolicySet,
+    schema: &Schema,
+    comparison_mode: ValidationComparisonMode,
+    rust_res: ValidationResult,
+    definitional_res: TestResult<TestValidationResult>,
+) -> Result<(), String> {
+    match definitional_res {
+        TestResult::Failure(err) => {
+            if !err.contains("unknown extension function")
+                && !err.contains("unknown extension type")
+            {
+                return Err(format!(
+                    "Unexpected error\nPolicies:\n{}\nSchema:\n{}\nError: {err}",
+                    policies,
+                    schema_debug_repr(schema)
+                ));
+            }
+            Ok(())
+        }
+        TestResult::Success(definitional_res) => {
+            let rust_passed = rust_res
+                .validation_errors()
+                .all(|e| matches!(e, ValidationError::InvalidActionApplication(_)));
+            if rust_passed {
+                if !definitional_res.validation_passed() {
+                    return Err(format!(
+                        "Mismatch for Policies:\n{}\nSchema:\n{}\ncedar-policy response: {:?}\nTest engine response: {:?}\n",
+                        policies,
+                        schema_debug_repr(schema),
+                        miette::Report::new(rust_res),
+                        definitional_res,
+                    ));
+                }
+                Ok(())
+            } else {
+                match comparison_mode {
+                    ValidationComparisonMode::AgreeOnAll => {
+                        // Known discrepancy: Rust is stricter on linked policies (#945).
+                        if policies.num_of_templates() != 0 {
+                            return Ok(());
+                        }
+                        if definitional_res.validation_passed() {
+                            return Err(format!(
+                                "Mismatch for Policies:\n{}\nSchema:\n{}\ncedar-policy response:\n{:?}\nTest engine response: {:?}\n",
+                                policies,
+                                schema_debug_repr(schema),
+                                miette::Report::new(rust_res),
+                                definitional_res,
+                            ));
+                        }
+                        Ok(())
+                    }
+                    ValidationComparisonMode::AgreeOnValid => Ok(()),
+                }
+            }
+        }
+    }
+}
+
+/// Non-panicking variant of [`run_val_test`]: returns `Err(msg)` on a DRT
+/// mismatch instead of asserting. See [`compare_validation_results_checked`].
+pub fn run_val_test_checked(
+    custom_impl: &impl CedarTestImplementation,
+    schema: Schema,
+    policies: &PolicySet,
+    mode: ValidationMode,
+) -> Result<(), String> {
+    let validator = Validator::new(schema.clone());
+    let (rust_res, _) = time_function(|| validator.validate(policies, mode));
+    let definitional_res = custom_impl.validate(&schema, policies, mode);
+    compare_validation_results_checked(
+        policies,
+        &schema,
+        ValidationComparisonMode::AgreeOnAll,
+        rust_res,
+        definitional_res,
+    )
+}
+
 pub fn run_level_val_test(
     custom_impl: &impl CedarTestImplementation,
     schema: Schema,
@@ -181,6 +266,19 @@ pub fn run_level_val_test(
         rust_res,
         definitional_res,
     );
+}
+
+/// Characterize a schema for mismatch reporting: declared entity types vs.
+/// actions vs. action groups. This makes it obvious whether a type referenced
+/// in a policy (e.g. `name`) is a real declared entity type or only an action
+/// type — the distinction cedar-policy's validator enforces.
+fn schema_debug_repr(schema: &Schema) -> String {
+    let ets: Vec<String> = schema.entity_types().map(|e| e.to_string()).collect();
+    let acts: Vec<String> = schema.actions().map(|a| a.to_string()).collect();
+    let groups: Vec<String> = schema.action_groups().map(|a| a.to_string()).collect();
+    format!(
+        "entity_types: {ets:?}\nactions: {acts:?}\naction_groups: {groups:?}\n--- Debug ---\n{schema:?}"
+    )
 }
 
 fn compare_validation_results(
@@ -219,9 +317,9 @@ fn compare_validation_results(
                 // does the spec validator (B). So (A) ==> (B). By transitivity then, (A) ==> (C).
                 assert!(
                     definitional_res.validation_passed(),
-                    "Mismatch for Policies:\n{}\nSchema:\n{:?}\ncedar-policy response: {:?}\nTest engine response: {:?}\n",
+                    "Mismatch for Policies:\n{}\nSchema:\n{}\ncedar-policy response: {:?}\nTest engine response: {:?}\n",
                     &policies,
-                    schema,
+                    schema_debug_repr(schema),
                     miette::Report::new(rust_res),
                     definitional_res,
                 );
@@ -237,9 +335,9 @@ fn compare_validation_results(
                         }
                         assert!(
                             !definitional_res.validation_passed(),
-                            "Mismatch for Policies:\n{}\nSchema:\n{:?}\ncedar-policy response:\n{:?}\nTest engine response: {:?}\n",
+                            "Mismatch for Policies:\n{}\nSchema:\n{}\ncedar-policy response:\n{:?}\nTest engine response: {:?}\n",
                             &policies,
-                            schema,
+                            schema_debug_repr(schema),
                             miette::Report::new(rust_res),
                             definitional_res,
                         );

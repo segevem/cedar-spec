@@ -54,6 +54,19 @@ fn main() {
     println!(
         "cargo:rustc-link-search=native={CEDAR_LEAN_DIR}/.lake/packages/batteries/.lake/build/lib"
     );
+    println!(
+        "cargo:rustc-link-search=native={CEDAR_LEAN_DIR}/.lake/packages/plausible/.lake/build/lib"
+    );
+    println!(
+        "cargo:rustc-link-search=native={CEDAR_LEAN_DIR}/.lake/packages/proofwidgets/.lake/build/lib"
+    );
+    // Specimen is a sibling repo, look for its build output
+    if let Ok(specimen_lib) = std::env::var("SPECIMEN_LIB_DIR") {
+        println!("cargo:rustc-link-search=native={specimen_lib}");
+    } else {
+        // Default: specimen is at ../../specimen relative to cedar-lean
+        println!("cargo:rustc-link-search=native={CEDAR_LEAN_DIR}/../../specimen/.lake/build/lib");
+    }
     println!("cargo:rerun-if-changed={LEAN_BUILD_DIR}");
     println!("cargo:rerun-if-changed={lean_dir}");
     println!("cargo:rerun-if-changed={CEDAR_LEAN_DIR}/.lake/packages/batteries/.lake/build/lib");

@@ -1,0 +1,9 @@
+# MIXED smoke test: 2 specimen (fused) + 2 guided (cargo-fuzz), to exercise the WHOLE
+# pipeline end-to-end and produce the specimen-vs-guided comparison graph.
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+# Fused specimen (inline coverage via instrumented cedar-experiment):
+steep-tags-sz12       lean-schema-typeof  steep-tags    12
+typeof-check-sz12     lean-schema-typeof  typeof-check  12
+# Guided handwritten (coverage via faithful replay through cedar-drt-coverage):
+hw-guided-plain       type-directed       -             20  validation-drt-type-directed
+hw-guided-welltyped   type-directed       -             20  validation-welltyped-drt

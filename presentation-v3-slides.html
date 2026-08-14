@@ -1,0 +1,551 @@
+<!-- ===== ACT 1 ===== -->
+
+<section data-section="1">
+  <div class="eyebrow">The subject</div>
+  <h2>Cedar decides who can do what — so it must be correct</h2>
+  <div style="display:flex; align-items:center; gap:1.2em; justify-content:center; margin:0.3em 0 0.5em;">
+    <img src="cedar_logo.svg" alt="Cedar" style="height:90px;">
+    <div style="text-align:left; max-width:560px;">
+      <p style="margin:0 0 0.4em; color:var(--blue);">
+        <i class="fa-solid fa-shield-halved"></i>
+        "Can this <b>principal</b> do this <b>action</b> on this <b>resource</b>?"
+      </p>
+      <p style="margin:0; color:#C6D2DE;">A production authorization language. Correctness is not optional.</p>
+    </div>
+  </div>
+  <pre style="font-size:0.44em; text-align:left; background:#f4eefb; border-left:4px solid #9b59b6; border-radius:8px; padding:0.5em 0.8em;"><code class="language-haskell">permit ( principal == User::"alice",
+         action    == Action::"view",
+         resource  in  Album::"vacation" )
+when { resource.owner == principal };</code></pre>
+  <aside class="notes">
+    Let me start with what we're protecting. Cedar is a production authorization-policy language: it answers "can this principal do this action on this resource?" — the kind of check that gates every request to a service. Because it sits on the security-critical path, correctness is not a nice-to-have; a wrong answer is either a lockout or a breach. This little policy is Cedar: permit alice to view the vacation album, but only when she owns the resource. Everything in this talk is about gaining confidence that the engine deciding this is right.
+  </aside>
+</section>
+
+<section data-section="1">
+  <div class="eyebrow">How we test it</div>
+  <h2>We test Cedar differentially: one input, two engines, any mismatch is a bug</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-dice" style="color:var(--smile)"></i>
+      <div class="label">Random input</div>
+      <div class="sub">schema · policy · request</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-check-double" style="color:var(--cedar)"></i>
+      <div class="label">Lean spec</div>
+      <div class="sub">machine-checked theorems</div>
+    </div>
+    <div class="icon-card">
+      <i class="fa-brands fa-rust" style="color:var(--blue)"></i>
+      <div class="label">Rust engine</div>
+      <div class="sub">production</div>
+    </div>
+    <i class="fa-solid fa-not-equal arrow" style="color:var(--red)"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-bug" style="color:var(--red)"></i>
+      <div class="label">Mismatch</div>
+      <div class="sub">= a bug</div>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    The method is only as strong as the <b>inputs</b> we feed both sides.
+  </div>
+  <aside class="notes">
+    How do we get that confidence? Differential randomized testing. We take one random input — a schema, a policy, a request — and feed the exact same thing to two engines: our Lean specification, which carries machine-checked correctness theorems, and the Rust production implementation. If they ever disagree, that disagreement is a bug. It's a beautiful method, but notice the load-bearing assumption on this slide: it's only as good as the inputs we feed both sides. If we never generate the input that triggers a bug, we never find it. So the whole game comes down to input generation.
+  </aside>
+</section>
+
+<section data-section="1">
+  <div class="eyebrow">The catch</div>
+  <h2>Those inputs come from a hand-tuned generator that cost months to build</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <div class="fig-card" style="padding:0.3em;">
+        <img class="result-fig" src="generator_commits.png" alt="generator commit history" style="max-height:300px;">
+      </div>
+    </div>
+    <div class="col-card">
+      <div class="stat-row" style="flex-direction:column; gap:0.5em;">
+        <div class="stat"><div class="num" style="color:var(--smile)">~5,400</div><div class="lbl">lines of Rust</div></div>
+        <div class="stat"><div class="num" style="color:var(--red)">~6 months</div><div class="lbl">to build</div></div>
+      </div>
+      <p style="color:#1c2b38; margin-top:0.5em;">
+        Hand-written, hand-maintained, hand-tuned to satisfy the Cedar type system.
+      </p>
+    </div>
+  </div>
+  <aside class="notes">
+    Here's the catch. Those inputs come from a generator that is entirely handwritten — about 5,400 lines of Rust that took roughly six months to build, and it's still hand-maintained and hand-tuned every time the language evolves. Why so much effort? Because to be useful the inputs must be well-typed: they have to satisfy the full, intricate constraints of the Cedar type system, or the interesting code paths never get exercised. This generator is exactly what gives us confidence in the Rust implementation — it's genuinely needed. But it's a heavy, ongoing tax. The question that drives this project: can we get generators this good automatically?
+  </aside>
+</section>
+
+<!-- ===== ACT 2 ===== -->
+
+<section data-section="2">
+  <div class="eyebrow">The goal, and the obstacle</div>
+  <h2>Derive generators automatically — but first, what makes one "good"?</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-robot" style="color:var(--spec)"></i>
+      <div class="label">Derive automatically</div>
+      <div class="sub">no 5,400 hand-written lines</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-circle-question" style="color:var(--smile)"></i>
+      <div class="label">What is "good"?</div>
+      <div class="sub">the real question</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-bug-slash" style="color:var(--green)"></i>
+      <div class="label">Finds bugs if present</div>
+      <div class="sub">... but hard to measure directly</div>
+    </div>
+  </div>
+  <aside class="notes">
+    So the plan is to construct good generators automatically, to lift that maintenance burden. But that immediately raises the real question: what is a good generator? The honest answer is: one that has a shot at finding a bug if a bug is present. That's the definition we actually care about. The problem is you can't measure it directly — you don't know where the bugs are, and "did it find a bug" is a rare, noisy, all-or-nothing signal. So we need something we can actually measure that stands in for bug-finding power.
+  </aside>
+</section>
+
+<section data-section="2">
+  <div class="eyebrow">Measurable proxies</div>
+  <h2>We proxy bug-finding power with throughput and coverage — and race the handwritten generator</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-gauge-high" style="color:var(--blue)"></i>
+      <div class="label">Throughput</div>
+      <div class="sub">valid inputs / second</div>
+    </div>
+    <div class="icon-card">
+      <i class="fa-solid fa-diagram-project" style="color:var(--green)"></i>
+      <div class="label">Coverage</div>
+      <div class="sub">how much of the engine we hit</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-scale-balanced" style="color:var(--smile)"></i>
+      <div class="label">vs. handwritten</div>
+      <div class="sub">the bar to clear</div>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.5em;">
+    More inputs per second <span style="color:#7a5cc0;">×</span> more of the engine exercised
+    <span style="color:#7a5cc0;">≈</span> more chances to trip a bug.
+  </div>
+  <aside class="notes">
+    The proxies are throughput and coverage. Throughput is how many valid inputs we produce per second — more shots on goal. Coverage is how much of the engine those inputs actually exercise — more of the target surface. Together they're a reasonable stand-in for bug-finding power: more inputs times more of the code reached means more chances to trip something. And crucially, these give us a bar to clear: any automatically derived generator has to be compared, on throughput and coverage, against the handwritten one we're trying to replace. That comparison is the whole evaluation.
+  </aside>
+</section>
+
+<!-- ===== ACT 3 ===== -->
+
+<section data-section="3">
+  <div class="eyebrow">Why we can't just measure our way there</div>
+  <h2>The generator space is enormous — and the metrics are too slow to search it</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#7a3f00; margin-top:0;"><i class="fa-solid fa-hourglass-half"></i> Metrics are expensive</h3>
+      <p style="color:#1c2b38;">Throughput &amp; coverage need long runs and many repeated trials for a significant result.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;"><i class="fa-solid fa-list-ol"></i> The space is vast</h3>
+      <p style="color:#1c2b38;">A generator = an <b>ordering of a rule's premises</b>. <br><b>n</b> premises &rarr; <b>n!</b> orderings.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    Can't run hour-long trials on every one of n! candidates. Need something <b>cheap</b> and <b>static</b>.
+  </div>
+  <aside class="notes">
+    Now, why not just measure every candidate and pick the best? Two reasons collide. First, the metrics are expensive: to get a statistically significant throughput or coverage number you need long runs and many repeated trials. Second, the space of candidate generators is huge. And I can say "huge" precisely — because we can enumerate that space. A generator for data satisfying an inductive rule is just an ordering of that rule's premises, a schedule. n premises gives n factorial orderings, and that's per rule, across dozens of rules. You cannot run hour-long trials across a factorial space. So we need something cheap and static to score candidates without running them.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">The static signal</div>
+  <h2>Reorder premises to turn rejection-sampling checks into producers</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-ban" style="color:var(--red)"></i>
+      <div class="label">A "check"</div>
+      <div class="sub">guess, then test — discard on fail</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-industry" style="color:var(--green)"></i>
+      <div class="label">A "producer"</div>
+      <div class="sub">generate a value that fits by construction</div>
+    </div>
+  </div>
+  <div style="margin-top:0.5em; text-align:left; max-width:900px; margin-left:auto; margin-right:auto;">
+    <p style="margin:0.2em 0;"><i class="fa-solid fa-gauge-high" style="color:var(--blue)"></i> <b>Backtracking</b> wastes time &rarr; penalize it (throughput).</p>
+    <p style="margin:0.2em 0;"><i class="fa-solid fa-diagram-project" style="color:var(--green)"></i> A rule that <b>often fails to produce</b> starves its language feature &rarr; penalize it (coverage).</p>
+    <p style="margin:0.2em 0;"><i class="fa-solid fa-ban" style="color:var(--red)"></i> The simplest lever: <b>minimize rejection sampling.</b></p>
+  </div>
+  <aside class="notes">
+    Here's the static signal we exploit. Within a rule, each premise can play one of two roles depending on where it sits in the ordering. If its inputs are already fixed, it becomes a check — you guessed some values, now you test the premise and throw the draw away if it fails. That's rejection sampling. But if you reorder so the premise runs first, it becomes a producer — it generates a value that satisfies itself by construction. Same premise, different role, purely from ordering. Our heuristics score orderings by penalizing two things. Backtracking, because it wastes time and kills throughput. And rules whose generators often fail to produce anything, because each rule is a language feature, and a starved rule means that feature is under-covered. The simplest thing to chase: minimize rejection sampling.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">Demo — a familiar recursive case</div>
+  <h2>Random trees are almost never BSTs; Specimen builds valid ones by construction</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;"><i class="fa-solid fa-ban"></i> Guess &amp; check</h3>
+      <p style="color:#1c2b38;">Generate a random tree, then test the ordering invariant.</p>
+      <p style="color:#7a0000; font-weight:600;">Almost every draw is rejected.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#1c5c2e; margin-top:0;"><i class="fa-solid fa-industry"></i> Build by construction</h3>
+      <p style="color:#1c2b38;">Draw each node <em>inside</em> its valid interval.</p>
+      <p style="color:#1c5c2e; font-weight:600;">Every draw is a valid BST — 0 checks.</p>
+    </div>
+  </div>
+  <p class="caption" style="margin-top:0.5em;"><i class="fa-solid fa-play"></i> live: <code>BstDemo.lean</code></p>
+  <aside class="notes">
+    Let me make this concrete with something everyone knows: binary search trees. Here's the demo. If I generate a random tree and then check whether it happens to satisfy the search-tree ordering invariant, almost every tree fails — the probability a random tree is a BST collapses as it grows, so I'm rejecting nearly everything and getting very few, very small examples. That's the guess-and-check trap. Now watch the reordered version: instead of checking the invariant afterward, I push the bounds inward and draw each node's value inside the valid interval its position allows. Every single draw is a valid BST, zero checks. Same specification, and just by ordering the work right, rejection sampling goes to nothing. That's the entire idea of Specimen in miniature — and this is BstDemo.lean, which is runnable.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">Worked example — a real Cedar rule</div>
+  <h2>The <code>e₁ in e₂</code> rule: one ordering discards most draws, another discards none</h2>
+  <pre style="font-size:0.4em; text-align:left; background:#f4eefb; border-left:4px solid #9b59b6; border-radius:8px; padding:0.5em 0.8em;"><code class="language-haskell">-- rule: HasType (e1 in e2) Bool  requires 4 premises
+ValidEntityType t1   Descendant t1 t2   HasType e1 (entity t1)   HasType e2 (entity t2)</code></pre>
+  <div class="two-col" style="margin-top:0.3em;">
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;"><i class="fa-solid fa-ban"></i> Bad ordering — 2 checks</h3>
+      <p style="color:#1c2b38; margin:0.2em 0;">Guess <code>t1</code>, <code>t2</code>, then:</p>
+      <p style="color:#7a0000; margin:0.2em 0;">check <code>ValidEntityType t1</code> ✗</p>
+      <p style="color:#7a0000; margin:0.2em 0;">check <code>Descendant t1 t2</code> ✗</p>
+      <p style="color:#1c2b38; margin:0.2em 0;">most draws discarded</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#1c5c2e; margin-top:0;"><i class="fa-solid fa-industry"></i> Good ordering — 0 checks</h3>
+      <p style="color:#1c2b38; margin:0.2em 0;"><b>draw</b> <code>t1</code> from <code>ValidEntityType</code></p>
+      <p style="color:#1c2b38; margin:0.2em 0;"><b>draw</b> <code>t2</code> as a <code>Descendant</code> of <code>t1</code></p>
+      <p style="color:#1c2b38; margin:0.2em 0;">then the terms <code>e1</code>, <code>e2</code></p>
+      <p style="color:#1c5c2e; margin:0.2em 0;">every draw valid</p>
+    </div>
+  </div>
+  <aside class="notes">
+    Here's the exact same phenomenon in Cedar. This is the typing rule for the "in" operator — e1 in e2 has type Bool — and it has four premises: t1 must be a valid entity type, t2 must be a descendant of t1 in the hierarchy, and e1 and e2 must have those entity types. A naive ordering guesses t1 and t2 out of thin air, then checks ValidEntityType and checks Descendant. Both are checks, both usually fail — you're picking random type names and hoping two of them happen to be in a subtype relationship. Almost everything is discarded. The good ordering draws t1 directly from the ValidEntityType relation, draws t2 as a descendant of t1, and only then generates the terms. Zero checks, every draw valid. The reordering is the whole win, and it's invisible to the functional spec — you only see it once the rule is relational.
+  </aside>
+</section>
+
+<section data-section="3">
+  <div class="eyebrow">The heart of Specimen</div>
+  <h2>Picking a generator becomes an optimization over cheap static scores</h2>
+  <div class="highlight-box" style="font-size:1.05em;">
+    <b style="color:#3a1f6e;">generator*</b> &nbsp;=&nbsp; <b style="color:#7a3f00;">arg&nbsp;max</b><sub>&nbsp;ordering&nbsp;∈&nbsp;n!</sub> &nbsp; <b style="color:#1c5c2e;">Score</b>(ordering)
+  </div>
+  <div class="icon-row" style="margin-top:0.6em;">
+    <div class="icon-card">
+      <i class="fa-solid fa-list-ol" style="color:var(--spec)"></i>
+      <div class="label">Enumerate orderings</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-calculator" style="color:var(--blue)"></i>
+      <div class="label">Score statically</div>
+      <div class="sub">no runs needed</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-trophy" style="color:var(--green)"></i>
+      <div class="label">Take the best</div>
+    </div>
+  </div>
+  <aside class="notes">
+    Put those pieces together and the whole problem of "get me a good generator" turns into an optimization. Enumerate the orderings of each rule's premises, score each one statically with the cheap heuristics — penalizing backtracking and starvation, rewarding producers over checks — and take the argmax. No hour-long runs in the loop; the scoring is static. That reframing, generator selection as optimization over a static score, is the heart of Specimen. Everything after this is about making the score good enough that its argmax is actually the generator you'd have chosen if you could afford to measure.
+  </aside>
+</section>
+
+<!-- ===== ACT 4 ===== -->
+
+<section data-section="4">
+  <div class="eyebrow">The mismatch</div>
+  <h2>But Specimen needs a relation — and Cedar's typechecker is a one-way function</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#7a3f00; margin-top:0;"><i class="fa-solid fa-arrow-right-long"></i> Function <code>typeOf</code></h3>
+      <p style="color:#1c2b38;">Unidirectional: <br><code>expr &rarr; type</code>. <br>Can't run it backward to <em>produce</em> exprs of a target type.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;"><i class="fa-solid fa-arrows-left-right"></i> Relation <code>HasType</code></h3>
+      <p style="color:#1c2b38;">Multi-directional: <br><code>HasType e t</code>. <br>Specimen can invert it into a <em>generator</em>.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.4em;">
+    Specimen derives generators from <b>inductive relations</b>, not functions.
+  </div>
+  <aside class="notes">
+    So Specimen wants an inductive relation to invert. But Cedar's Lean specification isn't written that way — its typechecker is a function, typeOf, that maps an expression to its type. Functions are one-way: typeOf takes an expression and tells you the type, but you can't run it backward to ask "give me an expression of this type," which is exactly the generator we want. A relation, HasType e t, doesn't privilege a direction — you can fix either side and solve for the other. That's what Specimen needs. So the first job in applying Specimen to Cedar is converting the functional typechecker into a relational form.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">The conversion</div>
+  <h2>Claude rewrites <code>typeOf</code> as a relation — then we test it against the original</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <img src="lean_logo.svg" alt="Lean" style="height:38px;">
+      <div class="label">Functional <code>typeOf</code></div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--spec)"></i>
+      <div class="label">Claude · Opus 4.8</div>
+      <div class="sub">writes <code>HasType</code></div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i>
+      <div class="label">LLMs hallucinate</div>
+      <div class="sub">is the relation faithful?</div>
+    </div>
+  </div>
+  <div class="stat-row" style="margin-top:0.4em;">
+    <div class="stat"><div class="num" style="color:var(--spec)">~1,200</div><div class="lbl">lines of relation</div></div>
+    <div class="stat"><div class="num" style="color:var(--blue)">44</div><div class="lbl">inductive relations</div></div>
+  </div>
+  <p style="margin-top:0.3em; color:#C6D2DE;">
+    Validation: derive a generator, feed its policies to <code>typeOf</code>, confirm the intended type. No equivalence proof — testing found real gaps.
+  </p>
+  <aside class="notes">
+    I did that conversion with Claude, mostly Opus 4.8: it restates the functional typeOf as an inductive relation, HasType, about 1,200 lines and 44 inductive relations covering the language. But LLMs hallucinate — I can't just trust that the relation faithfully captures the typechecker. So I close the loop with Specimen itself: I derive a generator from the candidate relation, generate policies with it, and run those policies back through the real functional typeOf to confirm they actually get the intended type. There's no formal equivalence proof between the relation and the function — but this differential check is cheap and it caught real gaps where the relation drifted from the spec. That's the safety net around the LLM.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Optional bridge — why this generalizes</div>
+  <h2>A type system is just another relation — well-typed terms fall out, and bugs pop out</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-sitemap" style="color:var(--cedar)"></i>
+      <div class="label">STLC typing</div>
+      <div class="sub">as a relation</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-industry" style="color:var(--green)"></i>
+      <div class="label">Well-typed terms</div>
+      <div class="sub">generated by construction</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-bug" style="color:var(--red)"></i>
+      <div class="label">Buggy evaluator</div>
+      <div class="sub">counterexample pops out</div>
+    </div>
+  </div>
+  <p class="caption" style="margin-top:0.5em;"><i class="fa-solid fa-play"></i> live: <code>StlcDemo.lean</code></p>
+  <aside class="notes">
+    Quick bridge to show this isn't Cedar-specific. Cedar's type system is elaborate, but structurally it's just a typing relation — and any typing relation works the same way. In StlcDemo.lean I take the simply-typed lambda calculus: its typing rules are a relation, Specimen inverts them to generate well-typed terms by construction, and when I point those terms at an evaluator with a deliberate bug planted in it, a counterexample falls right out. Same machinery, tiny language. It's the clean version of exactly what we're doing to Cedar's much larger typechecker.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Contribution 1 — scoring</div>
+  <h2>I made scoring dependency-aware, so a generator's score reflects what it depends on</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-plus" style="color:var(--red)"></i>
+      <div class="label">InitialScore</div>
+      <div class="sub">local sum — ignores dependency cost</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-layer-group" style="color:var(--blue)"></i>
+      <div class="label">DensityScore</div>
+      <div class="sub">folds in sub-relation density</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-gauge-high" style="color:var(--green)"></i>
+      <div class="label">BudgetAwareScore</div>
+      <div class="sub">fabrication · selectivity · locality</div>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.5em;">
+    A <b>modular</b> scoring + weighting system — structure from
+    <em>"Testing Theorems, Fully Automatically"</em> (OOPSLA 2026). We ship <b>BudgetAware</b>.
+  </div>
+  <aside class="notes">
+    Now the two contributions that made iterating on this actually feasible. First, scoring. Specimen's original score was too simple: a local sum over a rule's own premises that ignored the cost of the generators it depended on. So a rule could look great while secretly leaning on a dependency that backtracks constantly — and you couldn't tell from the score. I rebuilt scoring as a modular, dependency-aware system, using the structure from my OOPSLA 2026 paper, "Testing Theorems, Fully Automatically." It evolves in three stages: the old local InitialScore; DensityScore, which folds in the density of the sub-relations you depend on; and BudgetAwareScore, which adds throughput heuristics — fabrication, selectivity, locality. BudgetAware is what we ship. The point is the score now composes down the dependency tree, so iterating on the relation gives honest feedback.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Contribution 2 — derivation &amp; visibility</div>
+  <h2>Mutual derivation plus a live readout turned iteration from days into a loop</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#1c5c2e; margin-top:0;"><i class="fa-solid fa-arrows-spin"></i> Mutual derivation</h3>
+      <p style="color:#1c2b38;">All dependencies derived together — not one-at-a-time on every change.</p>
+      <p style="color:#1c2b38;">Unlocks <b>mutual recursion</b> (typecheck ↔ infer).</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;"><i class="fa-solid fa-eye"></i> Live schedule readout</h3>
+      <p style="color:#1c2b38;">Visual + text view of the <b>chosen schedule</b> and <b>score per rule</b>.</p>
+      <p style="color:#1c2b38;">See <em>why</em> a candidate was picked — and what's weak.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    Second contribution, two parts. Before, Specimen derived every dependency separately, so any change to the relation that shifted which dependencies were needed forced a slow re-derivation of each one — and worse, it couldn't express mutually recursive dependencies at all. That's a real limitation, because typechecking and type inference are naturally mutually recursive, and so are pieces of Cedar's typing. So I added mutual derivation: all the dependencies get derived together, which both speeds up the change loop and unlocks mutual recursion. The other part is visibility. I built a visual and textual readout of the selected generator — the schedule it chose for each inductive rule and the score of each. Now when a candidate is picked I can see why, and which rules are weak, instead of guessing.
+  </aside>
+</section>
+
+<section data-section="4">
+  <div class="eyebrow">Putting it to work</div>
+  <h2>With honest scores and a live readout, LLM-supported iteration converged</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-pen-ruler" style="color:var(--spec)"></i>
+      <div class="label">Tune relation<br>&amp; heuristic</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-diagram-project" style="color:var(--blue)"></i>
+      <div class="label">Read schedule<br>&amp; per-rule score</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-arrows-rotate" style="color:var(--smile)"></i>
+      <div class="label">Repeat</div>
+    </div>
+    <i class="fa-solid fa-arrow-right arrow"></i>
+    <div class="icon-card">
+      <i class="fa-solid fa-circle-check" style="color:var(--green)"></i>
+      <div class="label">Good throughput<br>&amp; grammar coverage</div>
+    </div>
+  </div>
+  <aside class="notes">
+    With those two in hand — dependency-aware scores and a live readout — iteration became a tight loop instead of a slog. I did LLM-supported iteration on both the scoring heuristic and the relation itself: adjust, look at the chosen schedule and the per-rule scores, spot the rule that's starving or backtracking, fix it, and repeat. I kept going until the candidate generator Specimen selected had good enough throughput and good coverage across the input grammar — every language feature actually getting exercised. At that point the derived generator was ready to race the handwritten one for real. Which brings me to results.
+  </aside>
+</section>
+
+<!-- ===== ACT 5 ===== -->
+
+<section data-section="5">
+  <div class="eyebrow">Evaluation setup</div>
+  <h2>Two real DRT targets, hour-long runs, 20 reps, with fair coverage accounting</h2>
+  <div class="icon-row">
+    <div class="icon-card">
+      <i class="fa-solid fa-bullseye" style="color:var(--cedar)"></i>
+      <div class="label">2 targets</div>
+      <div class="sub">validation · symbolic compiler</div>
+    </div>
+    <div class="icon-card">
+      <i class="fa-solid fa-clock" style="color:var(--blue)"></i>
+      <div class="label">up to 1 hour</div>
+      <div class="sub">n ≈ 20 reps · 95% bootstrap CI</div>
+    </div>
+    <div class="icon-card">
+      <i class="fa-solid fa-scissors" style="color:var(--smile)"></i>
+      <div class="label">Fair coverage</div>
+      <div class="sub">exclude ~2,680 error-handling lines</div>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top:0.5em;">
+    Handwritten runs <b>coverage-guided</b> (cargo-fuzz); Specimen emits <b>valid inputs by construction</b>.
+  </div>
+  <aside class="notes">
+    The setup. I evaluate on two real differential-testing targets: the validator and the symbolic compiler. Each run is up to an hour, repeated about 20 times, with 95% bootstrap confidence intervals, so the numbers are statistically honest rather than one lucky run. One important fairness point on coverage: the Lean spec simply cannot represent about 2,680 lines of Rust error-handling code — those paths have no counterpart in the spec, so no spec-derived generator could ever hit them. I report a fair coverage number that excludes those lines. And note the handicap runs against me: the handwritten generator gets coverage-guided fuzzing via cargo-fuzz — feedback steering it toward new code — whereas Specimen just emits valid inputs blindly, by construction, with no feedback loop.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Symbolic compiler — coverage over time</div>
+  <h2>On the symbolic compiler, derived generators hit peak coverage in seconds</h2>
+  <div class="fig-card">
+    <img class="result-fig" src="slides-assets/symcc_source_lines_over_time.png" alt="symcc source lines covered over 1 hour" style="max-height:400px;">
+  </div>
+  <p class="caption">
+    Source lines covered over 1h (n=20, 95% CI). Derived (size 12 &amp; 20) reach ~2,470 lines in seconds and hold; handwritten climbs from ~800 and plateaus lower (~2,410) only after ~25 min.
+  </p>
+  <aside class="notes">
+    First target, the symbolic compiler. This plots source lines covered over the full hour, 20 reps with confidence bands. The two derived generators — I run them at term-size 12 and 20 — jump to about 2,470 lines within seconds and just hold there flat. The handwritten generator, in blue, starts down around 800 lines and has to climb; it only plateaus after roughly 25 minutes, and it settles slightly lower, around 2,410. So on this target the derived generator isn't just competitive — it reaches a higher plateau, and it gets there essentially instantly instead of taking half an hour. The coverage-guided handwritten fuzzer spends its first 25 minutes doing what Specimen does in seconds.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Validator — coverage over time</div>
+  <h2>On the validator, once out-of-scope code is excluded, they run neck-and-neck</h2>
+  <div class="fig-card">
+    <img class="result-fig" src="slides-assets/line_coverage_over_time_excl.png" alt="validation line coverage over 1 hour" style="max-height:395px;">
+  </div>
+  <p class="caption">
+    Line coverage over 1h (n=20). Dashed = all lines (handwritten far ahead on error paths); solid = out-of-scope code excluded. Fair: derived tracks within ~40 lines of handwritten.
+  </p>
+  <aside class="notes">
+    Second target, the validator, and here I want to be transparent about where handwritten wins. Look at the dashed lines: counting all lines, the handwritten generator is far ahead — because it reaches all that error-handling code the spec can't represent. That's the coverage-guided fuzzer earning its keep on paths Specimen structurally cannot reach. But the solid lines exclude that out-of-scope code, which is the fair comparison for "code the spec can actually model." Once excluded, the derived generators track the handwritten one within about 40 lines — essentially neck-and-neck — with no coverage guidance at all. So the honest read: handwritten owns error paths; on the modelable core, they're even.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">The scorecard</div>
+  <h2>Parity on fair coverage, a big win on diversity, and competitive throughput</h2>
+  <table class="results">
+    <thead>
+      <tr><th>Metric</th><th>Handwritten</th><th>Specimen-derived</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Fair line coverage</td><td>baseline</td><td>≈ parity &nbsp;(J ≈ 0.95 shared)</td></tr>
+      <tr><td>Unique lines</td><td>~100–150</td><td>~100–150</td></tr>
+      <tr class="spec-col"><td>Policy diversity (nodes/policy)</td><td>1×</td><td><b>3–5× larger &amp; more diverse</b></td></tr>
+      <tr class="spec-col"><td>Throughput</td><td>~300–500 / s</td><td><b>~1,700 / s</b></td></tr>
+      <tr><td>Spurious mismatches</td><td>—</td><td>0 &nbsp;(over ~2.9M validations)</td></tr>
+    </tbody>
+  </table>
+  <aside class="notes">
+    Here's the whole comparison on one card. Fair line coverage: essentially parity — a Jaccard of about 0.95 shared lines, with roughly 100 to 150 lines unique to each side, so they're covering nearly the same set and each reaches a little the other doesn't. Where the derived generator pulls ahead is structure: its policies are three to five times larger and more structurally diverse per policy — more nodes, more shapes, deeper nesting. Throughput: the derived generator runs around 1,700 valid inputs per second versus 300 to 500 for handwritten, so it's several times faster despite producing bigger policies. And soundness: after I fixed some generator-soundness issues, zero spurious mismatches across about 2.9 million validations — so when it does flag a disagreement, you can trust it.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">It found real bugs</div>
+  <h2>The derived generator surfaced three genuine spec-vs-Rust divergences</h2>
+  <div class="two-col" style="margin-bottom:0.4em;">
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;">1 · Actions escape their reserved type</h3>
+      <p style="color:#1c2b38;">Lean accepts an action UID of <em>any</em> entity type (e.g. <code>name::"doc1"</code>); Rust rejects.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#7a0000; margin-top:0;">2 · Extension types lose their qualifier</h3>
+      <p style="color:#1c2b38;">Schema <code>Cedar::duration</code> vs a <code>duration(...)</code> result: Rust rejects; Lean's <code>ExtType</code> collapses them and accepts.</p>
+    </div>
+  </div>
+  <div class="highlight-box">
+    3 · Spurious <code>tagNotFound</code> on a projected-record <code>getTag</code> — Lean stores records as a
+    non-canonical ordered list, so the receiver decodes in a different attribute order and misses the
+    capability. <b>Fix: sort record attrs on decode.</b>
+  </div>
+  <aside class="notes">
+    And it earned its keep — three real divergences between the spec and Rust, each surfaced inside these hour-long runs. One: actions escaping the reserved Action type. Lean happily accepts an action whose UID has any entity type, like name colon-colon "doc1", where Rust correctly rejects it — actions are supposed to live in a reserved namespace. Two: extension types losing their qualifier. A schema attribute typed as Cedar::duration versus a value produced by the duration extension function — Rust distinguishes them and rejects the mismatch, but Lean's ExtType enum collapses the two and accepts. Three, the subtle one: a spurious tagNotFound on getTag through a projected record. Lean rejects a perfectly valid policy that Rust accepts, because Lean stores records as a non-canonical ordered list — so getTag's receiver can decode attributes in a different order and lose track of the capability that proves the tag exists. The fix is to sort record attributes on decode. Three genuine bugs from a declarative relation.
+  </aside>
+</section>
+
+<section data-section="5">
+  <div class="eyebrow">Bottom line &amp; what's next</div>
+  <h2>A declarative relation rivals 5,400 lines of Rust — and points to guided derivation next</h2>
+  <div class="two-col">
+    <div class="col-card">
+      <h3 style="color:#1c5c2e; margin-top:0;"><i class="fa-solid fa-trophy"></i> Bottom line</h3>
+      <p style="color:#1c2b38; margin:0.25em 0;">Unguided, spec-derived: rivals fair coverage, <b>beats diversity</b>, competitive throughput, <b>3 real bugs</b>.</p>
+      <p style="color:#1c2b38; margin:0.25em 0;">From a relation — not 5,400 lines of Rust.</p>
+      <p style="color:#1c2b38; margin:0.25em 0;"><b>Complementary:</b> handwritten still owns template slots, error paths, ~100–150 validator lines.</p>
+    </div>
+    <div class="col-card">
+      <h3 style="color:#3a1f6e; margin-top:0;"><i class="fa-solid fa-forward"></i> Next steps</h3>
+      <p style="color:#1c2b38; margin:0.25em 0;"><i class="fa-solid fa-arrows-rotate" style="color:#7a3f00;"></i> <b>Coverage-guided Specimen</b> — feed coverage back into the schedule search.</p>
+      <p style="color:#1c2b38; margin:0.25em 0;"><i class="fa-solid fa-plug" style="color:#1c5c2e;"></i> <b>Drop-in adoption</b> in Cedar's fuzzing pipeline.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    Bottom line. An unguided, spec-derived generator rivals a coverage-guided handwritten one on fair line coverage, beats it on structural diversity, stays competitive — actually faster — on throughput, and found three real bugs. And it comes from a declarative relation, roughly 1,200 lines, instead of 5,400 lines of hand-tuned Rust that took six months. I want to be clear it's complementary, not a replacement: the handwritten generator still owns things Specimen doesn't reach — template slots, the error paths, that 100-to-150 validator lines. The best setup uses both. Where this goes next: first, coverage-guided Specimen — feed the coverage signal back into the schedule search, so the argmax is informed by what actually got hit, which should close the remaining error-path gap. And second, drop-in adoption into Cedar's real fuzzing pipeline so this runs continuously. Thank you.
+  </aside>
+</section>

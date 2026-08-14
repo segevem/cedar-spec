@@ -1,0 +1,6 @@
+# SymCC never-errors: handwritten (plain, instrumented) vs specimen well-typed-policy at two
+# sizes. No welltyped variant. TARGET=symcc-term-never-errors. Coverage = symbolic compiler
+# (cedar-policy-symcc), validator excluded. Format: name generator strategy lean_size [fuzz_target]
+symcc-wt-policy-sz12   lean-schema-typeof   welltyped-policy   12
+symcc-wt-policy-sz20   lean-schema-typeof   welltyped-policy   20
+hw-symcc-plain         type-directed        -                  20   symcc-term-drt-never-errors

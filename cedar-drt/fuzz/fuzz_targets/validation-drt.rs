@@ -16,7 +16,11 @@
 
 #![no_main]
 
-use cedar_drt_inner::{fuzz_target, validation_drt};
+use cedar_drt_inner::{fuzz_target, install_coverage_flush_handler, validation_drt};
 
 // Non-type-directed fuzzing of (strict) validation.
-fuzz_target!(|input: validation_drt::FuzzTargetInput<false>| validation_drt::fuzz_target(input));
+fuzz_target!(|input: validation_drt::FuzzTargetInput<false, true>| {
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(install_coverage_flush_handler);
+    validation_drt::fuzz_target(input);
+});

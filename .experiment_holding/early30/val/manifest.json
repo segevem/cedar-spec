@@ -1,0 +1,14 @@
+{
+  "reps": 20,
+  "target": "validation-drt",
+  "storage": "s3",
+  "seed_base": 0,
+  "seed_stride": 1000000000,
+  "bootstrap_resamples": 10000,
+  "git_commit": "unknown",
+  "approaches": [
+    {"name": "wt-policy-sz12", "generator": "lean-schema-typeof", "strategy": "welltyped-policy", "lean_size": 12, "guided": false, "fuzz_target": null, "N": null, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000, 10000000000, 11000000000, 12000000000, 13000000000, 14000000000, 15000000000, 16000000000, 17000000000, 18000000000, 19000000000]},
+    {"name": "wt-policy-sz20", "generator": "lean-schema-typeof", "strategy": "welltyped-policy", "lean_size": 20, "guided": false, "fuzz_target": null, "N": null, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000, 10000000000, 11000000000, 12000000000, 13000000000, 14000000000, 15000000000, 16000000000, 17000000000, 18000000000, 19000000000]},
+    {"name": "hw-slots-off", "generator": "type-directed", "strategy": "-", "lean_size": 20, "guided": true, "fuzz_target": "validation-drt-type-directed-noslots", "N": null, "rep_seeds": [0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000, 6000000000, 7000000000, 8000000000, 9000000000, 10000000000, 11000000000, 12000000000, 13000000000, 14000000000, 15000000000, 16000000000, 17000000000, 18000000000, 19000000000]}
+  ]
+}

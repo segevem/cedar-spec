@@ -1,0 +1,970 @@
+schema {
+  entity_decls {
+    name {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    tags {
+      prim: Bool
+    }
+  }
+  entity_decls {
+    name {
+      id: "b"
+      path: "baz"
+      path: "foo"
+    }
+    enum_choices: "a"
+    enum_choices: "b"
+    enum_choices: "baz"
+    enum_choices: "d"
+    enum_choices: "e"
+    enum_choices: "id"
+    enum_choices: "name"
+    enum_choices: "owner"
+  }
+  entity_decls {
+    name {
+      id: "b"
+    }
+    enum_choices: "a"
+    enum_choices: "b"
+    enum_choices: "bar"
+    enum_choices: "baz"
+    enum_choices: "c"
+    enum_choices: "e"
+    enum_choices: "foo"
+    enum_choices: "id"
+    enum_choices: "owner"
+  }
+  entity_decls {
+    name {
+      id: "baz"
+      path: "baz"
+    }
+    descendants {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    attributes {
+      key: "b"
+      value {
+        attr_type {
+          ext {
+            id: "datetime"
+          }
+        }
+      }
+    }
+    attributes {
+      key: "c"
+      value {
+        attr_type {
+          entity {
+            id: "b"
+          }
+        }
+      }
+    }
+    tags {
+      prim: String
+    }
+  }
+  entity_decls {
+    name {
+      id: "a"
+      path: "d"
+    }
+    descendants {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    attributes {
+      key: "c"
+      value {
+        attr_type {
+          ext {
+            id: "ipaddr"
+          }
+        }
+        is_required: true
+      }
+    }
+    attributes {
+      key: "owner"
+      value {
+        attr_type {
+          record {
+            attrs {
+              key: "d"
+              value {
+                attr_type {
+                  ext {
+                    id: "datetime"
+                  }
+                }
+                is_required: true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  entity_decls {
+    name {
+      id: "b"
+      path: "a"
+    }
+    descendants {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    descendants {
+      id: "a"
+      path: "d"
+    }
+    descendants {
+      id: "baz"
+      path: "baz"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    context {
+      key: "baz"
+      value {
+        attr_type {
+          ext {
+            id: "duration"
+          }
+        }
+      }
+    }
+    context {
+      key: "e"
+      value {
+        attr_type {
+          prim: String
+        }
+      }
+    }
+    principal_types {
+      id: "b"
+      path: "baz"
+      path: "foo"
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "bar"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "e"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "name"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    context {
+      key: "a"
+      value {
+        attr_type {
+          ext {
+            id: "duration"
+          }
+        }
+        is_required: true
+      }
+    }
+    context {
+      key: "b"
+      value {
+        attr_type {
+          entity {
+            id: "id"
+            path: "e"
+            path: "e"
+          }
+        }
+        is_required: true
+      }
+    }
+    context {
+      key: "owner"
+      value {
+        attr_type {
+          ext {
+            id: "datetime"
+          }
+        }
+        is_required: true
+      }
+    }
+    principal_types {
+      id: "a"
+      path: "d"
+    }
+    resource_types {
+      id: "b"
+      path: "a"
+    }
+    resource_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "baz"
+      path: "baz"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "id"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    context {
+      key: "foo"
+      value {
+        attr_type {
+          set_elem {
+            entity {
+              id: "id"
+              path: "e"
+              path: "e"
+            }
+          }
+        }
+        is_required: true
+      }
+    }
+    context {
+      key: "id"
+      value {
+        attr_type {
+          entity {
+            id: "b"
+            path: "baz"
+            path: "foo"
+          }
+        }
+        is_required: true
+      }
+    }
+    resource_types {
+      id: "baz"
+      path: "baz"
+    }
+    resource_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "b"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "e"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    principal_types {
+      id: "baz"
+      path: "baz"
+    }
+    principal_types {
+      id: "a"
+      path: "d"
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    principal_types {
+      id: "b"
+      path: "baz"
+      path: "foo"
+    }
+    principal_types {
+      id: "b"
+    }
+    resource_types {
+      id: "b"
+    }
+    resource_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "b"
+      path: "a"
+    }
+    resource_types {
+      id: "baz"
+      path: "baz"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "owner"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "id"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    principal_types {
+      id: "baz"
+      path: "baz"
+    }
+    principal_types {
+      id: "b"
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "baz"
+      path: "baz"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    context {
+      key: "a"
+      value {
+        attr_type {
+          prim: Long
+        }
+        is_required: true
+      }
+    }
+    principal_types {
+      id: "b"
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+    resource_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "name"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    context {
+      key: "bar"
+      value {
+        attr_type {
+          record {
+            attrs {
+              key: "b"
+              value {
+                attr_type {
+                  ext {
+                    id: "decimal"
+                  }
+                }
+                is_required: true
+              }
+            }
+          }
+        }
+      }
+    }
+    context {
+      key: "c"
+      value {
+        attr_type {
+          prim: String
+        }
+      }
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "b"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "foo"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "owner"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "e"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "id"
+    }
+    context {
+      key: "a"
+      value {
+        attr_type {
+          ext {
+            id: "ipaddr"
+          }
+        }
+        is_required: true
+      }
+    }
+    context {
+      key: "name"
+      value {
+        attr_type {
+          prim: String
+        }
+        is_required: true
+      }
+    }
+    principal_types {
+      id: "id"
+      path: "e"
+      path: "e"
+    }
+  }
+  action_decls {
+    name {
+      ty {
+        id: "Action"
+      }
+      eid: "foo"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "owner"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "d"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "baz"
+    }
+    descendants {
+      ty {
+        id: "Action"
+      }
+      eid: "id"
+    }
+    context {
+      key: "baz"
+      value {
+        attr_type {
+          ext {
+            id: "duration"
+          }
+        }
+        is_required: true
+      }
+    }
+    principal_types {
+      id: "baz"
+      path: "baz"
+    }
+  }
+}
+policies {
+  templates {
+    id: "policy0"
+    principal_constraint {
+      in {
+        er {
+          euid {
+            ty {
+              id: "id"
+              path: "e"
+              path: "e"
+            }
+            eid: "d"
+          }
+        }
+      }
+    }
+    action_constraint {
+      eq {
+        euid {
+          ty {
+            id: "Action"
+          }
+          eid: "d"
+        }
+      }
+    }
+    resource_constraint {
+      any: unit
+    }
+    non_scope_constraints {
+      and {
+        left {
+          uApp {
+            expr {
+              bApp {
+                op: LessEq
+                left {
+                  if {
+                    test_expr {
+                      lit {
+                        b: true
+                      }
+                    }
+                    then_expr {
+                      extApp {
+                        fn_name {
+                          id: "datetime"
+                        }
+                        args {
+                          lit {
+                            s: "9499-09-21T13:38:02.079+1709"
+                          }
+                        }
+                      }
+                    }
+                    else_expr {
+                      lit {
+                        b: false
+                      }
+                    }
+                  }
+                }
+                right {
+                  if {
+                    test_expr {
+                      lit {
+                        b: false
+                      }
+                    }
+                    then_expr {
+                      extApp {
+                        fn_name {
+                          id: "duration"
+                        }
+                        args {
+                          lit {
+                            s: "01275377357821557689ms"
+                          }
+                        }
+                      }
+                    }
+                    else_expr {
+                      extApp {
+                        fn_name {
+                          id: "datetime"
+                        }
+                        args {
+                          lit {
+                            s: "4200-01-14T02:38:35.525Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        right {
+          and {
+            left {
+              bApp {
+                op: HasTag
+                left {
+                  getAttr {
+                    expr {
+                      record {
+                        items {
+                          key: "b"
+                          value {
+                            var: Resource
+                          }
+                        }
+                        items {
+                          key: "d"
+                          value {
+                            or {
+                              left {
+                                bApp {
+                                  op: HasTag
+                                  left {
+                                    var: Resource
+                                  }
+                                  right {
+                                    lit {
+                                      s: "owner"
+                                    }
+                                  }
+                                }
+                              }
+                              right {
+                                lit {
+                                  b: true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    attr: "b"
+                  }
+                }
+                right {
+                  lit {
+                    s: "owner"
+                  }
+                }
+              }
+            }
+            right {
+              and {
+                left {
+                  bApp {
+                    op: GetTag
+                    left {
+                      getAttr {
+                        expr {
+                          record {
+                            items {
+                              key: "b"
+                              value {
+                                var: Resource
+                              }
+                            }
+                            items {
+                              key: "d"
+                              value {
+                                or {
+                                  left {
+                                    bApp {
+                                      op: HasTag
+                                      left {
+                                        var: Resource
+                                      }
+                                      right {
+                                        lit {
+                                          s: "owner"
+                                        }
+                                      }
+                                    }
+                                  }
+                                  right {
+                                    lit {
+                                      b: true
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        attr: "b"
+                      }
+                    }
+                    right {
+                      lit {
+                        s: "owner"
+                      }
+                    }
+                  }
+                }
+                right {
+                  and {
+                    left {
+                      lit {
+                        b: true
+                      }
+                    }
+                    right {
+                      and {
+                        left {
+                          uApp {
+                            expr {
+                              and {
+                                left {
+                                  bApp {
+                                    op: In
+                                    left {
+                                      lit {
+                                        euid {
+                                          ty {
+                                            id: "Action"
+                                          }
+                                          eid: "b"
+                                        }
+                                      }
+                                    }
+                                    right {
+                                      lit {
+                                        euid {
+                                          ty {
+                                            id: "Action"
+                                          }
+                                          eid: "b"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                                right {
+                                  and {
+                                    left {
+                                      bApp {
+                                        op: HasTag
+                                        left {
+                                          lit {
+                                            euid {
+                                              ty {
+                                                id: "baz"
+                                                path: "baz"
+                                              }
+                                              eid: "d"
+                                            }
+                                          }
+                                        }
+                                        right {
+                                          lit {
+                                            s: "owner"
+                                          }
+                                        }
+                                      }
+                                    }
+                                    right {
+                                      lit {
+                                        b: true
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        right {
+                          and {
+                            left {
+                              uApp {
+                                expr {
+                                  if {
+                                    test_expr {
+                                      is {
+                                        expr {
+                                          lit {
+                                            euid {
+                                              ty {
+                                                id: "Action"
+                                              }
+                                              eid: "e"
+                                            }
+                                          }
+                                        }
+                                        entity_type {
+                                          id: "Action"
+                                        }
+                                      }
+                                    }
+                                    then_expr {
+                                      bApp {
+                                        op: HasTag
+                                        left {
+                                          lit {
+                                            euid {
+                                              ty {
+                                                id: "b"
+                                                path: "a"
+                                              }
+                                              eid: "owner"
+                                            }
+                                          }
+                                        }
+                                        right {
+                                          lit {
+                                            s: "owner"
+                                          }
+                                        }
+                                      }
+                                    }
+                                    else_expr {
+                                      lit {
+                                        b: true
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            right {
+                              lit {
+                                b: true
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  links {
+    template_id: "policy0"
+  }
+}

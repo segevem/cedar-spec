@@ -1,0 +1,20 @@
+# 6-arm welltyped comparison (2026-08-06). Confirms the Bug1/Bug2 soundness fixes end-to-end
+# (through the proto round-trip) AND adds a sz20 data point.
+#
+# Filtered vs unfiltered EQUALITY CHECK: `*-filtered` arms apply the collect-time
+# COLLECT_WELLTYPED_ONLY reject gate (drops any input Rust `validate` rejects). Each filtered
+# arm shares its unfiltered twin's generator/strategy/size AND seed (same SEED_BASE/STRIDE +
+# --single-rep), so a SOUND generator rejects 0 -> byte-identical corpus -> J=1.000 in the
+# compare. Any J<1 or nonzero reject count = an ill-typed input slipped through (regression).
+#
+# Also: hw-slots-off (all inputs, hits validator error paths) vs hw-welltyped-noslots (reject
+# gate, well-typed only) = error-path contribution; hw-welltyped-noslots vs wt-policy = fair
+# well-typed static comparison; sz20 vs sz12 = size effect on structural (k-path) diversity.
+#
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+wt-policy-sz12            lean-schema-typeof   welltyped-policy   12
+wt-policy-sz12-filtered   lean-schema-typeof   welltyped-policy   12
+wt-policy-sz20            lean-schema-typeof   welltyped-policy   20
+wt-policy-sz20-filtered   lean-schema-typeof   welltyped-policy   20
+hw-slots-off              type-directed        -                  20   validation-drt-type-directed-noslots
+hw-welltyped-noslots      type-directed        -                  20   validation-welltyped-drt-noslots

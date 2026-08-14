@@ -1,0 +1,5 @@
+# Validation: handwritten-slots-off vs specimen well-typed-policy at two sizes. No filtered/
+# welltyped arms. TARGET=validation-drt. Format: name generator strategy lean_size [fuzz_target]
+wt-policy-sz12   lean-schema-typeof   welltyped-policy   12
+wt-policy-sz20   lean-schema-typeof   welltyped-policy   20
+hw-slots-off     type-directed        -                  20   validation-drt-type-directed-noslots

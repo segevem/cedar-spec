@@ -1,0 +1,9 @@
+# Layer 4: does the `welltyped-policy` specimen generator (real scope constraints, static
+# policies) match the handwritten generator's validator coverage?
+# Compared against the STANDARD validation-drt-type-directed target in two flavors:
+#   - slots OFF (static policies only) — the apples-to-apples baseline (specimen is static too)
+#   - slots ON  (templates + slots)   — shows the extra coverage slots add (Lean can't reach it)
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+wt-policy-sz12   lean-schema-typeof   welltyped-policy   12
+hw-slots-off     type-directed        -                  20   validation-drt-type-directed-noslots
+hw-slots-on      type-directed        -                  20   validation-drt-type-directed

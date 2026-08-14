@@ -30,3 +30,28 @@ cedar-drt/fuzz/artifacts
 # not track it in version control.
 cedar/
 !cedar-lean/Cedar
+
+# LLVM coverage raw profiles (regenerable intermediates)
+*.profraw
+
+# --- regenerable build & experiment artifacts (do not track) ---
+target_cov*/
+target_sancov/
+exp_*/
+corpus*/
+repeated_results/
+coverage_results*/
+crash_dump/
+dumped_tests*/
+kept_examples/
+pruned_examples/
+validation_dump*/
+fuzz_binary/
+# compiled fuzz binary that sits inside coverage/ (dir-only rule above misses the file)
+cedar-drt/coverage/fuzz_binary
+
+# Root symlink to the sibling cedar checkout — do not commit as a dangling link
+/cedar
+
+# Local-only redaction map (real values behind pushed placeholders); never push
+.redaction-map.local.md

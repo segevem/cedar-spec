@@ -1,0 +1,418 @@
+decision	file	line	reason	source
+KEEP	cedar-policy-core/src/ast/entity.rs	123	AST Display/parse	pub fn loc(&self) -> Option<&Loc> {
+KEEP	cedar-policy-core/src/ast/entity.rs	124	AST Display/parse	match self {
+KEEP	cedar-policy-core/src/ast/entity.rs	125	AST Display/parse	EntityType::EntityType(name) => name.as_ref().loc(),
+KEEP	cedar-policy-core/src/ast/entity.rs	129	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/entity.rs	194	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/entity.rs	195	AST Display/parse	match self {
+KEEP	cedar-policy-core/src/ast/entity.rs	196	AST Display/parse	EntityType::EntityType(name) => write!(f, "{name}"),
+KEEP	cedar-policy-core/src/ast/entity.rs	200	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/expr.rs	1122	expr build/const-fold (valid)	(ExprKind::Lit(Literal::Bool(b1)), ExprKind::Lit(Literal::Bool(b2))) => {
+KEEP	cedar-policy-core/src/ast/expr.rs	1123	expr build/const-fold (valid)	ExprKind::Lit(Literal::Bool(*b1 || *b2))
+KEEP	cedar-policy-core/src/ast/id.rs	88	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/id.rs	89	AST Display/parse	write!(f, "{}", &self.0)
+KEEP	cedar-policy-core/src/ast/id.rs	90	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/id.rs	311	AST Display/parse	pub(crate) fn new_unchecked(s: impl Into<SmolStr>) -> AnyId {
+KEEP	cedar-policy-core/src/ast/id.rs	312	AST Display/parse	AnyId(s.into())
+KEEP	cedar-policy-core/src/ast/id.rs	313	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/id.rs	357	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/id.rs	358	AST Display/parse	write!(f, "{}", &self.0)
+KEEP	cedar-policy-core/src/ast/id.rs	359	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/id.rs	366	AST Display/parse	fn from_str(s: &str) -> Result<Self, Self::Err> {
+KEEP	cedar-policy-core/src/ast/id.rs	367	AST Display/parse	crate::parser::parse_anyid(s)
+KEEP	cedar-policy-core/src/ast/id.rs	368	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/literal.rs	59	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/literal.rs	60	AST Display/parse	match self {
+KEEP	cedar-policy-core/src/ast/literal.rs	66	AST Display/parse	Self::String(s) => write!(f, "\"{}\"", s.escape_debug()),
+KEEP	cedar-policy-core/src/ast/literal.rs	69	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/name.rs	125	AST Display/parse	pub fn loc(&self) -> Option<&Loc> {
+KEEP	cedar-policy-core/src/ast/name.rs	126	AST Display/parse	self.loc.as_ref()
+KEEP	cedar-policy-core/src/ast/name.rs	127	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/name.rs	207	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/name.rs	208	AST Display/parse	for elem in self.path.as_ref() {
+KEEP	cedar-policy-core/src/ast/name.rs	209	AST Display/parse	write!(f, "{elem}::")?;
+KEEP	cedar-policy-core/src/ast/name.rs	211	AST Display/parse	write!(f, "{}", self.id)?;
+KEEP	cedar-policy-core/src/ast/name.rs	212	AST Display/parse	Ok(())
+KEEP	cedar-policy-core/src/ast/name.rs	213	AST Display/parse	}
+KEEP	cedar-policy-core/src/ast/name.rs	407	AST Display/parse	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+KEEP	cedar-policy-core/src/ast/name.rs	408	AST Display/parse	self.0.fmt(f)
+KEEP	cedar-policy-core/src/ast/name.rs	409	AST Display/parse	}
+EXCLUDE*	cedar-policy-core/src/evaluator.rs	261	error source-loc plumbing (low conf)	if err.source_loc().is_none() {
+EXCLUDE*	cedar-policy-core/src/evaluator.rs	262	error source-loc plumbing (low conf)	err.with_maybe_source_loc(expr.source_loc().cloned())
+EXCLUDE*	cedar-policy-core/src/evaluator.rs	266	error source-loc plumbing (low conf)	})
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	106	error render	pub(crate) fn source_loc(&self) -> Option<&Loc> {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	107	error render	match self {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	116	error render	Self::FailedExtensionFunctionExecution(e) => e.source_loc.as_ref(),
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	122	error render	}
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	125	error render	pub(crate) fn with_maybe_source_loc(self, source_loc: Option<Loc>) -> Self 
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	126	error render	match self {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	159	error render	Self::FailedExtensionFunctionExecution(e) => Self::FailedExtensionFunctionE
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	160	error render	evaluation_errors::ExtensionFunctionExecutionError { source_loc, ..e },
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	161	error render	),
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	173	error render	}
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	314	error render	pub(crate) fn failed_extension_function_application(
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	315	error render	extension_name: Name,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	316	error render	msg: String,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	317	error render	source_loc: Option<Loc>,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	318	error render	advice: Option<String>,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	319	error render	) -> Self {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	320	error render	evaluation_errors::ExtensionFunctionExecutionError {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	321	error render	extension_name,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	322	error render	msg,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	323	error render	advice,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	324	error render	source_loc,
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	325	error render	}
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	326	error render	.into()
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	327	error render	}
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	678	error render	fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	679	error render	self.advice.as_ref().map(|v| Box::new(v) as _)
+EXCLUDE	cedar-policy-core/src/evaluator/err.rs	680	error render	}
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	109	extension error (extension_err/parse-fail/ArgValidationError)	fn extension_err(
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	110	extension error (extension_err/parse-fail/ArgValidationError)	msg: String,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	111	extension error (extension_err/parse-fail/ArgValidationError)	extension_name: &crate::ast::Name,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	112	extension error (extension_err/parse-fail/ArgValidationError)	advice: Option<String>,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	113	extension error (extension_err/parse-fail/ArgValidationError)	) -> evaluator::EvaluationError {
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	114	extension error (extension_err/parse-fail/ArgValidationError)	evaluator::EvaluationError::failed_extension_function_application(
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	115	extension error (extension_err/parse-fail/ArgValidationError)	extension_name.clone(),
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	116	extension error (extension_err/parse-fail/ArgValidationError)	msg,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	117	extension error (extension_err/parse-fail/ArgValidationError)	None, // source loc will be added by the evaluator
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	118	extension error (extension_err/parse-fail/ArgValidationError)	advice,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	120	extension error (extension_err/parse-fail/ArgValidationError)	}
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	150	extension error (extension_err/parse-fail/ArgValidationError)	extension_err(
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	151	extension error (extension_err/parse-fail/ArgValidationError)	err.to_string(),
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	152	extension error (extension_err/parse-fail/ArgValidationError)	&constants::DATETIME_CONSTRUCTOR_NAME,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	154	extension error (extension_err/parse-fail/ArgValidationError)	err.help()
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	155	extension error (extension_err/parse-fail/ArgValidationError)	.map(|v| v.to_string())
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	156	extension error (extension_err/parse-fail/ArgValidationError)	.unwrap_or_else(|| VALID_DATETIME_HELP.to_string()),
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	159	extension error (extension_err/parse-fail/ArgValidationError)	})
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	427	extension error (extension_err/parse-fail/ArgValidationError)	extension_err(
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	428	extension error (extension_err/parse-fail/ArgValidationError)	err.to_string(),
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	429	extension error (extension_err/parse-fail/ArgValidationError)	&constants::DURATION_CONSTRUCTOR_NAME,
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	431	extension error (extension_err/parse-fail/ArgValidationError)	err.help()
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	432	extension error (extension_err/parse-fail/ArgValidationError)	.map(|v| v.to_string())
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	433	extension error (extension_err/parse-fail/ArgValidationError)	.unwrap_or_else(|| VALID_DURATION_HELP.to_string()),
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	436	extension error (extension_err/parse-fail/ArgValidationError)	})
+EXCLUDE	cedar-policy-core/src/extensions/datetime.rs	489	extension error (extension_err/parse-fail/ArgValidationError)	return Err(DurationParseError::InvalidPattern);
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	195	extension error (extension_err/parse-fail/ArgValidationError)	fn extension_err(msg: impl Into<String>, advice: Option<String>) -> evaluat
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	196	extension error (extension_err/parse-fail/ArgValidationError)	evaluator::EvaluationError::failed_extension_function_application(
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	197	extension error (extension_err/parse-fail/ArgValidationError)	constants::DECIMAL_FROM_STR_NAME.clone(),
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	198	extension error (extension_err/parse-fail/ArgValidationError)	msg.into(),
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	199	extension error (extension_err/parse-fail/ArgValidationError)	None,
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	200	extension error (extension_err/parse-fail/ArgValidationError)	advice, // source loc will be added by the evaluator
+EXCLUDE	cedar-policy-core/src/extensions/decimal.rs	202	extension error (extension_err/parse-fail/ArgValidationError)	}
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	209	extension error (extension_err/parse-fail/ArgValidationError)	format!("error parsing IP address from the string `{addr_str}`: {e}")
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	210	extension error (extension_err/parse-fail/ArgValidationError)	})?;
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	230	extension error (extension_err/parse-fail/ArgValidationError)	Err(_) => Err(format!("invalid IP address: {s}")),
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	260	extension error (extension_err/parse-fail/ArgValidationError)	fn extension_err(msg: impl Into<String>, advice: Option<String>) -> evaluat
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	261	extension error (extension_err/parse-fail/ArgValidationError)	evaluator::EvaluationError::failed_extension_function_application(
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	262	extension error (extension_err/parse-fail/ArgValidationError)	names::EXTENSION_NAME.clone(),
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	263	extension error (extension_err/parse-fail/ArgValidationError)	msg.into(),
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	264	extension error (extension_err/parse-fail/ArgValidationError)	None, // source loc will be added by the evaluator
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	265	extension error (extension_err/parse-fail/ArgValidationError)	advice,
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	267	extension error (extension_err/parse-fail/ArgValidationError)	}
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	322	extension error (extension_err/parse-fail/ArgValidationError)	return Err(format!(
+EXCLUDE	cedar-policy-core/src/extensions/ipaddr.rs	323	extension error (extension_err/parse-fail/ArgValidationError)	"error parsing IP address from string: We do not accept IPv4 embedded in IP
+KEEP	cedar-policy-core/src/from_normalized_str.rs	38	annotation/parse	fn from_normalized_str(s: &str) -> Result<Self, ParseErrors> {
+KEEP	cedar-policy-core/src/from_normalized_str.rs	39	annotation/parse	default_from_normalized_str(s, Self::describe_self)
+KEEP	cedar-policy-core/src/from_normalized_str.rs	40	annotation/parse	}
+KEEP	cedar-policy-core/src/from_normalized_str.rs	51	annotation/parse	pub fn default_from_normalized_str<T: FromStr<Err = ParseErrors> + Display>
+KEEP	cedar-policy-core/src/from_normalized_str.rs	52	annotation/parse	s: &str,
+KEEP	cedar-policy-core/src/from_normalized_str.rs	53	annotation/parse	describe_self: impl FnOnce() -> &'static str,
+KEEP	cedar-policy-core/src/from_normalized_str.rs	54	annotation/parse	) -> Result<T, ParseErrors> {
+KEEP	cedar-policy-core/src/from_normalized_str.rs	55	annotation/parse	let parsed = T::from_str(s)?;
+KEEP	cedar-policy-core/src/from_normalized_str.rs	56	annotation/parse	let normalized_src = parsed.to_string();
+KEEP	cedar-policy-core/src/from_normalized_str.rs	57	annotation/parse	if normalized_src == s {
+KEEP	cedar-policy-core/src/from_normalized_str.rs	59	annotation/parse	Ok(parsed)
+KEEP	cedar-policy-core/src/from_normalized_str.rs	78	annotation/parse	}
+KEEP	cedar-policy-core/src/parser.rs	274	annotation/parse	pub(crate) fn parse_anyid(id: &str) -> Result<ast::AnyId, err::ParseErrors>
+KEEP	cedar-policy-core/src/parser.rs	275	annotation/parse	let cst = text_to_cst::parse_ident(id)?;
+KEEP	cedar-policy-core/src/parser.rs	276	annotation/parse	cst.to_any_ident()
+KEEP	cedar-policy-core/src/parser.rs	277	annotation/parse	}
+KEEP	cedar-policy-core/src/parser/cst_to_ast.rs	679	annotation/parse	pub fn to_any_ident(&self) -> Result<ast::AnyId> {
+KEEP	cedar-policy-core/src/parser/cst_to_ast.rs	680	annotation/parse	let ident = self.try_as_inner()?;
+KEEP	cedar-policy-core/src/parser/cst_to_ast.rs	682	annotation/parse	match ident {
+KEEP	cedar-policy-core/src/parser/cst_to_ast.rs	686	annotation/parse	cst::Ident::Ident(i) => Ok(ast::AnyId::new_unchecked(i.clone())),
+KEEP	cedar-policy-core/src/parser/cst_to_ast.rs	689	annotation/parse	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	177	ValidationError ctor	pub(crate) fn unrecognized_entity_type(
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	178	ValidationError ctor	source_loc: Option<Loc>,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	179	ValidationError ctor	policy_id: PolicyID,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	180	ValidationError ctor	actual_entity_type: String,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	181	ValidationError ctor	suggested_entity_type: Option<String>,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	182	ValidationError ctor	) -> Self {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	183	error ctor/fail/parse-err	validation_errors::UnrecognizedEntityType {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	184	ValidationError ctor	source_loc,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	185	ValidationError ctor	policy_id,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	186	ValidationError ctor	actual_entity_type,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	187	ValidationError ctor	suggested_entity_type,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	188	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	189	ValidationError ctor	.into()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	190	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	331	ValidationError ctor	pub(crate) fn wrong_number_args(
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	332	ValidationError ctor	source_loc: Option<Loc>,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	333	ValidationError ctor	policy_id: PolicyID,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	334	ValidationError ctor	expected: usize,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	335	ValidationError ctor	actual: usize,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	336	ValidationError ctor	) -> Self {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	337	ValidationError ctor	validation_errors::WrongNumberArguments {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	338	ValidationError ctor	source_loc,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	339	ValidationError ctor	policy_id,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	340	ValidationError ctor	expected,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	341	ValidationError ctor	actual,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	342	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	343	ValidationError ctor	.into()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	344	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	346	ValidationError ctor	pub(crate) fn function_argument_validation(
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	347	ValidationError ctor	source_loc: Option<Loc>,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	348	ValidationError ctor	policy_id: PolicyID,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	349	ValidationError ctor	msg: String,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	350	ValidationError ctor	help: Option<String>,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	351	ValidationError ctor	) -> Self {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	352	ValidationError ctor	validation_errors::FunctionArgumentValidation {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	353	ValidationError ctor	source_loc,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	354	ValidationError ctor	policy_id,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	355	ValidationError ctor	msg,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	356	ValidationError ctor	help,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	357	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	358	ValidationError ctor	.into()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	359	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	361	error ctor/fail/parse-err	pub(crate) fn empty_set_forbidden(source_loc: Option<Loc>, policy_id: Polic
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	362	ValidationError ctor	validation_errors::EmptySetForbidden {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	363	ValidationError ctor	source_loc,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	364	ValidationError ctor	policy_id,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	365	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	366	ValidationError ctor	.into()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	367	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	369	ValidationError ctor	pub(crate) fn non_lit_ext_constructor(source_loc: Option<Loc>, policy_id: P
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	370	ValidationError ctor	validation_errors::NonLitExtConstructor {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	371	ValidationError ctor	source_loc,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	372	ValidationError ctor	policy_id,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	373	ValidationError ctor	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	374	ValidationError ctor	.into()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics.rs	375	ValidationError ctor	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	459	ValidationWarning ctor (passes)	pub(crate) fn mixed_script_string(
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	460	ValidationWarning ctor (passes)	source_loc: Option<Loc>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	461	ValidationWarning ctor (passes)	policy_id: PolicyID,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	462	ValidationWarning ctor (passes)	string: impl Into<String>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	463	ValidationWarning ctor (passes)	) -> Self {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	464	ValidationWarning ctor (passes)	validation_warnings::MixedScriptString {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	465	ValidationWarning ctor (passes)	source_loc,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	466	ValidationWarning ctor (passes)	policy_id,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	467	ValidationWarning ctor (passes)	string: string.into(),
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	468	ValidationWarning ctor (passes)	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	469	ValidationWarning ctor (passes)	.into()
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	470	ValidationWarning ctor (passes)	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	485	ValidationWarning ctor (passes)	pub(crate) fn mixed_script_identifier(
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	486	ValidationWarning ctor (passes)	source_loc: Option<Loc>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	487	ValidationWarning ctor (passes)	policy_id: PolicyID,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	488	ValidationWarning ctor (passes)	id: impl Into<String>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	489	ValidationWarning ctor (passes)	) -> Self {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	490	ValidationWarning ctor (passes)	validation_warnings::MixedScriptIdentifier {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	491	ValidationWarning ctor (passes)	source_loc,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	492	ValidationWarning ctor (passes)	policy_id,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	493	ValidationWarning ctor (passes)	id: id.into(),
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	494	ValidationWarning ctor (passes)	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	495	ValidationWarning ctor (passes)	.into()
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	496	ValidationWarning ctor (passes)	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	511	ValidationWarning ctor (passes)	pub(crate) fn confusable_identifier(
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	512	ValidationWarning ctor (passes)	source_loc: Option<Loc>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	513	ValidationWarning ctor (passes)	policy_id: PolicyID,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	514	ValidationWarning ctor (passes)	id: impl Into<String>,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	515	ValidationWarning ctor (passes)	confusable_character: char,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	516	ValidationWarning ctor (passes)	) -> Self {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	517	ValidationWarning ctor (passes)	validation_warnings::ConfusableIdentifier {
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	518	ValidationWarning ctor (passes)	source_loc,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	519	ValidationWarning ctor (passes)	policy_id,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	520	ValidationWarning ctor (passes)	id: id.into(),
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	521	ValidationWarning ctor (passes)	confusable_character,
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	522	ValidationWarning ctor (passes)	}
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	523	ValidationWarning ctor (passes)	.into()
+KEEP	cedar-policy-core/src/validator/diagnostics.rs	524	ValidationWarning ctor (passes)	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	68	error render	pub fn get_suggested_entity_type(unknown: &EntityType, schema: &ValidatorSc
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	69	error render	let known_entity_types = schema
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	70	error render	.entity_type_names()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	71	error render	.map(ToString::to_string)
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	72	error render	.collect::<Vec<_>>();
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	73	error render	fuzzy_search(&unknown.to_string(), known_entity_types.as_slice())
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	74	error render	}
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	626	error render	expr: sub_expr,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	627	error render	attr,
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	628	error render	} = expr.expr_kind()
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	629	error render	{
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	630	error render	expr = sub_expr;
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	631	error render	attrs.push(attr.clone());
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	632	error render	} else {
+EXCLUDE	cedar-policy-core/src/validator/diagnostics/validation_errors.rs	633	error render	return AttributeAccess::Other(attrs);
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	78	extension-schema error struct ctor	pub(crate) fn new(msg: impl Into<String>, help: Option<String>) -> Self {
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	79	extension-schema error struct ctor	Self {
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	80	extension-schema error struct ctor	msg: msg.into(),
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	81	extension-schema error struct ctor	help,
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	82	extension-schema error struct ctor	}
+EXCLUDE	cedar-policy-core/src/validator/extension_schema.rs	83	extension-schema error struct ctor	}
+EXCLUDE	cedar-policy-core/src/validator/extensions/datetime.rs	134	error ctor/fail/parse-err	Err(err) => Err(ArgumentValidationError::new(
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	135	validator line, no err-token (likely fail-branch recovery — low conf)	format!("failed to parse as a datetime value: `{lit_arg}`"),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	136	validator line, no err-token (likely fail-branch recovery — low conf)	err.help().map(|h| h.to_string()),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	140	validator line, no err-token (likely fail-branch recovery — low conf)	_ => Ok(()),
+EXCLUDE	cedar-policy-core/src/validator/extensions/datetime.rs	155	error ctor/fail/parse-err	Err(err) => Err(ArgumentValidationError::new(
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	156	validator line, no err-token (likely fail-branch recovery — low conf)	format!("failed to parse as a duration value: `{lit_arg}`"),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	157	validator line, no err-token (likely fail-branch recovery — low conf)	err.help().map(|h| h.to_string()),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/datetime.rs	161	validator line, no err-token (likely fail-branch recovery — low conf)	_ => Ok(()),
+EXCLUDE	cedar-policy-core/src/validator/extensions/decimal.rs	115	error ctor/fail/parse-err	Err(err) => Err(ArgumentValidationError::new(
+EXCLUDE*	cedar-policy-core/src/validator/extensions/decimal.rs	116	validator line, no err-token (likely fail-branch recovery — low conf)	format!("failed to parse as a decimal value: `{lit_arg}`"),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/decimal.rs	117	validator line, no err-token (likely fail-branch recovery — low conf)	err.help().map(|h| h.to_string()),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/decimal.rs	121	validator line, no err-token (likely fail-branch recovery — low conf)	_ => Ok(()),
+EXCLUDE	cedar-policy-core/src/validator/extensions/ipaddr.rs	115	error ctor/fail/parse-err	Err(err) => Err(ArgumentValidationError::new(
+EXCLUDE*	cedar-policy-core/src/validator/extensions/ipaddr.rs	116	validator line, no err-token (likely fail-branch recovery — low conf)	format!("failed to parse as IP address: `{lit_arg}`"),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/ipaddr.rs	117	validator line, no err-token (likely fail-branch recovery — low conf)	err.help().map(|h| h.to_string()),
+EXCLUDE*	cedar-policy-core/src/validator/extensions/ipaddr.rs	121	validator line, no err-token (likely fail-branch recovery — low conf)	_ => Ok(()),
+EXCLUDE	cedar-policy-core/src/validator/rbac.rs	77	error ctor/fail/parse-err	ValidationError::unrecognized_entity_type(
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	78	validator line, no err-token (likely fail-branch recovery — low conf)	ety.loc().cloned(),
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	79	validator line, no err-token (likely fail-branch recovery — low conf)	template.id().clone(),
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	80	validator line, no err-token (likely fail-branch recovery — low conf)	ety.to_string(),
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	81	validator line, no err-token (likely fail-branch recovery — low conf)	get_suggested_entity_type(ety, schema),
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	83	validator line, no err-token (likely fail-branch recovery — low conf)	})
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	172	validator line, no err-token (likely fail-branch recovery — low conf)	&& self.check_if_any_contain(apply_specs, entity_type, &select_apply_spec)
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	196	validator line, no err-token (likely fail-branch recovery — low conf)	fn check_if_any_contain<'a>(
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	197	validator line, no err-token (likely fail-branch recovery — low conf)	&'a self,
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	198	validator line, no err-token (likely fail-branch recovery — low conf)	specs: &[&'a ValidatorApplySpec<ast::EntityType>],
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	199	validator line, no err-token (likely fail-branch recovery — low conf)	lit_opt: Option<&ast::EntityType>,
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	200	validator line, no err-token (likely fail-branch recovery — low conf)	select_apply_spec: &impl Fn(
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	201	validator line, no err-token (likely fail-branch recovery — low conf)	&'a ValidatorApplySpec<ast::EntityType>,
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	202	validator line, no err-token (likely fail-branch recovery — low conf)	) -> Box<dyn Iterator<Item = &'a ast::EntityType> + 'a>,
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	203	validator line, no err-token (likely fail-branch recovery — low conf)	) -> bool {
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	204	validator line, no err-token (likely fail-branch recovery — low conf)	if let Some(etype) = lit_opt.and_then(|typename| self.schema.get_entity_typ
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	205	validator line, no err-token (likely fail-branch recovery — low conf)	specs
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	206	validator line, no err-token (likely fail-branch recovery — low conf)	.iter()
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	207	validator line, no err-token (likely fail-branch recovery — low conf)	.any(|spec| select_apply_spec(spec).any(|p| etype.descendants.contains(p)))
+EXCLUDE*	cedar-policy-core/src/validator/rbac.rs	211	validator line, no err-token (likely fail-branch recovery — low conf)	}
+KEEP	cedar-policy-core/src/validator/str_checks.rs	44	warning-lint (validation passes)	warnings.push(warning)
+KEEP	cedar-policy-core/src/validator/str_checks.rs	60	warning-lint (validation passes)	Some(ValidationWarning::mixed_script_string(
+KEEP	cedar-policy-core/src/validator/str_checks.rs	61	warning-lint (validation passes)	loc.cloned(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	62	warning-lint (validation passes)	policy_id.clone(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	63	warning-lint (validation passes)	s.to_string(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	64	warning-lint (validation passes)	))
+KEEP	cedar-policy-core/src/validator/str_checks.rs	85	warning-lint (validation passes)	Some(ValidationWarning::confusable_identifier(
+KEEP	cedar-policy-core/src/validator/str_checks.rs	86	warning-lint (validation passes)	loc.cloned(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	87	warning-lint (validation passes)	policy_id.clone(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	88	warning-lint (validation passes)	s,
+KEEP	cedar-policy-core/src/validator/str_checks.rs	89	warning-lint (validation passes)	c,
+KEEP	cedar-policy-core/src/validator/str_checks.rs	90	warning-lint (validation passes)	))
+KEEP	cedar-policy-core/src/validator/str_checks.rs	92	warning-lint (validation passes)	Some(ValidationWarning::mixed_script_identifier(
+KEEP	cedar-policy-core/src/validator/str_checks.rs	93	warning-lint (validation passes)	loc.cloned(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	94	warning-lint (validation passes)	policy_id.clone(),
+KEEP	cedar-policy-core/src/validator/str_checks.rs	95	warning-lint (validation passes)	s,
+KEEP	cedar-policy-core/src/validator/str_checks.rs	96	warning-lint (validation passes)	))
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	433	validator line, no err-token (likely fail-branch recovery — low conf)	None if self.mode.is_partial() => TypecheckAnswer::success(
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	445	error ctor/fail/parse-err	None => TypecheckAnswer::fail(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	446	validator line, no err-token (likely fail-branch recovery — low conf)	ExprBuilder::new().with_same_source_loc(e).val(euid.clone()),
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	846	error ctor/fail/parse-err	None => TypecheckAnswer::fail(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	847	validator line, no err-token (likely fail-branch recovery — low conf)	ExprBuilder::new()
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	848	validator line, no err-token (likely fail-branch recovery — low conf)	.with_same_source_loc(e)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	849	validator line, no err-token (likely fail-branch recovery — low conf)	.get_attr(typ_expr_actual, attr.clone()),
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	1054	error ctor/fail/parse-err	type_errors.push(ValidationError::empty_set_forbidden(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1055	validator line, no err-token (likely fail-branch recovery — low conf)	e.source_loc().cloned(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1056	validator line, no err-token (likely fail-branch recovery — low conf)	self.policy_id.clone(),
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	1058	error ctor/fail/parse-err	TypecheckAnswer::fail(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1059	validator line, no err-token (likely fail-branch recovery — low conf)	ExprBuilder::new()
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1060	validator line, no err-token (likely fail-branch recovery — low conf)	.with_same_source_loc(e)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1061	validator line, no err-token (likely fail-branch recovery — low conf)	.set(elem_expr_types),
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	1123	error ctor/fail/parse-err	TypecheckAnswer::fail(expr)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	1391	validator line, no err-token (likely fail-branch recovery — low conf)	_ => None,
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2209	validator line, no err-token (likely fail-branch recovery — low conf)	args.iter()
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2210	validator line, no err-token (likely fail-branch recovery — low conf)	.map(|arg| {
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2211	validator line, no err-token (likely fail-branch recovery — low conf)	self.typecheck(prior_capability, arg, type_errors)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2212	validator line, no err-token (likely fail-branch recovery — low conf)	.into_typed_expr()
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2213	validator line, no err-token (likely fail-branch recovery — low conf)	})
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2214	validator line, no err-token (likely fail-branch recovery — low conf)	.collect::<Option<Vec<_>>>()
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2215	validator line, no err-token (likely fail-branch recovery — low conf)	};
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2240	error ctor/fail/parse-err	type_errors.push(ValidationError::wrong_number_args(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2241	validator line, no err-token (likely fail-branch recovery — low conf)	ext_expr.source_loc().cloned(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2242	validator line, no err-token (likely fail-branch recovery — low conf)	self.policy_id.clone(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2243	validator line, no err-token (likely fail-branch recovery — low conf)	arg_tys.len(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2244	validator line, no err-token (likely fail-branch recovery — low conf)	args.len(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2245	validator line, no err-token (likely fail-branch recovery — low conf)	));
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2246	error ctor/fail/parse-err	failed = true;
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2249	error ctor/fail/parse-err	type_errors.push(ValidationError::function_argument_validation(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2250	validator line, no err-token (likely fail-branch recovery — low conf)	ext_expr.source_loc().cloned(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2251	validator line, no err-token (likely fail-branch recovery — low conf)	self.policy_id.clone(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2252	validator line, no err-token (likely fail-branch recovery — low conf)	err.msg,
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2253	validator line, no err-token (likely fail-branch recovery — low conf)	err.help,
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2254	validator line, no err-token (likely fail-branch recovery — low conf)	));
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2255	error ctor/fail/parse-err	failed = true;
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2263	validator line, no err-token (likely fail-branch recovery — low conf)	{
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2264	error ctor/fail/parse-err	type_errors.push(ValidationError::non_lit_ext_constructor(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2265	validator line, no err-token (likely fail-branch recovery — low conf)	ext_expr.source_loc().cloned(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2266	validator line, no err-token (likely fail-branch recovery — low conf)	self.policy_id.clone(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2267	validator line, no err-token (likely fail-branch recovery — low conf)	));
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2268	error ctor/fail/parse-err	failed = true;
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2272	validator line, no err-token (likely fail-branch recovery — low conf)	match typed_arg_exprs(type_errors) {
+EXCLUDE	cedar-policy-core/src/validator/typecheck.rs	2273	error ctor/fail/parse-err	Some(exprs) => TypecheckAnswer::fail(
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2274	validator line, no err-token (likely fail-branch recovery — low conf)	ExprBuilder::with_data(Some(ret_ty.clone()))
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2275	validator line, no err-token (likely fail-branch recovery — low conf)	.with_same_source_loc(ext_expr)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2276	validator line, no err-token (likely fail-branch recovery — low conf)	.call_extension_fn(fn_name.clone(), exprs)
+EXCLUDE*	cedar-policy-core/src/validator/typecheck.rs	2277	validator line, no err-token (likely fail-branch recovery — low conf)	.unwrap_infallible(),
+EXCLUDE*	cedar-policy-core/src/validator/typecheck/typecheck_answer.rs	126	validator line, no err-token (likely fail-branch recovery — low conf)	TypecheckAnswer::TypecheckFail { .. } => self,
+KEEP	cedar-policy-core/src/validator/types.rs	330	LUB / type op (valid)	let open_attributes = if open0.is_open()
+KEEP	cedar-policy-core/src/validator/types.rs	331	LUB / type op (valid)	|| open1.is_open()
+KEEP	cedar-policy-core/src/validator/types.rs	332	LUB / type op (valid)	|| (attrs.keys().collect::<BTreeSet<_>>()
+KEEP	cedar-policy-core/src/validator/types.rs	333	LUB / type op (valid)	!= (attrs0.keys().chain(attrs1.keys()).collect::<BTreeSet<_>>()))
+KEEP	cedar-policy-core/src/validator/types.rs	337	LUB / type op (valid)	OpenTag::ClosedAttributes
+KEEP	cedar-policy-core/src/validator/types.rs	339	LUB / type op (valid)	Ok(Type::Record {
+KEEP	cedar-policy-core/src/validator/types.rs	340	LUB / type op (valid)	attrs,
+KEEP	cedar-policy-core/src/validator/types.rs	341	LUB / type op (valid)	open_attributes,
+KEEP	cedar-policy-core/src/validator/types.rs	342	LUB / type op (valid)	})
+KEEP	cedar-policy-core/src/validator/types.rs	1012	LUB / type op (valid)	fn attributes_lub_iter<'a>(
+KEEP	cedar-policy-core/src/validator/types.rs	1013	LUB / type op (valid)	attrs0: &'a Attributes,
+KEEP	cedar-policy-core/src/validator/types.rs	1014	LUB / type op (valid)	attrs1: &'a Attributes,
+KEEP	cedar-policy-core/src/validator/types.rs	1015	LUB / type op (valid)	mode: ValidationMode,
+KEEP	cedar-policy-core/src/validator/types.rs	1016	LUB / type op (valid)	) -> impl Iterator<Item = Result<(&'a SmolStr, AttributeType), LubHelp>> + 
+KEEP	cedar-policy-core/src/validator/types.rs	1017	LUB / type op (valid)	attrs0.attrs.iter().map(move |(attr, ty0)| {
+KEEP	cedar-policy-core/src/validator/types.rs	1018	LUB / type op (valid)	let ty1 = attrs1.attrs.get(attr).ok_or(LubHelp::RecordWidth)?;
+KEEP	cedar-policy-core/src/validator/types.rs	1019	LUB / type op (valid)	Ok((attr, AttributeType::least_upper_bound(ty0, ty1, mode)?))
+KEEP	cedar-policy-core/src/validator/types.rs	1020	LUB / type op (valid)	})
+KEEP	cedar-policy-core/src/validator/types.rs	1021	LUB / type op (valid)	}
+KEEP	cedar-policy-core/src/validator/types.rs	1029	LUB / type op (valid)	}
+KEEP	cedar-policy-core/src/validator/types.rs	1030	LUB / type op (valid)	Self::attributes_lub_iter(attrs0, attrs1, ValidationMode::Strict)
+KEEP	cedar-policy-core/src/validator/types.rs	1031	LUB / type op (valid)	.map(|r| r.map(|(k, v)| (k.clone(), v)))
+KEEP	cedar-policy-core/src/validator/types.rs	1032	LUB / type op (valid)	.collect::<Result<Vec<_>, _>>()
+KEEP	cedar-policy-core/src/validator/types.rs	1033	LUB / type op (valid)	.map(Attributes::with_attributes)
+KEEP	cedar-policy-core/src/validator/types.rs	1275	LUB / type op (valid)	fn least_upper_bound(
+KEEP	cedar-policy-core/src/validator/types.rs	1276	LUB / type op (valid)	ty0: &AttributeType,
+KEEP	cedar-policy-core/src/validator/types.rs	1277	LUB / type op (valid)	ty1: &AttributeType,
+KEEP	cedar-policy-core/src/validator/types.rs	1278	LUB / type op (valid)	mode: ValidationMode,
+KEEP	cedar-policy-core/src/validator/types.rs	1279	LUB / type op (valid)	) -> Result<AttributeType, LubHelp> {
+KEEP	cedar-policy-core/src/validator/types.rs	1280	LUB / type op (valid)	Type::least_upper_bound(&ty0.attr_type, &ty1.attr_type, mode).and_then(|lub
+KEEP	cedar-policy-core/src/validator/types.rs	1281	LUB / type op (valid)	let is_lub_required = ty0.is_required() && ty1.is_required();
+KEEP	cedar-policy-core/src/validator/types.rs	1282	LUB / type op (valid)	if mode.is_strict() && ty0.is_required() != ty1.is_required() {
+KEEP	cedar-policy-core/src/validator/types.rs	1285	LUB / type op (valid)	Ok(AttributeType::new(lub.into(), is_lub_required))
+KEEP	cedar-policy-core/src/validator/types.rs	1287	LUB / type op (valid)	})
+KEEP	cedar-policy-core/src/validator/types.rs	1288	LUB / type op (valid)	}
+EXCLUDE	cedar-policy/src/api/err.rs	516	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::UnrecognizedEntityType(e) =>
+EXCLUDE	cedar-policy/src/api/err.rs	517	error ctor/fail/parse-err	Self::UnrecognizedEntityType(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	522	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::InvalidActionApplication(e) 
+EXCLUDE	cedar-policy/src/api/err.rs	523	error render	Self::InvalidActionApplication(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	546	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::WrongNumberArguments(e) => {
+EXCLUDE	cedar-policy/src/api/err.rs	547	error render	Self::WrongNumberArguments(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	549	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::FunctionArgumentValidation(e
+EXCLUDE	cedar-policy/src/api/err.rs	550	error render	Self::FunctionArgumentValidation(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	552	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::EmptySetForbidden(e) => {
+EXCLUDE	cedar-policy/src/api/err.rs	553	error render	Self::EmptySetForbidden(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	555	error ctor/fail/parse-err	cedar_policy_core::validator::ValidationError::NonLitExtConstructor(e) => {
+EXCLUDE	cedar-policy/src/api/err.rs	556	error render	Self::NonLitExtConstructor(e.into())
+EXCLUDE	cedar-policy/src/api/err.rs	635	error render	cedar_policy_core::validator::ValidationWarning::MixedScriptString(w) => {
+EXCLUDE	cedar-policy/src/api/err.rs	636	error render	Self::MixedScriptString(w.into())
+EXCLUDE	cedar-policy/src/api/err.rs	644	error render	cedar_policy_core::validator::ValidationWarning::MixedScriptIdentifier(w) =
+EXCLUDE	cedar-policy/src/api/err.rs	645	error render	Self::MixedScriptIdentifier(w.into())
+EXCLUDE	cedar-policy/src/api/err.rs	647	error render	cedar_policy_core::validator::ValidationWarning::ConfusableIdentifier(w) =>
+EXCLUDE	cedar-policy/src/api/err.rs	648	error render	Self::ConfusableIdentifier(w.into())
+KEEP	cedar-policy/src/proto/policy.rs	119	annotation proto-deser	ast::AnyId::from_normalized_str(&key)
+KEEP	cedar-policy/src/proto/policy.rs	120	annotation proto-deser	.map(|k| {
+KEEP	cedar-policy/src/proto/policy.rs	121	annotation proto-deser	(
+KEEP	cedar-policy/src/proto/policy.rs	122	annotation proto-deser	k,
+KEEP	cedar-policy/src/proto/policy.rs	123	annotation proto-deser	ast::Annotation {
+KEEP	cedar-policy/src/proto/policy.rs	124	annotation proto-deser	val: value.into(),
+KEEP	cedar-policy/src/proto/policy.rs	125	annotation proto-deser	loc: None,
+KEEP	cedar-policy/src/proto/policy.rs	126	annotation proto-deser	},
+KEEP	cedar-policy/src/proto/policy.rs	127	annotation proto-deser	)
+KEEP	cedar-policy/src/proto/policy.rs	128	annotation proto-deser	})
+KEEP	cedar-policy/src/proto/policy.rs	129	annotation proto-deser	.map_err(|e| {
+KEEP	cedar-policy/src/proto/policy.rs	134	annotation proto-deser	})

@@ -14,4 +14,5 @@
  limitations under the License.
 -/
 
+import CedarFFI.Generate
 import CedarFFI.Main

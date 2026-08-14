@@ -1,0 +1,51 @@
+[package]
+name = "cedar-drt-coverage"
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[[bin]]
+name = "cedar-drt-coverage"
+path = "src/main.rs"
+
+[[bin]]
+name = "cedar-experiment"
+path = "src/bin/experiment.rs"
+
+[dependencies]
+cedar-policy = { version = "4.4.0", features = ["permissive-validate", "protobufs"] }
+cedar-policy-core = { version = "4.4.0", features = ["arbitrary"] }
+cedar-policy-generators = { path = "../../cedar-policy-generators", version = "4.0.0", features = ["cedar-policy"] }
+cedar-lean-ffi = { path = "../../cedar-lean-ffi", optional = true }
+cedar-drt = { path = "../", optional = true }
+cedar-drt-inner = { path = "../fuzz", optional = true }
+cedar-policy-symcc = { path = "../../cedar/cedar-policy-symcc", optional = true }
+arbitrary = "1.4"
+rayon = "1"
+rand = { version = "0.9", features = ["small_rng"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+libc = "0.2"
+chrono = "0.4"
+uuid = { version = "1", features = ["v4"] }
+aws-config = { version = "1", optional = true }
+aws-sdk-s3 = { version = "1", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "time"], optional = true }
+
+[features]
+default = []
+lean-gen = ["cedar-lean-ffi", "cedar-drt"]
+symcc = ["cedar-policy-symcc", "cedar-drt", "cedar-drt-inner", "cedar-lean-ffi"]
+s3 = ["aws-config", "aws-sdk-s3", "tokio"]
+profraw = []
+
+[patch.crates-io]
+cedar-policy = { path = "../../cedar/cedar-policy" }
+cedar-policy-core = { path = "../../cedar/cedar-policy-core" }
+# Unify cedar-policy-symcc on the local ./cedar checkout. Without this, the transitive
+# `cedar-policy-symcc = "*"` from cedar-drt-inner resolves to a crates.io version (0.5.0)
+# while cedar-lean-ffi + this crate use the local path (0.5.1) — two versions in the graph,
+# so `cedar_lean_ffi::Term` fails to convert to `cedar_policy_symcc::Term` (E0277). Required
+# for the `symcc` feature (the SymccTermDrt target) to build.
+cedar-policy-symcc = { path = "../../cedar/cedar-policy-symcc" }

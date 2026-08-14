@@ -1,0 +1,15 @@
+# GUIDED handwritten baselines (cargo-fuzz, coverage-guided libFuzzer).
+# Format:  name  generator  strategy  lean_size  fuzz_target
+# The 5th column (fuzz_target) marks the approach GUIDED: throughput/collect run via
+# cargo-fuzz, and coverage comes from REPLAYING every streamed valid input through the
+# instrumented cedar-drt-coverage binary (not fused). generator/strategy/lean_size are
+# ignored for guided approaches (kept for column parity) — the fuzz target drives generation.
+#
+# A run must be ALL guided or ALL fused (they use different instrumented binaries), so
+# do NOT mix these with the specimen approaches — run this as its own experiment. Compare
+# against the already-collected specimen numbers post-hoc.
+#
+#   plain      = validation-drt-type-directed  (guided by all coverage; ill-typed kept)
+#   well-typed = validation-welltyped-drt       (Corpus::Reject ill-typed -> guided toward well-typed)
+hw-guided-plain       type-directed  -  20  validation-drt-type-directed
+hw-guided-welltyped   type-directed  -  20  validation-welltyped-drt

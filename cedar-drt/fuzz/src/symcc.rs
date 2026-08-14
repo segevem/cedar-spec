@@ -25,13 +25,16 @@ use cedar_policy_generators::{
     schema_gen::SchemaGen,
     settings::ABACSettings,
 };
+use cedar_drt::logger::initialize_log;
 use cedar_policy_symcc::{
     CedarSymCompiler, CompiledPolicy, CompiledPolicySet, Env, WellFormedAsserts,
     err::{EncodeError, Error},
+    never_errors_asserts,
     solver::{self, DecisionWithModel, LocalSolver, SolverError, WriterSolver},
     term::Term,
 };
 use itertools::Itertools;
+use libfuzzer_sys::Corpus;
 use libfuzzer_sys::arbitrary::{self, Arbitrary, MaxRecursionReached, Unstructured};
 use log::{debug, warn};
 use std::{
@@ -120,6 +123,31 @@ pub fn assert_smtlib_scripts_match<E1: Display, E2: Display>(
     }
 }
 
+/// Non-panicking sibling of [`assert_that_asserts_match`]: returns `Err(diff)` on a mismatch
+/// (or term-conversion failure) instead of aborting, so a coverage harness built with
+/// `panic=abort` can COLLECT the mismatch as a violation and keep going. `Ok(())` when the
+/// Rust and Lean assert sets are structurally equal.
+pub fn asserts_match_result(
+    rust_asserts: WellFormedAsserts<'_>,
+    lean_asserts: impl IntoIterator<Item = cedar_lean_ffi::Term>,
+) -> Result<(), String> {
+    let lean_asserts = lean_asserts
+        .into_iter()
+        .map(Term::try_from)
+        .collect::<Result<BTreeSet<_>, _>>()
+        .map_err(|e| format!("term conversion failed: {e:?}"))?;
+    let rust_asserts = BTreeSet::from_iter(rust_asserts.asserts().as_ref().iter().cloned());
+    if lean_asserts == rust_asserts {
+        return Ok(());
+    }
+    let pretty_lean = lean_asserts.iter().join("\n");
+    let pretty_rust = rust_asserts.iter().join("\n");
+    Err(format!(
+        "symcc assert-set mismatch (Lean vs Rust term structures differ)\n\
+         Lean terms:\n{pretty_lean}\n\nRust terms:\n{pretty_rust}"
+    ))
+}
+
 #[track_caller]
 pub fn assert_that_asserts_match(
     rust_asserts: WellFormedAsserts<'_>,
@@ -150,6 +178,83 @@ pub fn assert_that_asserts_match(
             "\n\nLean terms:\n{pretty_lean_asserts}\n\nRust terms:\n{pretty_rust_asserts}\n\n",
         );
     }
+}
+
+/// Run the Rust-vs-Lean `never_errors` term DRT for every policy in `policyset`, over every
+/// request env each policy compiles under. Mirrors the coverage `SymccTermDrt::NeverErrors`
+/// replay body (req-env outer, policy inner) so a logged input replays identically. Returns
+/// `true` iff at least one (policy, req_env) actually compiled — i.e. the input reached the
+/// term comparison. That "compiled" signal is what we treat as a *useful* input for this
+/// target (compilation requires the policy to typecheck for that env), so the guided arms log
+/// only compiled inputs and the specimen well-typed generator's advantage shows up as a much
+/// higher useful-input rate.
+fn run_never_errors_drt(schema: &Schema, policyset: &PolicySet) -> bool {
+    let ffi = CedarLeanFfi::new();
+    let Ok(lean_schema) = ffi.load_lean_schema_object(schema) else {
+        return false;
+    };
+    let mut compiled_any = false;
+    for req_env in schema.request_envs() {
+        for policy in policyset.policies() {
+            let Ok(compiled) = CompiledPolicy::compile(policy, &req_env, schema) else {
+                continue;
+            };
+            compiled_any = true;
+            let rust_asserts = never_errors_asserts(&compiled);
+            let lean_asserts = ffi
+                .asserts_of_check_never_errors(policy, lean_schema.clone(), &req_env)
+                // should succeed on the post-typecheck policy `CompiledPolicy::compile` accepted
+                .unwrap()
+                .unwrap();
+            assert_that_asserts_match(rust_asserts, lean_asserts);
+        }
+    }
+    compiled_any
+}
+
+/// PLAIN guided never-errors target body (mirrors `validation_drt::fuzz_target`): records an
+/// attempt, runs the DRT, and — with `CEDAR_FUZZ_LOG_DIR` set — logs the replayable input for
+/// the coverage-experiment drain, but ONLY when it compiled (so the replay corpus is all
+/// symcc-exercising inputs). Does NOT reject: this is the unsteered baseline arm, so libFuzzer
+/// keeps exploring broadly.
+pub fn fuzz_never_errors<const MAX_REQUEST_ENVS: MaxRequestEnvs>(
+    input: SinglePolicyFuzzTargetInput<MAX_REQUEST_ENVS>,
+) {
+    initialize_log();
+    crate::guided_log::note_attempt();
+    let Ok((schema, policyset)) = input.into_inputs_as_pset() else {
+        return;
+    };
+    if run_never_errors_drt(&schema, &policyset) {
+        crate::guided_log::log_input(&crate::validation_drt::encode_replayable(
+            &schema, &policyset,
+        ));
+    }
+}
+
+/// WELL-TYPED guided never-errors target body (mirrors `validation_drt::fuzz_target_welltyped`):
+/// returns a [`Corpus`] verdict so libFuzzer keeps/mutates only WELL-TYPED inputs, steering the
+/// search toward compilable directions. `Corpus::Reject` when the schema won't convert or the
+/// Rust strict validator rejects the policy (`is_well_typed`, the SAME predicate as the
+/// validation experiment — `validate`-passes ⟹ compiles under every applicable env); kept
+/// inputs still run the full DRT and are logged on compile.
+pub fn fuzz_never_errors_welltyped<const MAX_REQUEST_ENVS: MaxRequestEnvs>(
+    input: SinglePolicyFuzzTargetInput<MAX_REQUEST_ENVS>,
+) -> Corpus {
+    initialize_log();
+    crate::guided_log::note_attempt();
+    let Ok((schema, policyset)) = input.into_inputs_as_pset() else {
+        return Corpus::Reject;
+    };
+    if !crate::validation_drt::is_well_typed(&schema, &policyset) {
+        return Corpus::Reject;
+    }
+    if run_never_errors_drt(&schema, &policyset) {
+        crate::guided_log::log_input(&crate::validation_drt::encode_replayable(
+            &schema, &policyset,
+        ));
+    }
+    Corpus::Keep
 }
 
 /// Limit on the number of request envs the schema may define. We also do not

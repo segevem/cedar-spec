@@ -1,0 +1,11 @@
+# Isolate how much of the handwritten arm's coverage comes from validator ERROR paths.
+# hw-slots-off        : type-directed, static, ALL inputs (well-typed + ill-typed) -> hits error paths
+# hw-welltyped-noslots: SAME generator + WELL-TYPED REJECT gate (Corpus::Reject on any validator
+#                       error) -> only well-typed inputs kept/replayed, like specimen
+# wt-policy-sz12      : specimen well-typed-policy generator (well-typed by construction)
+# So: hw-slots-off vs hw-welltyped-noslots = error-path contribution; hw-welltyped-noslots vs
+#     wt-policy-sz12 = fair well-typed static comparison.
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+wt-policy-sz12         lean-schema-typeof   welltyped-policy   12
+hw-slots-off           type-directed        -                  20   validation-drt-type-directed-noslots
+hw-welltyped-noslots   type-directed        -                  20   validation-welltyped-drt-noslots

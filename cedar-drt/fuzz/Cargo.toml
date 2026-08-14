@@ -15,6 +15,7 @@ cedar-policy = { version = "4.4.0", features = [
     "permissive-validate",
     "entity-manifest",
     "tpe",
+    "protobufs",
 ] }
 cedar-policy-core = { version = "4.4.0", features = ["arbitrary", "tpe"] }
 cedar-policy-formatter = "4.4.0"
@@ -120,6 +121,12 @@ test = false
 doc = false
 
 [[bin]]
+name = "validation-meta"
+path = "fuzz_targets/validation-meta.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "validation-drt"
 path = "fuzz_targets/validation-drt.rs"
 test = false
@@ -128,6 +135,24 @@ doc = false
 [[bin]]
 name = "validation-drt-type-directed"
 path = "fuzz_targets/validation-drt-type-directed.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "validation-drt-type-directed-noslots"
+path = "fuzz_targets/validation-drt-type-directed-noslots.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "validation-welltyped-drt"
+path = "fuzz_targets/validation-welltyped-drt.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "validation-welltyped-drt-noslots"
+path = "fuzz_targets/validation-welltyped-drt-noslots.rs"
 test = false
 doc = false
 
@@ -404,6 +429,12 @@ doc = false
 [[bin]]
 name = "symcc-term-drt-never-errors"
 path = "fuzz_targets/symcc-term-drt-never-errors.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "symcc-welltyped-term-drt-never-errors"
+path = "fuzz_targets/symcc-welltyped-term-drt-never-errors.rs"
 test = false
 doc = false
 

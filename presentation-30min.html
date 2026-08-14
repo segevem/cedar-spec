@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Specimen × Cedar — Final Readout</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --r-heading-color: #1a1a2e;
+      --r-main-color: #2d2d2d;
+      --r-link-color: #4a90d9;
+    }
+    .reveal .slides { text-align: center; }
+    .reveal section { padding: 0.5em !important; }
+    .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; }
+    .reveal h1 { font-size: 1.8em; }
+    .reveal h2 { font-size: 1.3em; margin-bottom: 0.4em; }
+    .reveal p, .reveal li { font-size: 0.7em; }
+    .reveal .icon-row { display: flex; justify-content: center; gap: 1.5em; margin: 0.8em 0; align-items: center; }
+    .reveal .icon-card { text-align: center; padding: 0.5em; }
+    .reveal .icon-card i { font-size: 1.8em; margin-bottom: 0.3em; display: block; }
+    .reveal .icon-card .label { font-size: 0.62em; font-weight: 600; }
+    .reveal .icon-card .sub { font-size: 0.5em; color: #666; margin-top: 0.2em; }
+    .reveal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; text-align: center; }
+    .reveal .col-card { background: #f8f9fa; border-radius: 10px; padding: 0.8em; }
+    .reveal .col-card i { font-size: 1.6em; margin-bottom: 0.3em; display: block; }
+    .reveal .col-card h3 { margin: 0.2em 0; font-size: 0.8em; }
+    .reveal .col-card p { font-size: 0.58em; color: #555; margin: 0.1em 0; }
+    .reveal .dim { color: #888; }
+    .reveal .small { font-size: 0.55em; }
+    /* Let the pre's own tinted background/padding show; hljs supplies only token colors. */
+    .reveal pre code.hljs { background: transparent; padding: 0; }
+    .reveal .highlight-box {
+      background: #f0f7ff;
+      border-left: 4px solid #4a90d9;
+      padding: 10px 16px;
+      margin: 0.6em auto;
+      text-align: left;
+      font-size: 0.62em;
+      max-width: 85%;
+    }
+    .reveal .big-icon { font-size: 2.5em; margin: 0.3em 0; }
+    .reveal pre { font-size: 0.45em; box-shadow: none; }
+    .reveal pre code { padding: 10px; }
+    .reveal .slide-number {
+      font-size: 22px !important;
+      font-weight: 700;
+      color: #fff;
+      background: #9b59b6;
+      padding: 5px 13px;
+      border-radius: 999px;
+      right: 22px;
+      bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .reveal .slide-number a { color: #fff; }
+
+    /* results / readout helpers */
+    .reveal figure { margin: 0; }
+    .reveal .result-fig { max-height: 460px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+    .reveal .caption { font-size: 0.56em; color: #55606c; margin-top: 0.35em; max-width: 42em; margin-left:auto; margin-right:auto; line-height: 1.3; }
+    .reveal .stat-row { display: flex; justify-content: center; gap: 1.9em; margin-top: 0.5em; flex-wrap: wrap; }
+    .reveal .stat .num { font-size: 1.4em; font-weight: 800; }
+    .reveal .stat .lbl { font-size: 0.46em; color: #666; }
+    .reveal .tag { display:inline-block; font-size:0.85em; font-weight:700; padding:1px 7px; border-radius:999px; }
+    .reveal .tag-real { background:#c0392b; color:#fff; }
+    .reveal .tag-gap  { background:#27ae60; color:#fff; }
+    .reveal .divider-title { font-size: 1.5em; font-weight: 800; margin: 0.15em 0 0; color: #1a1a2e; }
+    .reveal .divider-sub { font-size: 0.62em; color: #666; margin-top: 0.5em; max-width: 26em; margin-left:auto; margin-right:auto; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1: TITLE -->
+<section data-background-gradient="linear-gradient(135deg, #f7f9fc 0%, #eef2fb 55%, #f4eefb 100%)">
+  <img src="cedar_logo.svg" style="height:1.7em; margin-bottom:0.35em;" alt="Cedar">
+  <div style="display:flex; justify-content:center; align-items:center; gap:1.6em; margin-bottom:0.5em;">
+    <i class="fa-solid fa-shield-halved" style="font-size:1.4em; color:#3498db;"></i>
+    <i class="fa-solid fa-arrow-right" style="font-size:0.85em; color:#b8bec7;"></i>
+    <i class="fa-solid fa-wand-magic-sparkles" style="font-size:1.4em; color:#9b59b6;"></i>
+    <i class="fa-solid fa-arrow-right" style="font-size:0.85em; color:#b8bec7;"></i>
+    <i class="fa-solid fa-dice" style="font-size:1.4em; color:#27ae60;"></i>
+  </div>
+  <h1 style="font-size:1.5em; line-height:1.18; max-width:15em; margin:0 auto;">Automatically Deriving Good Generators<br>for <span style="color:#71A621;">Cedar</span> Using <span style="color:#9b59b6;">Specimen</span></h1>
+  <div style="width:5em; height:3px; background:linear-gradient(90deg,#3498db,#9b59b6); margin:0.9em auto 0.7em; border-radius:2px;"></div>
+  <p style="font-size:0.82em; margin:0; font-weight:600; color:#1a1a2e;">Segev Elazar Mittelman &middot; <span style="color:#9b59b6;">@segevem</span> &middot; Applied Science Intern</p>
+  <p class="dim small" style="margin-top:0.4em;">Manager: Katie Hough &nbsp;&middot;&nbsp; Mentor: John Kastner</p>
+</section>
+
+<!-- 2: WHAT IS CEDAR? -->
+<section>
+  <img src="cedar_logo.svg" style="height:1.15em; margin-bottom:0.15em;" alt="Cedar">
+  <h2 style="margin:0.1em 0 0.15em;">What is Cedar?</h2>
+  <p style="margin:0 0 0.6em 0;">A language for writing &amp; enforcing <strong>authorization policies</strong> &mdash; <em>can this principal do this action on this resource?</em></p>
+  <pre style="font-size:0.5em; margin:0.2em auto 0; width:64%; text-align:left;"><code class="language-swift">permit (
+  principal == User::"alice",
+  action    == Action::"view",
+  resource  in  Album::"vacation"
+) when { resource.owner == principal };</code></pre>
+  <p class="dim small" style="margin-top:0.7em;">Cedar is used in production for authorization &mdash; so its correctness is not optional.</p>
+</section>
+
+<!-- 3: VERIFICATION-GUIDED DEVELOPMENT — the problem framing (animated) -->
+<section>
+  <h2 style="margin-bottom: 0.1em;">How Cedar Stays Correct: Differential Testing</h2>
+  <svg viewBox="0 0 1180 600" style="width: 92%; max-height: 470px;" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa0a6"/></marker>
+      <marker id="arG" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5a9e3a"/></marker>
+      <marker id="arV" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#7a5fd0"/></marker>
+      <marker id="arR" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#c0392b"/></marker>
+      <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/></filter>
+    </defs>
+    <path d="M175,235 H250 V110 H352" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M175,235 H250 V360 H352" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M642,110 H726" fill="none" stroke="#5a9e3a" stroke-width="3" marker-end="url(#arG)"/>
+    <path d="M642,360 H726" fill="none" stroke="#7a5fd0" stroke-width="3" marker-end="url(#arV)"/>
+    <path d="M912,110 H1000 V196" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M912,360 H1000 V284" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M1042,240 H1096" fill="none" stroke="#9aa0a6" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M497,176 L525,210 L510,210 L510,270 L525,270 L497,304 L469,270 L484,270 L484,210 L469,210 Z" fill="#9aa0a6"/>
+    <text x="537" y="232" font-size="20" font-weight="700" fill="#52514e">Differential</text>
+    <text x="537" y="256" font-size="20" font-weight="700" fill="#52514e">testing</text>
+    <rect x="25" y="180" width="150" height="110" rx="16" fill="#e5e7eb" filter="url(#sh)"/>
+    <text x="100" y="243" text-anchor="middle" font-size="24" font-weight="700" fill="#1a1a2e">Input</text>
+    <rect x="352" y="48" width="290" height="124" rx="14" fill="#b5d99c" filter="url(#sh)"/>
+    <text x="378" y="98" font-size="30" font-weight="800" fill="#1a1a2e">Cedar</text>
+    <text x="378" y="132" font-size="24" font-weight="600" fill="#1a1a2e">specification</text>
+    <text x="378" y="158" font-size="17" font-weight="800" fill="#2f6b1f">proven &#10003;</text>
+    <image href="lean_logo.svg" x="536" y="58" width="100" height="38"/>
+    <rect x="352" y="298" width="290" height="124" rx="14" fill="#c6b4ef" filter="url(#sh)"/>
+    <text x="378" y="352" font-size="30" font-weight="800" fill="#1a1a2e">Cedar</text>
+    <text x="378" y="388" font-size="24" font-weight="600" fill="#1a1a2e">production</text>
+    <foreignObject x="560" y="322" width="66" height="66"><i class="fa-brands fa-rust" style="font-size:52px;color:#1a1a2e;"></i></foreignObject>
+    <rect x="726" y="66" width="186" height="88" rx="14" fill="#dbedca" filter="url(#sh)"/>
+    <text x="819" y="118" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a2e">Output</text>
+    <rect x="726" y="316" width="186" height="88" rx="14" fill="#e2d8f7" filter="url(#sh)"/>
+    <text x="819" y="368" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a2e">Output</text>
+    <path d="M1000,196 L1042,240 L1000,284 L958,240 Z" fill="#9aa0a6" filter="url(#sh)"/>
+    <text x="1000" y="236" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">=</text>
+    <text x="1000" y="260" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">?</text>
+    <text x="1058" y="222" font-size="20" font-weight="700" fill="#52514e">no</text>
+    <foreignObject x="1100" y="212" width="60" height="60"><i class="fa-solid fa-bug" style="font-size:48px;color:#c0392b;"></i></foreignObject>
+
+    <!-- STEP 1 (fragment): where do inputs come from? -->
+    <g class="fragment" data-fragment-index="1">
+      <rect x="25" y="180" width="150" height="110" rx="16" fill="none" stroke="#e67e22" stroke-width="4.5"/>
+      <text x="100" y="150" text-anchor="middle" font-size="30" font-weight="800" fill="#e67e22">?</text>
+    </g>
+  </svg>
+  <p style="margin-top: 0.15em; font-size: 0.62em; color: #52514e;">
+    Same input → Lean specification and Rust implementation; a mismatch is a bug.
+    <span class="fragment" data-fragment-index="1" style="display:block; margin-top:0.2em;"><strong style="color:#e67e22;">But where do the inputs come from?</strong></span>
+  </p>
+  <aside class="notes">This is differential randomized testing (DRT). The Lean spec carries machine-checked correctness theorems (authorization soundness, etc.); production is Rust. Note: the relation Specimen actually consumes is a differential-tested restatement of the typechecker, not the proven theorems themselves. The whole method is only as good as the inputs we feed both sides — that's what this project is about.</aside>
+</section>
+
+<!-- 4: THE PROBLEM — costly handwritten generator -->
+<section>
+  <h2 style="margin-bottom: 0.15em;">A Generator is Costly to Build and Maintain</h2>
+  <img src="generator_commits.png" style="max-width: 92%; max-height: 560px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <p class="caption" style="font-size:0.6em;">~5,400 lines of Rust &middot; ~6 months to build &middot; hand-updated for every new Cedar feature</p>
+</section>
+
+<!-- 9: WHAT MAKES A GENERATOR GOOD (animated) — the rubric, before the solution -->
+<section>
+  <h2 style="margin-bottom: 0.05em;">What Makes a Generator "Good"?</h2>
+  <p class="dim small" style="margin: 0 0 0.1em; color:#7a8494;">Bugs hide in the space of inputs &mdash; a good generator has a chance of finding them.</p>
+  <div style="display:flex; align-items:center; justify-content:center; gap:0.8em; margin-top:0.2em;">
+  <div class="icon-card fragment" data-fragment-index="1" style="background:#f3effc; border-radius:12px; flex:0 0 auto;">
+    <i class="fa-solid fa-gauge-high" style="color:#7a5fd0;"></i>
+    <div class="label">Throughput</div>
+    <div class="sub">many inputs,<br>fast</div>
+  </div>
+  <svg viewBox="0 0 1100 600" style="flex:0 1 700px; max-height: 370px;" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+<defs><g id="bug"><g stroke="#5c1a1a" stroke-width="1.7" stroke-linecap="round"><line x1="-9" y1="-5" x2="-16" y2="-10"/><line x1="-10" y1="1" x2="-17" y2="1"/><line x1="-9" y1="7" x2="-16" y2="12"/><line x1="9" y1="-5" x2="16" y2="-10"/><line x1="10" y1="1" x2="17" y2="1"/><line x1="9" y1="7" x2="16" y2="12"/></g><circle cx="0" cy="-12" r="4.5" fill="#3a1414"/><circle cx="0" cy="0" r="12" fill="#e34948"/><line x1="0" y1="-9" x2="0" y2="11" stroke="#3a1414" stroke-width="1.7"/><circle cx="-5" cy="-3" r="2.1" fill="#3a1414"/><circle cx="5" cy="-3" r="2.1" fill="#3a1414"/><circle cx="-4.5" cy="5" r="1.9" fill="#3a1414"/><circle cx="4.5" cy="5" r="1.9" fill="#3a1414"/></g></defs>
+<path d="M150,300 C135,175 250,100 420,90 C585,80 725,86 870,148 C975,190 1000,320 950,428 C905,522 730,528 565,518 C405,508 235,515 176,428 C148,384 158,340 150,300 Z" fill="#eef3fb" stroke="#c9d6ea" stroke-width="2"/>
+<text x="205" y="140" font-size="18" font-weight="700" fill="#8a94a4">input space</text>
+<use href="#bug" x="470" y="185"/>
+<use href="#bug" x="720" y="330"/>
+<use href="#bug" x="255" y="450"/>
+<g class="fragment" data-fragment-index="1">
+<circle cx="314" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="293" cy="292" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="359" cy="170" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="344" cy="190" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="367" cy="242" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="337" cy="288" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="346" cy="349" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="398" cy="156" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="404" cy="221" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="386" cy="243" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="415" cy="303" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="412" cy="339" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="452" cy="126" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="456" cy="143" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="442" cy="196" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="463" cy="244" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="456" cy="310" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="442" cy="335" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="438" cy="395" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="520" cy="166" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="515" cy="216" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="494" cy="250" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="507" cy="307" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="495" cy="353" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="511" cy="382" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="568" cy="101" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="550" cy="157" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="548" cy="190" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="545" cy="267" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="573" cy="297" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="577" cy="346" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="570" cy="414" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="606" cy="102" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="620" cy="166" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="601" cy="215" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="620" cy="251" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="594" cy="303" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="613" cy="335" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="607" cy="393" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="648" cy="151" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="659" cy="218" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="662" cy="238" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="667" cy="304" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="670" cy="338" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="650" cy="387" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="698" cy="165" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="721" cy="219" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="706" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="734" cy="294" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="722" cy="345" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="707" cy="401" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="762" cy="152" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="785" cy="202" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="774" cy="268" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="755" cy="312" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="753" cy="340" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="756" cy="384" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="818" cy="216" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="833" cy="256" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="835" cy="297" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="806" cy="342" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+<circle cx="858" cy="255" r="4.6" fill="#7a5fd0" opacity="0.72"/>
+</g>
+<g class="fragment" data-fragment-index="2">
+<circle cx="483" cy="172" r="9" fill="#27ae60"/><path d="M478.5,172 l3.2,3.2 l5.6,-6.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="733" cy="317" r="9" fill="#27ae60"/><path d="M728.5,317 l3.2,3.2 l5.6,-6.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="255" y="486" text-anchor="middle" font-size="15" font-weight="800" fill="#c0392b">missed</text>
+<text x="255" y="504" text-anchor="middle" font-size="12" fill="#8a8a8a">(never sampled)</text>
+</g>
+  </svg>
+  <div class="icon-card fragment" data-fragment-index="2" style="background:#f3effc; border-radius:12px; flex:0 0 auto;">
+    <i class="fa-solid fa-shapes" style="color:#7a5fd0;"></i>
+    <div class="label">Coverage</div>
+    <div class="sub">diverse inputs;<br>diverse code paths</div>
+  </div>
+  </div>
+  <p class="dim small" style="margin-top:0.3em;">Throughput and coverage &mdash; the two axes we hold any generator to. Today's handwritten one is good at this, but costly. Can we get it for free?</p>
+</section>
+
+<!-- 5: THE SOLUTION (fully formed) -->
+<section>
+  <h2 style="margin-bottom: 0.3em;">The Solution</h2>
+  <p style="font-size: 1.05em; font-weight: 600; max-width: 20em; margin: 0.2em auto 0.5em; line-height: 1.3;">Derive the generator directly from the spec, using <span style="color:#9b59b6;">Specimen</span>.</p>
+  <div class="icon-row" style="margin-top: 0.6em; gap: 1.2em;">
+    <div class="icon-card" style="background:#eef4ff; border-radius:12px;">
+      <i class="fa-solid fa-book" style="color:#3498db;"></i>
+      <div class="label">The spec<br>(inductive relation)</div>
+    </div>
+    <div class="icon-card"><i class="fa-solid fa-arrow-right" style="color:#95a5a6;"></i></div>
+    <div class="icon-card" style="background:#f3eefb; border-radius:12px;">
+      <i class="fa-solid fa-wand-magic-sparkles" style="color:#9b59b6;"></i>
+      <div class="label">Specimen<br>(derive)</div>
+    </div>
+    <div class="icon-card"><i class="fa-solid fa-arrow-right" style="color:#95a5a6;"></i></div>
+    <div class="icon-card" style="background:#eaf7ea; border-radius:12px;">
+      <i class="fa-solid fa-dice" style="color:#27ae60;"></i>
+      <div class="label">A generator of<br>valid Cedar inputs</div>
+    </div>
+  </div>
+  <p class="dim small" style="margin-top:0.6em;">We still describe valid Cedar &mdash; but <em>declaratively</em>, as a relation validated against the trusted <code>typeOf</code>. The generator itself is then <strong>auto-derived</strong>, not hand-written.</p>
+</section>
+
+<!-- 5b: WHAT SPECIMEN DOES — the cube example -->
+<section>
+  <h2 style="margin-bottom: 0.15em;">What Specimen Does</h2>
+  <p style="margin:0 0 0.5em; font-size:0.7em;">Point it at an inductive relation; it generates random values that satisfy it &mdash; <strong>correct by construction.</strong></p>
+  <div class="two-col" style="max-width:94%; margin:0 auto; grid-template-columns: 0.9fr 1.1fr; align-items:center;">
+    <pre style="font-size:0.44em; margin:0; text-align:left; background:#f4eefb; border-left:4px solid #9b59b6; border-radius:8px; padding:0.5em 0.8em;"><code class="language-haskell">-- `n` is a perfect cube
+inductive IsCube : Nat → Prop
+  | mk (m) : IsCube (m * m * m)
+
+-- a (false) property to test
+∀ n, IsCube n → n ≤ 27</code></pre>
+    <div style="text-align:left; font-size:0.62em;">
+      <p style="margin:0.25em 0;"><i class="fa-solid fa-xmark" style="color:#c0392b;"></i> &nbsp;<strong>Rejection sampling:</strong> random naturals are almost never cubes → discarded.</p>
+      <p style="margin:0.25em 0;"><i class="fa-solid fa-check" style="color:#27ae60;"></i> &nbsp;<strong>Specimen (by construction):</strong> generates cubes directly — pick <code>m</code>, output <code>m³</code>.</p>
+      <p style="margin:0.5em 0 0; color:#9b59b6;"><i class="fa-solid fa-play"></i> &nbsp;<strong>Quick demo.</strong></p>
+    </div>
+  </div>
+  <p class="caption">The generator <em>is</em> the relation run backwards — no rejection sampling.</p>
+</section>
+
+<!-- 5c: STLC BIG-STEP BUG DEMO -->
+<section>
+  <h2 style="margin-bottom: 0.15em;">…and on a Typed Language</h2>
+  <p style="margin:0 0 0.4em; font-size:0.68em;">Same command on a simply-typed λ-calculus: generate <strong>well-typed</strong> terms from the typing relation, then run them through a big-step evaluator with a planted bug.</p>
+  <pre style="font-size:0.42em; margin:0.2em auto; width:84%; text-align:left; background:#fdeeea; border-left:4px solid #c0392b; border-radius:8px; padding:0.5em 0.8em;"><code class="language-haskell">| app f a =&gt; do let (.vclos cenv _ body) ← eval env f | none
+                let v ← eval env a
+                eval cenv body        -- BUG: forgot to bind the arg (should be `v :: cenv`)</code></pre>
+  <p class="caption" style="color:#9b59b6;"><i class="fa-solid fa-play"></i> &nbsp;<strong>Quick demo.</strong> &nbsp;(Runnable: <code>CubeDemo.lean</code>, <code>StlcDemo.lean</code>.)</p>
+</section>
+
+<!-- 6: SPECIMEN — THE API -->
+<section>
+  <h2 style="margin-bottom: 0.15em;">Using Specimen: the API</h2>
+  <p style="margin: 0 0 0.5em 0;">Point <code>derive_mutual</code> at a relation; it returns a generator whose outputs satisfy that relation.</p>
+  <pre style="font-size: 0.48em; margin: 0.4em auto; width: 84%; text-align:left; background:#f4eefb; border:1px solid #dcccf2; border-left:5px solid #9b59b6; border-radius:10px; box-shadow:0 3px 12px rgba(90,50,150,0.14); padding:0.5em 0.9em;"><code class="language-haskell" style="background:transparent;">-- steer the SEARCH — how candidate schedules are scored
+set_option specimen.scoreType      "Scoring.BudgetAwareScore" in
+-- steer GENERATION — how often each rule fires
+set_option specimen.weightModifier "favorHasTag"             in
+derive_mutual generator (fun env c ty =&gt; &exist; x cout, HasType x c env ty cout)
+
+-- a weight modifier is just a function over constructors:
+def favorHasTag (base : Nat) (ctor : Name) … : Nat :=
+  match ctor with
+  | .str _ "hasTag" =&gt; base * 3 + 1   -- emit `hasTag` ~3× more often
+  | _               =&gt; base           -- everything else unchanged</code></pre>
+  <div class="two-col" style="max-width:88%; margin:0.5em auto 0;">
+    <div class="col-card">
+      <i class="fa-solid fa-scale-balanced" style="color: #3498db;"></i>
+      <h3>Pluggable scoring</h3>
+      <p>Pick the strategy that ranks candidate generators (density, worst-leaf, graded).</p>
+    </div>
+    <div class="col-card">
+      <i class="fa-solid fa-sliders" style="color: #e67e22;"></i>
+      <h3>Pluggable weighting</h3>
+      <p>Bias how often each rule fires, via composable weight modifiers.</p>
+    </div>
+  </div>
+  <p class="dim small" style="margin-top:0.5em;">My work made scoring &amp; weighting <strong>modular</strong> — extend them in your own file, no Specimen fork needed.</p>
+  <aside class="notes">Specimen is built on QuickChick ideas + "Testing Theorems, Fully Automatically" (OOPSLA '26, to appear). The two knobs above are the whole user-facing surface: what relation to derive from, and how to steer the search. I won't go into the search internals here.</aside>
+</section>
+
+<!-- 7: THE RELATIONAL SPEC (the artifact Specimen consumes) -->
+<section>
+  <h2 style="margin-bottom: 0.1em;">The Input: Cedar's Typechecker as a Relation</h2>
+  <p style="margin: 0 0 0.5em 0;">Cedar's typechecker is a <em>function</em>. Specimen needs an <em>inductive relation</em> — so we wrote one.</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.6em; max-width: 92%; margin: 0 auto; align-items: start;">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <h3 style="font-size: 0.72em; margin: 0 0 0.35em; color: #4a90d9;">Cedar's functional spec</h3>
+      <pre style="font-size: 0.4em; margin: 0; width: 100%;"><code class="language-haskell">def typeOf : Expr → Result …
+  | .and x₁ x₂ =>
+    match typeOf x₁ with
+    | .bool .ff => (.bool .ff, ∅)
+    | .bool b₁  =>
+      match typeOf x₂ with
+      | .bool b₂ => andTy b₁ b₂
+      | _        => error
+  | …</code></pre>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <h3 style="font-size: 0.72em; margin: 0 0 0.35em; color: #9b59b6;">Our relational spec</h3>
+      <pre style="font-size: 0.4em; margin: 0; width: 100%;"><code class="language-haskell">inductive HasType : Expr → … → Prop
+  | andShort :
+    HasType x₁ … (.bool .ff) … →
+    HasType (.and x₁ x₂) … (.bool .ff)
+  | and :
+    HasType x₁ … (.bool b₁) … →
+    HasType x₂ … (.bool b₂) … →
+    HasTypeAnd b₁ b₂ … ty … →
+    HasType (.and x₁ x₂) … ty …</code></pre>
+    </div>
+  </div>
+  <div class="icon-row" style="margin-top: 0.7em;">
+    <div class="icon-card"><i class="fa-solid fa-file-lines" style="color: #3498db;"></i><div class="label">~1,200 lines</div><div class="sub">44 inductive relations</div></div>
+    <div class="icon-card"><i class="fa-solid fa-robot" style="color: #e67e22;"></i><div class="label">Differential-tested</div><div class="sub">for agreement with <code>typeOf</code></div></div>
+    <div class="icon-card"><i class="fa-solid fa-bug-slash" style="color: #27ae60;"></i><div class="label">Soundness gaps caught</div><div class="sub">&amp; fixed against <code>typeOf</code></div></div>
+  </div>
+  <p class="dim small" style="margin-top:0.4em;">A relational <em>restatement</em> of the typechecker &mdash; new code, but validated against the trusted <code>typeOf</code> (no equivalence proof; the testing found real gaps).</p>
+</section>
+
+<!-- 8: END-TO-END PIPELINE -->
+<section>
+  <h2 style="margin-bottom: 0.3em;">End to End</h2>
+  <div class="icon-row" style="margin-top: 0.4em; gap:0.9em;">
+    <div class="icon-card" style="background:#eef4ff; border-radius:12px;"><i class="fa-solid fa-book" style="color:#3498db;"></i><div class="label">HasType relation</div></div>
+    <div class="icon-card"><i class="fa-solid fa-arrow-right" style="color:#95a5a6;"></i></div>
+    <div class="icon-card" style="background:#f3eefb; border-radius:12px;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#9b59b6;"></i><div class="label">Specimen derives</div></div>
+    <div class="icon-card"><i class="fa-solid fa-arrow-right" style="color:#95a5a6;"></i></div>
+    <div class="icon-card" style="background:#eaf7ea; border-radius:12px;"><i class="fa-solid fa-dice" style="color:#27ae60;"></i><div class="label">Well-typed<br>Cedar inputs</div></div>
+    <div class="icon-card"><i class="fa-solid fa-arrow-right" style="color:#95a5a6;"></i></div>
+    <div class="icon-card" style="background:#fdeee6; border-radius:12px;"><i class="fa-solid fa-code-compare" style="color:#e67e22;"></i><div class="label">Differential<br>testing</div></div>
+  </div>
+  <p style="margin-top:1em;">The derived generator drops straight into Cedar's existing differential-testing harness — feeding the Lean spec and Rust production the same well-typed inputs.</p>
+</section>
+
+<!-- 6b: EVOLVING THE SCORING HEURISTIC -->
+<section>
+  <h2 style="margin-bottom: 0.15em;">Evolving the Scoring Heuristic</h2>
+  <p style="margin:0 0 0.5em;">The scoring strategy decides <em>how</em> Specimen turns the relation into a generator. Reaching a good one took three stages.</p>
+  <table class="results" style="font-size:0.5em; width:96%;">
+    <tr><th></th><th>Scoring</th><th>Key idea</th><th>Got us to</th></tr>
+    <tr><td>①</td><td><code>InitialScore</code></td><td>local sum: <code>checks&nbsp;+&nbsp;length&nbsp;+&nbsp;unconstrained</code></td><td>a start — but blind to what a schedule's <em>dependencies</em> cost</td></tr>
+    <tr><td>②</td><td><code>DensityScore</code></td><td><strong>dependency-aware</strong>: categorical density (Total / Partial / Backtracking / Checking) that folds in the density of the sub-relations a schedule calls</td><td>a working generator for an <em>incomplete</em> reconstruction of Cedar</td></tr>
+    <tr class="spec-col"><td>③</td><td><code>BudgetAwareScore</code></td><td>density <strong>+</strong> throughput heuristics: fabrication, selectivity, locality</td><td>tolerable <strong>throughput</strong> on the full spec — the generator we ship</td></tr>
+  </table>
+  <p class="caption">Each stage keeps the previous one's guarantees and adds what the next bottleneck demanded — from <em>"does it derive at all?"</em> to <em>"does it derive fast enough?"</em></p>
+</section>
+
+<!-- 6c: INSIDE BUDGETAWARESCORE — why density wasn't enough -->
+<section>
+  <h2 style="margin-bottom: 0.1em;">A Schedule Reorders a Rule to Avoid Checks</h2>
+  <p style="margin:0 0 0.35em; font-size:0.66em;">The rule for <code>e₁ in e₂</code> has four premises. A <strong>check</strong> is a rejection-sampling step — the scoring heuristic searches for the ordering that turns checks into <em>producers</em>.</p>
+  <pre style="font-size:0.42em; margin:0.15em auto 0.4em; width:80%; text-align:left; background:#f4eefb; border-left:4px solid #9b59b6; border-radius:8px; padding:0.4em 0.8em; color:#333;"><span style="background:transparent; font-family:monospace;"><span style="color:#1e7a5a;">ValidEntityType</span> t₁ → <span style="color:#1e7a5a;">Descendant</span> t₁ t₂ →              <span style="color:#999;">-- t₁ declared, t₂ ⊑ t₁</span>
+<span style="color:#2a6fb0;">HasType</span> e₁ (entity t₁) → <span style="color:#2a6fb0;">HasType</span> e₂ (entity t₂) → <span style="color:#2a6fb0;">HasType</span> (e₁ in e₂) Bool</span></pre>
+  <div class="two-col" style="max-width:94%; margin:0 auto; grid-template-columns:1fr 1fr;">
+    <div class="col-card" style="background:#fdeeea; text-align:left; padding:0.5em 0.7em;">
+      <h3 style="text-align:center; color:#c0392b; margin:0 0 0.2em;">Bad ordering → rejection sampling</h3>
+      <pre style="font-size:0.4em; margin:0; background:transparent; box-shadow:none; color:#333;"><span style="background:transparent; font-family:monospace;"><span style="color:#7a3fb0;">t₁</span> ← any entity type    <span style="color:#999;">-- guess</span>
+<span style="color:#7a3fb0;">t₂</span> ← any entity type    <span style="color:#999;">-- guess</span>
+<span style="color:#7a3fb0;">e₁</span> ← term : entity t₁
+<span style="color:#7a3fb0;">e₂</span> ← term : entity t₂
+<span style="color:#c0392b; font-weight:bold;">check</span> <span style="color:#1e7a5a;">ValidEntityType</span> t₁   <span style="color:#c0392b; font-weight:bold;">✗</span>
+<span style="color:#c0392b; font-weight:bold;">check</span> <span style="color:#1e7a5a;">Descendant</span> t₁ t₂     <span style="color:#c0392b; font-weight:bold;">✗</span>   <span style="color:#999;">-- usually fails → retry</span></span></pre>
+      <p style="font-size:0.56em; text-align:center; color:#c0392b; margin:0.2em 0 0;"><strong>2 checks</strong> — most draws discarded</p>
+    </div>
+    <div class="col-card" style="background:#eef9ee; text-align:left; padding:0.5em 0.7em;">
+      <h3 style="text-align:center; color:#27ae60; margin:0 0 0.2em;">Better ordering → produce</h3>
+      <pre style="font-size:0.4em; margin:0; background:transparent; box-shadow:none; color:#333;"><span style="background:transparent; font-family:monospace;"><span style="color:#7a3fb0;">t₁</span> ← <span style="color:#1e7a5a;">ValidEntityType</span>    <span style="color:#999;">-- drawn from the schema</span>
+<span style="color:#7a3fb0;">t₂</span> ← <span style="color:#1e7a5a;">Descendant</span> t₁      <span style="color:#999;">-- a descendant of t₁</span>
+<span style="color:#7a3fb0;">e₁</span> ← term : entity t₁
+<span style="color:#7a3fb0;">e₂</span> ← term : entity t₂
+<span style="color:#999;">-- nothing left to check</span></span></pre>
+      <p style="font-size:0.56em; text-align:center; color:#27ae60; margin:0.2em 0 0;"><strong>0 checks</strong> — every draw valid</p>
+    </div>
+  </div>
+  <p class="caption">The heuristic scores orderings by how few checks they leave. <code>BudgetAwareScore</code> refines this — e.g. don't <em>produce</em> a variable from an unbounded source (record types) when a finite relation can.</p>
+</section>
+
+<!-- 10: EVALUATION SETUP (brief) -->
+<section>
+  <h2 style="margin-bottom: 0.2em;">How We Compared Them</h2>
+  <div class="icon-row" style="margin-top: 0.4em;">
+    <div class="icon-card"><i class="fa-solid fa-crosshairs" style="color:#e74c3c;"></i><div class="label">Same targets</div><div class="sub">validation &amp; symbolic-compiler DRT</div></div>
+    <div class="icon-card"><i class="fa-solid fa-clock" style="color:#3498db;"></i><div class="label">Same budget</div><div class="sub">up to 1 hour, wall-clock</div></div>
+    <div class="icon-card"><i class="fa-solid fa-dice-d20" style="color:#9b59b6;"></i><div class="label">n ≈ 20 reps</div><div class="sub">95% bootstrap CIs (a few degenerate replays dropped)</div></div>
+    <div class="icon-card"><i class="fa-solid fa-scale-balanced" style="color:#27ae60;"></i><div class="label">Fair coverage</div><div class="sub">exclude code the spec can't reach</div></div>
+  </div>
+  <p class="dim small" style="margin-top:1em; max-width:80%; margin-left:auto; margin-right:auto;">Handwritten runs coverage-guided (cargo-fuzz); Specimen emits valid inputs by construction. We exclude ~2,680 lines of error-handling the Lean spec cannot represent, so neither side is credited unfairly.</p>
+</section>
+
+<!-- 11b: SYMCC SOURCE-LINES OVER TIME -->
+<section>
+  <h2 style="margin-bottom: 0.1em;">Coverage Arrives Almost Instantly</h2>
+  <figure>
+    <img class="result-fig" src="slides-assets/symcc_source_lines_over_time.png" alt="Source lines covered over time, symbolic-compiler target" style="max-height:430px;">
+    <figcaption class="caption"><strong>Symbolic-compiler target</strong>, source lines covered over a 1-hour run, n=20 with 95% CIs. The derived generators (size 12 / 20) reach their full ~2,470 lines within seconds and hold; handwritten climbs from ~800 and plateaus slightly lower (~2,410) only after ~25 minutes.</figcaption>
+  </figure>
+</section>
+
+<!-- 11: RESULTS — one headline graph + numbers -->
+<section>
+  <h2 style="margin-bottom: 0.1em;">Results</h2>
+  <figure>
+    <img class="result-fig" src="slides-assets/line_coverage_over_time_excl.png" alt="Line coverage over time, all lines vs error+annotation excluded" style="max-height:380px;">
+    <figcaption class="caption">Line coverage over a 1-hour run, n=20 with 95% CIs. <strong>Dashed</strong> = all lines; <strong>solid</strong> = spec-unrepresentable code (error handling + annotations) excluded. On the dashed lines handwritten (green) runs far ahead — but that lead is almost entirely code the Lean spec can't represent. <strong>Once excluded (solid), the derived generators track within ~40 lines of handwritten.</strong></figcaption>
+  </figure>
+  <div class="stat-row">
+    <div class="stat"><div class="num" style="color:#3498db;">≈ parity</div><div class="lbl">fair line coverage: J ≈ 0.95 shared after excluding spec-unrepresentable code; ~100–150 unique lines each side</div></div>
+    <div class="stat"><div class="num" style="color:#9b59b6;">3–5×</div><div class="lbl">larger, more structurally diverse policies (nodes/policy)</div></div>
+    <div class="stat"><div class="num" style="color:#27ae60;">competitive</div><div class="lbl">throughput (validation-drt, 15-min, n=20): derived ~1,700/s vs. handwritten ~300–500/s; on the policy generator the gap narrows</div></div>
+    <div class="stat"><div class="num" style="color:#c0392b;">0</div><div class="lbl">spurious mismatches over ~2.9M validations once generator-soundness gaps were fixed &mdash; and genuine spec-vs-Rust divergences surfaced (&rarr; next slide)</div></div>
+  </div>
+</section>
+
+<!-- 12: BUGS FOUND (brief) -->
+<section>
+  <h2 style="margin-bottom: 0.12em;">And It Found Real Bugs</h2>
+  <p style="margin:0 0 0.35em; font-size:0.64em;">Three genuine spec-vs-implementation divergences — the Lean spec and cedar-policy disagree on valid inputs:</p>
+  <div style="max-width:93%; margin:0 auto; text-align:left;">
+    <p style="font-size:0.58em; margin:0.4em 0;"><span class="tag tag-real">1</span> &nbsp; <strong>Actions escape the reserved <code>Action</code> type.</strong> Lean <em>accepts</em> an action UID of any entity type (e.g. <code>name::"doc1"</code>); cedar-policy requires the reserved <code>Action</code> type and rejects. Lean never encodes the constraint.</p>
+    <p style="font-size:0.58em; margin:0.4em 0;"><span class="tag tag-real">2</span> &nbsp; <strong>Extension types lose their qualifier.</strong> Schema attr <code>Cedar::duration</code> vs a <code>duration(…)</code> result: Rust <em>rejects</em> (<code>Cedar::duration ≠ duration</code>); Lean's <code>ExtType</code> enum collapses both and <em>accepts</em>.</p>
+    <p style="font-size:0.58em; margin:0.4em 0;"><span class="tag tag-real">3</span> &nbsp; <strong>Spurious <code>tagNotFound</code> on a projected-record <code>getTag</code>.</strong> Lean <em>rejects</em> a valid policy (Rust accepts): it stores records as a non-canonical <em>ordered</em> list, so <code>getTag</code>'s receiver can decode in a different attribute order and miss the capability. <span class="dim">Fix: sort record attrs on decode.</span></p>
+  </div>
+  <p class="dim small" style="margin-top:0.6em;">A spec-derived generator is a lens on the spec <em>vs.</em> the implementation — divergences neither side's own tests had surfaced.</p>
+</section>
+
+<!-- 13: BOTTOM LINE -->
+<section>
+  <h2 style="margin-bottom: 0.2em;">Bottom Line</h2>
+  <div class="two-col" style="max-width:92%; margin:0.3em auto;">
+    <div class="col-card" style="background:#eef9ee;">
+      <i class="fa-solid fa-circle-check" style="color:#27ae60;"></i>
+      <h3>Derived from the spec</h3>
+      <p style="font-size:0.62em;"><b>Comes close</b> to handwritten on line coverage once out-of-scope lines (errors, annotations) are excluded.<br>
+      <b>Higher</b> structural diversity, <b>competitive</b> throughput.<br>
+      <b>Found 3 real bugs</b>, each within hour-long runs.<br>
+      Auto-derived — a declarative relation replaces 5,400 lines of imperative Rust.</p>
+    </div>
+    <div class="col-card" style="background:#fdf3ec;">
+      <i class="fa-solid fa-puzzle-piece" style="color:#e67e22;"></i>
+      <h3>Complementary, not a total replacement</h3>
+      <p style="font-size:0.62em;">Handwritten still adds value for features the Lean spec can't model (e.g. template slots), for error paths, and for the ~100–150 validator lines specimen doesn't reach.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="text-align:center; border-left:none; background:#f3eefb; margin-top:0.7em;">
+    An <strong>unguided</strong>, spec-derived generator comes close to a <strong>coverage-guided</strong> handwritten one on line coverage (once out-of-scope lines are excluded), with higher diversity, competitive throughput, and <strong>3 real bugs</strong> found &mdash; trading a hand-maintained imperative generator for a declarative spec.
+  </div>
+</section>
+
+<!-- 14: FUTURE WORK -->
+<section>
+  <h2 style="margin-bottom: 0.2em;">Next Steps</h2>
+  <div class="icon-row" style="margin-top: 0.4em;">
+    <div class="icon-card"><i class="fa-solid fa-diagram-project" style="color:#9b59b6;"></i><div class="label">Coverage-guided Specimen</div><div class="sub">feed coverage back into the search</div></div>
+    <div class="icon-card"><i class="fa-solid fa-right-left" style="color:#27ae60;"></i><div class="label">Drop-in adoption</div><div class="sub">Specimen in Cedar's fuzzing pipeline</div></div>
+  </div>
+  <p class="dim small" style="margin-top:1em;">The relational spec, the derived generators, and the evaluation harness are all in place for the next study.</p>
+</section>
+
+<!-- 15: QUESTIONS -->
+<section data-background-gradient="linear-gradient(135deg, #f7f9fc 0%, #eef2fb 55%, #f4eefb 100%)">
+  <h1>Questions?</h1>
+  <p class="dim small" style="margin-top:0.6em;">Segev Elazar Mittelman &middot; <span style="color:#9b59b6;">@segevem</span></p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    width: 1200,
+    height: 700,
+    margin: 0.04,
+    minScale: 0.2,
+    maxScale: 2.0,
+    plugins: [RevealHighlight, RevealNotes]
+  });
+</script>
+</body>
+</html>

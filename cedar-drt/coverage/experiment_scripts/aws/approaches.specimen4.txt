@@ -1,0 +1,7 @@
+# Specimen-only 30s smoke to see default (budget-aware) + mixed-policy perform, with err/wt as
+# reference. No handwritten (guided cargo-fuzz is meaningless at 30s). TARGET=validation-drt.
+# Format:  name  generator  strategy  lean_size  [fuzz_target]
+err-policy-sz20     lean-schema-typeof   illtyped-policy     20
+wt-policy-sz20      lean-schema-typeof   welltyped-policy    20
+default-sz20        lean-schema-typeof   budget-aware        20
+mixed-sz20          lean-schema-typeof   mixed-policy        20
