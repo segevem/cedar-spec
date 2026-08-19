@@ -17,6 +17,7 @@
 import CedarGen.Relational.TypeOfLean
 import CedarGen.Relational.Schema
 import Cedar.Thm.Data.Control
+import Cedar.Thm.Data.Map
 
 /-! # Soundness of the relational typing spec
 
@@ -110,6 +111,25 @@ theorem setContains_mem {α} [BEq α] {x : α} {s : Set α} (h : SetContains x s
   induction h with
   | here => simp [Set.elts]
   | there _ _ _ ih => simp only [Set.elts] at *; exact List.mem_cons_of_mem _ ih
+
+/-! ## Structural map/set membership ↔ lookup
+
+`MapContains`/`SetContains` mirror `Map.find?`/`Set.contains`. The `find?`
+direction needs the map to be well-formed (duplicate-free) — supplied by
+`Schema.WfTypeEnv` in `hasType_sound`. -/
+
+/-- `MapContains` implies the pair is in the underlying list (well-formedness free). -/
+theorem mapContains_mem {α β : Type} {k : α} {v : β} {m : Map α β} (h : MapContains k v m) :
+    (k, v) ∈ m.toList := by
+  induction h with
+  | here => simp [Map.toList]
+  | there _ _ _ _ ih => exact List.mem_cons_of_mem _ ih
+
+/-- On a well-formed (duplicate-free) map, `MapContains` agrees with `find?`. -/
+theorem mapContains_find? {α β : Type} [DecidableEq α] [LT α] [DecidableLT α] [StrictLT α]
+    {k : α} {v : β} {m : Map α β} (h : MapContains k v m) (wf : m.WellFormed) :
+    m.find? k = some v :=
+  (Map.in_list_iff_find?_some wf).mp (mapContains_mem h)
 
 /-! ## Least-upper-bound soundness
 
