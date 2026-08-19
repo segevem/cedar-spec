@@ -15,6 +15,7 @@
 -/
 
 import CedarGen.Relational.TypeOfLean
+import CedarGen.Relational.Schema
 import Cedar.Thm.Data.Control
 
 /-! # Soundness of the relational typing spec
@@ -513,6 +514,7 @@ Case plan (each maps to one `typeOf*` arm):
     type and capability-equivalent output. -/
 theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     {ty : CedarType} {cout : Capabilities}
+    (hwf : Schema.WfTypeEnv env)
     (h : HasType x c env ty cout) :
     ∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty ∧ CapsEquiv cout c' := by
   -- `cases` (not `induction`: `HasType` is mutually inductive). Leaf cases need no
