@@ -198,6 +198,35 @@ theorem typeOfGetAttr_capsEquiv {ty : TypedExpr} {x : Expr} {a : Attr}
   unfold typeOfGetAttr
   simp only [getAttrInRecord_capsEquiv h]
 
+/-- Capability-congruence for a `mapM` of `justType ∘ typeOf` (the `set`/`call`
+    element pass): given per-element congruence, a successful run under `c₁`
+    reruns identically under `≈`-equivalent `c₂`. -/
+theorem typeOfList_capsEquiv {xs : List Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
+    (ih : ∀ x ∈ xs, ∀ {tx : TypedExpr} {o : Capabilities}, typeOf x c₁ env = .ok (tx, o) →
+            ∃ o', typeOf x c₂ env = .ok (tx, o') ∧ CapsEquiv o o') :
+    ∀ {tys : List TypedExpr}, xs.mapM (fun x => justType (typeOf x c₁ env)) = .ok tys →
+             xs.mapM (fun x => justType (typeOf x c₂ env)) = .ok tys := by
+  induction xs with
+  | nil => intro tys hm; simpa using hm
+  | cons x xs ihxs =>
+    intro tys hm
+    simp only [List.mapM_cons] at hm ⊢
+    cases hx1 : typeOf x c₁ env with
+    | error e =>
+      have hj1 : justType (typeOf x c₁ env) = .error e := by simp only [hx1, justType, Except.map]
+      simp [hj1] at hm
+    | ok r =>
+      obtain ⟨t, o⟩ := r
+      obtain ⟨o', hx2, _⟩ := ih x (List.mem_cons_self ..) hx1
+      have hj1 : justType (typeOf x c₁ env) = .ok t := by simp only [hx1, justType, Except.map]
+      have hj2 : justType (typeOf x c₂ env) = .ok t := by simp only [hx2, justType, Except.map]
+      cases htl : xs.mapM (fun x => justType (typeOf x c₁ env)) with
+      | error e => simp [hj1, htl] at hm
+      | ok ts =>
+        have htl2 := ihxs (fun x hx => ih x (List.mem_cons_of_mem _ hx)) htl
+        simp [hj1, hj2, htl, htl2] at hm ⊢
+        exact hm
+
 theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
     {tx : TypedExpr} {o₁ : Capabilities}
     (h : CapsEquiv c₁ c₂) (h1 : typeOf x c₁ env = .ok (tx, o₁)) :
@@ -395,9 +424,27 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
       obtain ⟨oc₂, hx2, _⟩ := ih1 h hx1
       simp only [hx1, hx2, Except.bind_ok, typeOfGetAttr_capsEquiv h] at h1 ⊢
       exact ⟨o₁, h1, CapsEquiv.refl _⟩
-  case _ => sorry -- set
+  case _ => -- set: element pass via `typeOfList_capsEquiv`; `typeOfSet` is cap-free
+    rename_i c xs ih1
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)),
+      List.mapM₁_eq_mapM (fun x => justType (typeOf x c₂ env))] at h1 ⊢
+    cases hm : List.mapM (fun x => justType (typeOf x c env)) xs with
+    | error e => simp [hm] at h1
+    | ok tys =>
+      have hm2 := typeOfList_capsEquiv (fun x hx => ih1 x hx h) hm
+      simp only [hm, hm2, Except.bind_ok] at h1 ⊢
+      exact ⟨_, h1, CapsEquiv.refl _⟩
   case _ => sorry -- record
-  case _ => sorry -- call
+  case _ => -- call: same element pass as `set`; `typeOfCall` is cap-free
+    rename_i c xfn xs ih1
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)),
+      List.mapM₁_eq_mapM (fun x => justType (typeOf x c₂ env))] at h1 ⊢
+    cases hm : List.mapM (fun x => justType (typeOf x c env)) xs with
+    | error e => simp [hm] at h1
+    | ok tys =>
+      have hm2 := typeOfList_capsEquiv (fun x hx => ih1 x hx h) hm
+      simp only [hm, hm2, Except.bind_ok] at h1 ⊢
+      exact ⟨_, h1, CapsEquiv.refl _⟩
 
 /-! ## Main soundness theorem
 
