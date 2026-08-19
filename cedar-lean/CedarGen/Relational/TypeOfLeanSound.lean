@@ -52,6 +52,16 @@ theorem CapsEquiv.trans {c₁ c₂ c₃ : Capabilities}
     (h₁ : CapsEquiv c₁ c₂) (h₂ : CapsEquiv c₂ c₃) : CapsEquiv c₁ c₃ :=
   fun k => (h₁ k).trans (h₂ k)
 
+/-- `∪` respects capability set-equality. -/
+theorem CapsEquiv.union {a a' b b' : Capabilities}
+    (ha : CapsEquiv a a') (hb : CapsEquiv b b') : CapsEquiv (a ∪ b) (a' ∪ b') := by
+  intro k; simp only [List.mem_union_iff, ha k, hb k]
+
+/-- `∩` respects capability set-equality. -/
+theorem CapsEquiv.inter {a a' b b' : Capabilities}
+    (ha : CapsEquiv a a') (hb : CapsEquiv b b') : CapsEquiv (a ∩ b) (a' ∩ b') := by
+  intro k; simp only [List.mem_inter_iff, ha k, hb k]
+
 /-! ## Foundational lemmas about the auxiliary relations
 
 These are self-contained (no induction over `HasType`) and establish that each
