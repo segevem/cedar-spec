@@ -612,6 +612,31 @@ instance : DecOpt (IsActionLitMemSet x₁ x₂ acts) where
       acts.contains uid₁ && xs.all (match · with | .lit (.entityUID _) => true | _ => false)
     | _, _ => false)
 
+/- ## Record-key ordering bound
+
+`KeyAbove lb a` holds when `a` strictly exceeds the lower bound `lb`
+(`none` acts as −∞). Threaded through `HasTypeRecord` so each successive
+record key strictly exceeds the previous one, making the accumulated
+attribute list strictly sorted by key — i.e. sorted *and* duplicate-free,
+hence already canonical: `.mk atyList = Map.make atyList`. The comparison is
+`<` on `Attr = String` (lexicographic by codepoint, `String.strictLT`). -/
+inductive KeyAbove : Option Attr → Attr → Prop where
+  | none : ∀ a, KeyAbove none a
+  | some : ∀ b a, b < a → KeyAbove (some b) a
+
+instance : DecOpt (KeyAbove lb a) where
+  decOpt _ := .ok (match lb with | none => true | some b => decide (b < a))
+
+/- Producer for a key strictly above `b`: a proper extension `b ++ suffix` is
+   lexicographically greater than `b` (`b` is a strict prefix), so `b < a`
+   holds for any nonempty suffix. Lets Specimen *generate* ascending record
+   keys (synthesis mode), not just check them. -/
+open Plausible in
+instance (b : Attr) : ArbitrarySizedSuchThat Attr (fun a => b < a) where
+  arbitrarySizedST size := do
+    let ⟨n, _⟩ ← Gen.choose Nat 1 (size + 1) (by omega)
+    return b ++ String.mk (List.replicate n 'a')
+
 /- ## Main typing relation
 
 Signature: `HasType x c env ty cout`
@@ -959,9 +984,14 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     HasType (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ ty []
 
   /- ### hasTag — entity has tags, not in capabilities -/
+  -- `¬ CapTagMem`: `typeOfHasTag` returns `.tt` (with `[]`) when `(x₁, .tag x₂) ∈ c`,
+  -- so the `anyBool` + new-capability branch fires only when the cap is absent.
+  -- Mirrors the `¬ CapAttrMem` guard on `HasAttrInRecord.found_not_known`; without
+  -- it the relation is unsound (derives `anyBool` where the functional gives `tt`).
   | hasTagAnyBool :
     ∀ x₁ x₂ c ets acts reqty ety ty,
     HasTagSchema ets ety ty →
+    ¬ CapTagMem x₁ x₂ c →
     HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
     HasType x₂ c ⟨ets, acts, reqty⟩ .string [] →
     HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) [(x₁, .tag x₂)]
@@ -1132,7 +1162,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   /- ### Record literal -/
   | record :
     ∀ axs c env atyList,
-    HasTypeRecord axs c env atyList →
+    HasTypeRecord none axs c env atyList →
     HasType (.record axs) c env (.record (.mk atyList)) []
 
   /- ### Extension function call -/
@@ -1153,16 +1183,20 @@ inductive HasTypeList : List Expr → Capabilities → TypeEnv → List CedarTyp
     HasTypeList xs c env tys →
     HasTypeList (x :: xs) c env (ty :: tys)
 
-/-- Typing a record. -/
-inductive HasTypeRecord : List (Attr × Expr) → Capabilities → TypeEnv → List (Attr × QualifiedType) → Prop where
+/-- Typing a record. The `Option Attr` argument is a strict lower bound on the
+    key of the head entry (`none` = −∞): each key must exceed the previous one
+    (`KeyAbove lb a`), so the accumulated `atyList` is strictly sorted by key —
+    sorted and duplicate-free, i.e. already canonical. -/
+inductive HasTypeRecord : Option Attr → List (Attr × Expr) → Capabilities → TypeEnv → List (Attr × QualifiedType) → Prop where
   | nil :
-    ∀ c env,
-    HasTypeRecord [] c env []
+    ∀ lb c env,
+    HasTypeRecord lb [] c env []
   | cons :
-    ∀ a x axs c env ty atyList,
+    ∀ lb a x axs c env ty atyList,
+    KeyAbove lb a →
     HasType x c env ty [] →
-    HasTypeRecord axs c env atyList →
-    HasTypeRecord ((a, x) :: axs) c env ((a, .required ty) :: atyList)
+    HasTypeRecord (some a) axs c env atyList →
+    HasTypeRecord lb ((a, x) :: axs) c env ((a, .required ty) :: atyList)
 
 /-- Typing of extension-function calls. Mutual with `HasType`: each function's
     argument types are stated directly as `HasType` premises (construction takes a
