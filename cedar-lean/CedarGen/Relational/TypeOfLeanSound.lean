@@ -141,6 +141,33 @@ inside the inductive step. -/
 -- Prove by induction mirroring `typeOf`'s recursion. One-directional: if `typeOf`
 -- succeeds under `c₁`, it succeeds under any `≈`-equivalent `c₂` with the *same*
 -- `TypedExpr` and `≈`-equivalent output capabilities.
+/-- `hasAttrInRecord` reads capabilities only via `(x, .attr a) ∈ c`, so
+    `≈`-equivalent capabilities give an identical result. -/
+theorem hasAttrInRecord_capsEquiv {rty : RecordType} {x : Expr} {a : Attr}
+    {c₁ c₂ : Capabilities} {b : Bool} (h : CapsEquiv c₁ c₂) :
+    hasAttrInRecord rty x a c₁ b = hasAttrInRecord rty x a c₂ b := by
+  unfold hasAttrInRecord
+  simp only [h (x, .attr a)]
+
+/-- `getAttrInRecord` reads capabilities only via `(x, .attr a) ∈ c`. -/
+theorem getAttrInRecord_capsEquiv {ty : CedarType} {rty : RecordType} {x : Expr} {a : Attr}
+    {c₁ c₂ : Capabilities} (h : CapsEquiv c₁ c₂) :
+    getAttrInRecord ty rty x a c₁ = getAttrInRecord ty rty x a c₂ := by
+  unfold getAttrInRecord
+  simp only [h (x, .attr a)]
+
+theorem typeOfHasAttr_capsEquiv {ty : TypedExpr} {x : Expr} {a : Attr}
+    {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
+    typeOfHasAttr ty x a c₁ env = typeOfHasAttr ty x a c₂ env := by
+  unfold typeOfHasAttr
+  simp only [hasAttrInRecord_capsEquiv h]
+
+theorem typeOfGetAttr_capsEquiv {ty : TypedExpr} {x : Expr} {a : Attr}
+    {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
+    typeOfGetAttr ty x a c₁ env = typeOfGetAttr ty x a c₂ env := by
+  unfold typeOfGetAttr
+  simp only [getAttrInRecord_capsEquiv h]
+
 theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
     {tx : TypedExpr} {o₁ : Capabilities}
     (h : CapsEquiv c₁ c₂) (h1 : typeOf x c₁ env = .ok (tx, o₁)) :
@@ -168,8 +195,26 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
       simp only [hx1, hx2, Except.bind_ok] at h1 ⊢
       exact ⟨o₁, h1, CapsEquiv.refl _⟩
   case _ => sorry -- binaryApp
-  case _ => sorry -- hasAttr
-  case _ => sorry -- getAttr
+  case _ => -- hasAttr: `typeOfHasAttr` reads caps only via membership (invariant under ≈)
+    rename_i c x₁ a ih1
+    simp only [typeOf] at h1 ⊢
+    cases hx1 : typeOf x₁ c env with
+    | error e => simp [hx1] at h1
+    | ok r =>
+      obtain ⟨ty₁, oc₁⟩ := r
+      obtain ⟨oc₂, hx2, _⟩ := ih1 h hx1
+      simp only [hx1, hx2, Except.bind_ok, typeOfHasAttr_capsEquiv h] at h1 ⊢
+      exact ⟨o₁, h1, CapsEquiv.refl _⟩
+  case _ => -- getAttr
+    rename_i c x₁ a ih1
+    simp only [typeOf] at h1 ⊢
+    cases hx1 : typeOf x₁ c env with
+    | error e => simp [hx1] at h1
+    | ok r =>
+      obtain ⟨ty₁, oc₁⟩ := r
+      obtain ⟨oc₂, hx2, _⟩ := ih1 h hx1
+      simp only [hx1, hx2, Except.bind_ok, typeOfGetAttr_capsEquiv h] at h1 ⊢
+      exact ⟨o₁, h1, CapsEquiv.refl _⟩
   case _ => sorry -- set
   case _ => sorry -- record
   case _ => sorry -- call
