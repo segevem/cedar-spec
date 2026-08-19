@@ -211,7 +211,58 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
   case _ =>
     simp only [typeOf] at h1 ⊢
     exact ⟨o₁, h1, CapsEquiv.refl _⟩
-  case _ => sorry -- ite
+  case _ => -- ite: thread `c ∪ c₁` into the then-branch; combine outputs via ∪/∩
+    rename_i c x₁ x₂ x₃ ihA ihB ihC
+    simp only [typeOf] at h1 ⊢
+    cases hx1 : typeOf x₁ c env with
+    | error e => simp [hx1] at h1
+    | ok r1 =>
+      obtain ⟨ty₁, cc₁⟩ := r1
+      obtain ⟨cc₁', hx1', hcc1⟩ := ihA h hx1
+      have hu : CapsEquiv (c ∪ cc₁) (c₂ ∪ cc₁') := CapsEquiv.union h hcc1
+      simp only [hx1, hx1', Except.bind_ok, typeOfIf] at h1 ⊢
+      split at h1
+      next => -- condition : .bool .tt
+        cases hx2 : typeOf x₂ (c ∪ cc₁) env with
+        | error e => simp [hx2] at h1
+        | ok r2 =>
+          obtain ⟨ty₂, c2⟩ := r2
+          obtain ⟨c2', hx2', hc2⟩ := ihB cc₁ hu hx2
+          simp only [hx2, Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h1
+          obtain ⟨rfl, rfl⟩ := h1
+          simp only [hx2', Except.bind_ok, ok]
+          exact ⟨_, rfl, CapsEquiv.union hcc1 hc2⟩
+      next => -- condition : .bool .ff
+        cases hx3 : typeOf x₃ c env with
+        | error e => simp [hx3] at h1
+        | ok r3 =>
+          obtain ⟨ty₃, c3⟩ := r3
+          obtain ⟨c3', hx3', hc3⟩ := ihC h hx3
+          simp only [hx3, Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h1
+          obtain ⟨rfl, rfl⟩ := h1
+          simp only [hx3', Except.bind_ok, ok]
+          exact ⟨_, rfl, hc3⟩
+      next => -- condition : .bool .anyBool
+        cases hx2 : typeOf x₂ (c ∪ cc₁) env with
+        | error e => simp [hx2] at h1
+        | ok r2 =>
+          obtain ⟨ty₂, c2⟩ := r2
+          obtain ⟨c2', hx2', hc2⟩ := ihB cc₁ hu hx2
+          cases hx3 : typeOf x₃ c env with
+          | error e => simp [hx2, hx3] at h1
+          | ok r3 =>
+            obtain ⟨ty₃, c3⟩ := r3
+            obtain ⟨c3', hx3', hc3⟩ := ihC h hx3
+            simp only [hx2, hx3, Except.bind_ok] at h1
+            simp only [hx2', hx3', Except.bind_ok]
+            split at h1
+            next ty hlub =>
+              simp only [hlub, ok, Except.ok.injEq, Prod.mk.injEq] at h1
+              obtain ⟨rfl, rfl⟩ := h1
+              simp only [hlub, ok]
+              exact ⟨_, rfl, CapsEquiv.inter (CapsEquiv.union hcc1 hc2) hc3⟩
+            next hlub => simp [err] at h1
+      next => simp [err] at h1 -- condition : non-boolean
   case _ => sorry -- and
   case _ => sorry -- or
   case _ => -- unaryApp: recurse on `x₁`; `typeOfUnaryApp` is capability-free
