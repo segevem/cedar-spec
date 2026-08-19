@@ -15,6 +15,7 @@
 -/
 
 import CedarGen.Relational.TypeOfLean
+import Cedar.Thm.Data.Control
 
 /-! # Soundness of the relational typing spec
 
@@ -153,7 +154,25 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
   case _ =>
     simp only [typeOf] at h1 ⊢
     exact ⟨o₁, h1, CapsEquiv.refl _⟩
-  all_goals sorry
+  case _ => sorry -- ite
+  case _ => sorry -- and
+  case _ => sorry -- or
+  case _ => -- unaryApp: recurse on `x₁`; `typeOfUnaryApp` is capability-free
+    rename_i c op x₁ ih1
+    simp only [typeOf] at h1 ⊢
+    cases hx1 : typeOf x₁ c env with
+    | error e => simp [hx1] at h1
+    | ok r =>
+      obtain ⟨ty₁, oc₁⟩ := r
+      obtain ⟨oc₂, hx2, _⟩ := ih1 h hx1
+      simp only [hx1, hx2, Except.bind_ok] at h1 ⊢
+      exact ⟨o₁, h1, CapsEquiv.refl _⟩
+  case _ => sorry -- binaryApp
+  case _ => sorry -- hasAttr
+  case _ => sorry -- getAttr
+  case _ => sorry -- set
+  case _ => sorry -- record
+  case _ => sorry -- call
 
 /-! ## Main soundness theorem
 
