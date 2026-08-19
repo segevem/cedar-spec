@@ -227,6 +227,37 @@ theorem typeOfList_capsEquiv {xs : List Expr} {c₁ c₂ : Capabilities} {env : 
         simp [hj1, hj2, htl, htl2] at hm ⊢
         exact hm
 
+/-- Capability-congruence for the `record` element pass (`mapM₂`). -/
+theorem typeOfRecordList_capsEquiv {axs : List (Attr × Expr)} {c₁ c₂ : Capabilities} {env : TypeEnv}
+    (ih : ∀ ax ∈ axs, ∀ {tx : TypedExpr} {o : Capabilities}, typeOf ax.2 c₁ env = .ok (tx, o) →
+            ∃ o', typeOf ax.2 c₂ env = .ok (tx, o') ∧ CapsEquiv o o') :
+    ∀ {atys : List (Attr × TypedExpr)},
+      axs.mapM (fun ax => (typeOf ax.2 c₁ env).map (fun r => (ax.1, r.1))) = .ok atys →
+      axs.mapM (fun ax => (typeOf ax.2 c₂ env).map (fun r => (ax.1, r.1))) = .ok atys := by
+  induction axs with
+  | nil => intro atys hm; simpa using hm
+  | cons ax axs ihxs =>
+    intro atys hm
+    simp only [List.mapM_cons] at hm ⊢
+    cases hx1 : typeOf ax.2 c₁ env with
+    | error e =>
+      have hj1 : (typeOf ax.2 c₁ env).map (fun r => (ax.1, r.1)) = .error e := by
+        simp only [hx1, Except.map]
+      simp [hj1] at hm
+    | ok r =>
+      obtain ⟨t, o⟩ := r
+      obtain ⟨o', hx2, _⟩ := ih ax (List.mem_cons_self ..) hx1
+      have hj1 : (typeOf ax.2 c₁ env).map (fun r => (ax.1, r.1)) = .ok (ax.1, t) := by
+        simp only [hx1, Except.map]
+      have hj2 : (typeOf ax.2 c₂ env).map (fun r => (ax.1, r.1)) = .ok (ax.1, t) := by
+        simp only [hx2, Except.map]
+      cases htl : axs.mapM (fun ax => (typeOf ax.2 c₁ env).map (fun r => (ax.1, r.1))) with
+      | error e => simp [hj1, htl] at hm
+      | ok ts =>
+        have htl2 := ihxs (fun ax hx => ih ax (List.mem_cons_of_mem _ hx)) htl
+        simp [hj1, hj2, htl, htl2] at hm ⊢
+        exact hm
+
 theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
     {tx : TypedExpr} {o₁ : Capabilities}
     (h : CapsEquiv c₁ c₂) (h1 : typeOf x c₁ env = .ok (tx, o₁)) :
@@ -434,7 +465,18 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
       have hm2 := typeOfList_capsEquiv (fun x hx => ih1 x hx h) hm
       simp only [hm, hm2, Except.bind_ok] at h1 ⊢
       exact ⟨_, h1, CapsEquiv.refl _⟩
-  case _ => sorry -- record
+  case _ => -- record: element pass via `typeOfRecordList_capsEquiv`; builder is cap-free
+    rename_i c axs ih1
+    simp only [typeOf,
+      List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c env).map (fun r => (p.1, r.1))),
+      List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c₂ env).map (fun r => (p.1, r.1)))] at h1 ⊢
+    cases hm : axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) with
+    | error e => simp [hm] at h1
+    | ok atys =>
+      have hm2 := typeOfRecordList_capsEquiv
+        (fun ax hx => ih1 ax.1 ax.2 (List.sizeOf_snd_lt_sizeOf_list hx) h) hm
+      simp only [hm, hm2, Except.bind_ok, ok] at h1 ⊢
+      exact ⟨_, h1, CapsEquiv.refl _⟩
   case _ => -- call: same element pass as `set`; `typeOfCall` is cap-free
     rename_i c xfn xs ih1
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)),
