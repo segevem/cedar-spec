@@ -156,6 +156,26 @@ theorem getAttrInRecord_capsEquiv {ty : CedarType} {rty : RecordType} {x : Expr}
   unfold getAttrInRecord
   simp only [h (x, .attr a)]
 
+/-- `typeOfHasTag` reads capabilities only via `(x, .tag t) ∈ c`. -/
+theorem typeOfHasTag_capsEquiv {ety : EntityType} {x t : Expr}
+    {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
+    typeOfHasTag ety x t c₁ env = typeOfHasTag ety x t c₂ env := by
+  unfold typeOfHasTag
+  simp only [h (x, .tag t)]
+
+/-- `typeOfGetTag` reads capabilities only via `(x, .tag t) ∈ c`. -/
+theorem typeOfGetTag_capsEquiv {ety : EntityType} {x t : Expr}
+    {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
+    typeOfGetTag ety x t c₁ env = typeOfGetTag ety x t c₂ env := by
+  unfold typeOfGetTag
+  simp only [h (x, .tag t)]
+
+theorem typeOfBinaryApp_capsEquiv {op : BinaryOp} {ty₁ ty₂ : TypedExpr} {x₁ x₂ : Expr}
+    {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
+    typeOfBinaryApp op ty₁ ty₂ x₁ x₂ c₁ env = typeOfBinaryApp op ty₁ ty₂ x₁ x₂ c₂ env := by
+  unfold typeOfBinaryApp
+  simp only [typeOfHasTag_capsEquiv h, typeOfGetTag_capsEquiv h]
+
 theorem typeOfHasAttr_capsEquiv {ty : TypedExpr} {x : Expr} {a : Attr}
     {c₁ c₂ : Capabilities} {env : TypeEnv} (h : CapsEquiv c₁ c₂) :
     typeOfHasAttr ty x a c₁ env = typeOfHasAttr ty x a c₂ env := by
@@ -194,7 +214,22 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
       obtain ⟨oc₂, hx2, _⟩ := ih1 h hx1
       simp only [hx1, hx2, Except.bind_ok] at h1 ⊢
       exact ⟨o₁, h1, CapsEquiv.refl _⟩
-  case _ => sorry -- binaryApp
+  case _ => -- binaryApp: recurse on both operands; `typeOfBinaryApp` reads caps
+            -- only in the hasTag/getTag arms (invariant under ≈)
+    rename_i c op x₁ x₂ ihx1 ihx2
+    simp only [typeOf] at h1 ⊢
+    cases hx1 : typeOf x₁ c env with
+    | error e => simp [hx1] at h1
+    | ok r1 =>
+      obtain ⟨t1, oc1⟩ := r1
+      cases hx2 : typeOf x₂ c env with
+      | error e => simp [hx1, hx2, Except.bind_ok] at h1
+      | ok r2 =>
+        obtain ⟨t2, oc2⟩ := r2
+        obtain ⟨oc1', hx1', _⟩ := ihx1 h hx1
+        obtain ⟨oc2', hx2', _⟩ := ihx2 h hx2
+        simp only [hx1, hx2, hx1', hx2', Except.bind_ok, typeOfBinaryApp_capsEquiv h] at h1 ⊢
+        exact ⟨o₁, h1, CapsEquiv.refl _⟩
   case _ => -- hasAttr: `typeOfHasAttr` reads caps only via membership (invariant under ≈)
     rename_i c x₁ a ih1
     simp only [typeOf] at h1 ⊢
