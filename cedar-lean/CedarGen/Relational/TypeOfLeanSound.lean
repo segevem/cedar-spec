@@ -1103,6 +1103,41 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.binaryApp .mul t1 t2 .int, ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
       fun _ => Iff.rfl⟩
+  -- litEntity → `typeOfLit` entity-validity guard
+  | litEntity ety eid c ets acts reqty a =>
+    rename_i hwf
+    have hv := validEntityUID_lit a (wfTypeEnv_ets_nodup hwf) (wfTypeEnv_acts_nodup hwf)
+    exact ⟨.lit (.entityUID ⟨ety, eid⟩) (.entity ety), [],
+      by simp [typeOf, typeOfLit, hv, ok], rfl, fun _ => Iff.rfl⟩
+  -- unaryApp .is → `typeOfUnaryApp`
+  | unaryAppIsTrue ety x₁ c env a a1 ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp (.is ety) t1 (.bool .tt), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppIsFalse ety₁ ety₂ x₁ c env a a1 a2 ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    have hne := validDifferentEntityType_ne a1
+    exact ⟨.unaryApp (.is ety₁) t1 (.bool .ff), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, ok, hne], rfl, fun _ => Iff.rfl⟩
+  -- contains / containsAll / containsAny → `ifLubThenBool` (needs `lubCompat_lub?`)
+  | binaryAppContains x₁ x₂ c env t₂ elemTy a a1 a2 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨tt2, c2, h2, ht2, _⟩ := ih2 hwf
+    obtain ⟨lt, hlt⟩ := lubCompat_lub? a
+    exact ⟨.binaryApp .contains t1 tt2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ifLubThenBool, hlt,
+        ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppContainsAll x₁ x₂ c env elemTy₁ elemTy₂ a a1 a2 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨tt2, c2, h2, ht2, _⟩ := ih2 hwf
+    obtain ⟨lt, hlt⟩ := lubCompat_lub? a
+    exact ⟨.binaryApp .containsAll t1 tt2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ifLubThenBool, hlt,
+        ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppContainsAny x₁ x₂ c env elemTy₁ elemTy₂ a a1 a2 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨tt2, c2, h2, ht2, _⟩ := ih2 hwf
+    obtain ⟨lt, hlt⟩ := lubCompat_lub? a
+    exact ⟨.binaryApp .containsAny t1 tt2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ifLubThenBool, hlt,
+        ok], rfl, fun _ => Iff.rfl⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
