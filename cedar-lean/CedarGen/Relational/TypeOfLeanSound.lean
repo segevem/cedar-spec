@@ -1176,6 +1176,96 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.binaryApp .getTag t1 t2 ty, ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfGetTag, htg,
         if_pos hcap, ok], rfl, fun _ => Iff.rfl⟩
+  -- and short-circuit → `typeOfAnd` .ff arm (returns x₁'s typed expr)
+  | andShort x₁ x₂ c env c₁ a ih =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    exact ⟨t1, ∅, by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, ok], ht1,
+      fun _ => Iff.rfl⟩
+  -- or → `typeOfOr` (second operand typed under `c`, no cap threading)
+  | orShort x₁ x₂ c env c₁ a ih =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    exact ⟨t1, ∅, by simp only [typeOf, h1, Except.bind_ok, typeOfOr, ht1, ok], ht1,
+      fun _ => Iff.rfl⟩
+  | orFfThen x₁ x₂ c env c₁ b₂ c₂ a a1 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2', h2, ht2, hc2⟩ := ih2 hwf
+    exact ⟨.or t1 t2 (.bool b₂), c2',
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfOr, ht1, ht2, ok], rfl, hc2⟩
+  | orAnyTt x₁ x₂ c env c₁ c₂ a a1 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2', h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.or t1 t2 (.bool .tt), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfOr, ht1, ht2, ok], rfl, fun _ => Iff.rfl⟩
+  | orAnyFf x₁ x₂ c env c₁ c₂ a a1 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, hc1⟩ := ih1 hwf
+    obtain ⟨t2, c2', h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.or t1 t2 (.bool .anyBool), c1',
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfOr, ht1, ht2, ok], rfl, hc1⟩
+  | orAnyAny x₁ x₂ c env c₁ c₂ a a1 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1', h1, ht1, hc1⟩ := ih1 hwf
+    obtain ⟨t2, c2', h2, ht2, hc2⟩ := ih2 hwf
+    exact ⟨.or t1 t2 (.bool .anyBool), c1' ∩ c2',
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfOr, ht1, ht2, ok], rfl,
+      (capIntersect_capsEquiv_inter c₁ c₂).trans (CapsEquiv.inter hc1 hc2)⟩
+  -- and (threads `c ∪ c₁` into the 2nd operand → bridge `CapMerge` via `typeOf_capsEquiv`)
+  | andTtFf x₁ x₂ c env c₁ c_c₁ c₂ a a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, _⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', _⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .ff), ∅,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl, fun _ => Iff.rfl⟩
+  | andTtTt x₁ x₂ c env c₁ c_c₁ c₂ cout a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, hcc2⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', ho2⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .tt), cc1' ∪ o₂,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl,
+      (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
+  | andTtAny x₁ x₂ c env c₁ c_c₁ c₂ cout a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, hcc2⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', ho2⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .anyBool), cc1' ∪ o₂,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl,
+      (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
+  | andAnyFf x₁ x₂ c env c₁ c_c₁ c₂ a a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, _⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', _⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .ff), ∅,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl, fun _ => Iff.rfl⟩
+  | andAnyTt x₁ x₂ c env c₁ c_c₁ c₂ cout a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, hcc2⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', ho2⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .anyBool), cc1' ∪ o₂,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl,
+      (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
+  | andAnyAny x₁ x₂ c env c₁ c_c₁ c₂ cout a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
+    obtain ⟨t2, cc2', h2, ht2, hcc2⟩ := ih2 hwf
+    have hb : CapsEquiv c_c₁ (c ∪ cc1') := (capMerge_capsEquiv_union a1).trans
+      (CapsEquiv.union (CapsEquiv.refl c) hcc1)
+    obtain ⟨o₂, h2', ho2⟩ := typeOf_capsEquiv hb h2
+    exact ⟨.and t1 t2 (.bool .anyBool), cc1' ∪ o₂,
+      by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl,
+      (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
