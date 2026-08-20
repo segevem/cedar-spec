@@ -1573,6 +1573,29 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
       List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
+  -- action-literal mem (entity) → `typeOfInₑ` action branch
+  | binaryAppMemActionLitTt uid₁ uid₂ c ets acts reqty a a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hnd := wfTypeEnv_acts_nodup hwf
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by cases a <;> exact ⟨_, by assumption⟩
+    have hc1 : acts.contains uid₁ = true := by simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
+    have hdesc := actionDescendentOf_sound a hnd
+    refine ⟨.binaryApp .mem t1 t2 (.bool .tt), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₑ, actionUID?, entityUID?, hc1,
+      hdesc, ok]
+  | binaryAppMemActionLitFf uid₁ uid₂ c ets acts reqty a a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hnd := wfTypeEnv_acts_nodup hwf
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by cases a <;> exact ⟨_, by assumption⟩
+    have hc1 : acts.contains uid₁ = true := by simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
+    have hdesc := notActionDescendentOf_sound a hnd
+    refine ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₑ, actionUID?, entityUID?, hc1,
+      hdesc, ok]
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
