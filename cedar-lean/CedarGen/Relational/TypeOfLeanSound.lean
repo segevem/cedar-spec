@@ -776,7 +776,8 @@ theorem descendentOf_sound {ets acts ety₁ ety₂ reqty} (h : DescendentOf ets 
     TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true := by
   cases h with
   | refl => simp only [TypeEnv.descendentOf, ↓reduceIte]
-  | ancestor ancs hanc hsc =>
+  | ancestor =>
+    rename_i hanc hsc
     by_cases heq : ety₁ = ety₂
     · simp only [TypeEnv.descendentOf, heq, ↓reduceIte]
     · obtain ⟨entry, hmc, he⟩ := mapContainsAncestors_mc hanc
@@ -788,9 +789,10 @@ theorem notDescendentOf_sound {ets acts ety₁ ety₂ reqty} (h : NotDescendentO
     (hnd : (ets.toList.map Prod.fst).Nodup) :
     TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
   cases h with
-  | diff ancs hne hanc hnsc =>
+  | diff =>
+    rename_i hne hanc hnsc
     obtain ⟨entry, hmc, he⟩ := mapContainsAncestors_mc hanc
-    have hc : Set.contains ancs ety₂ = false :=
+    have hc : Set.contains _ ety₂ = false :=
       Bool.eq_false_iff.mpr (fun hcon => hnsc ((setContains_iff_contains).mpr hcon))
     simp only [TypeEnv.descendentOf, if_neg hne, mapContains_find?_nodup hmc hnd, he, hc]
 
@@ -799,8 +801,9 @@ theorem actionDescendentOf_sound {acts uid₁ uid₂} (h : ActionDescendentOf ac
     (hnd : (acts.toList.map Prod.fst).Nodup) :
     ActionSchema.descendentOf acts uid₁ uid₂ = true := by
   cases h with
-  | refl entry hmc => simp only [ActionSchema.descendentOf, beq_self_eq_true, ↓reduceIte]
-  | ancestor entry hmc hsc =>
+  | refl => simp only [ActionSchema.descendentOf, beq_self_eq_true, ↓reduceIte]
+  | ancestor =>
+    rename_i hmc hsc
     by_cases heq : uid₁ = uid₂
     · simp only [ActionSchema.descendentOf, heq, beq_self_eq_true, ↓reduceIte]
     · simp only [ActionSchema.descendentOf, beq_iff_eq, if_neg heq,
@@ -811,8 +814,9 @@ theorem notActionDescendentOf_sound {acts uid₁ uid₂} (h : NotActionDescenden
     (hnd : (acts.toList.map Prod.fst).Nodup) :
     ActionSchema.descendentOf acts uid₁ uid₂ = false := by
   cases h with
-  | diff entry hne hmc hnsc =>
-    have hc : Set.contains entry.ancestors uid₂ = false :=
+  | diff =>
+    rename_i hne hmc hnsc
+    have hc : Set.contains _ uid₂ = false :=
       Bool.eq_false_iff.mpr (fun hcon => hnsc ((setContains_iff_contains).mpr hcon))
     simp only [ActionSchema.descendentOf, beq_iff_eq, if_neg hne,
       mapContains_find?_nodup hmc hnd, hc]
@@ -825,8 +829,7 @@ theorem allLub_foldlM {acc tyList result} (h : AllLub acc tyList result) :
   induction h with
   | nil => simp [List.foldlM]
   | cons acc hd tl lubTy result hlub hrest ih =>
-    simp only [List.foldlM_cons, lub_sound hlub, Option.some_bind]
-    exact ih
+    rw [List.foldlM_cons, lub_sound hlub]; exact ih
 
 /-! ## `ValidEntityUID` ↔ `typeOfLit` entity validity -/
 
@@ -836,13 +839,18 @@ theorem validEntityUID_lit {ety eid ets acts}
     (hndE : (ets.toList.map Prod.fst).Nodup) (hndA : (acts.toList.map Prod.fst).Nodup) :
     (EntitySchema.isValidEntityUID ets ⟨ety, eid⟩ || ActionSchema.contains acts ⟨ety, eid⟩) = true := by
   cases h with
-  | standard entry hmc =>
+  | standard =>
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains ety (EntitySchemaEntry.standard e) ets := ⟨_, by assumption⟩
     simp only [EntitySchema.isValidEntityUID, mapContains_find?_nodup hmc hndE,
       EntitySchemaEntry.isValidEntityEID, Bool.true_or]
-  | enum eids hmc hsc =>
+  | enum =>
+    obtain ⟨eids, hmc, hsc⟩ :
+        ∃ eids, MapContains ety (EntitySchemaEntry.enum eids) ets ∧ SetContains eid eids :=
+      ⟨_, by assumption, by assumption⟩
     simp only [EntitySchema.isValidEntityUID, mapContains_find?_nodup hmc hndE,
       EntitySchemaEntry.isValidEntityEID, (setContains_iff_contains).mp hsc, Bool.true_or]
-  | action entry hpk =>
+  | action =>
+    obtain ⟨entry, hpk⟩ : ∃ e, MapContainsPairKey ety eid e acts := ⟨_, by assumption⟩
     simp only [ActionSchema.contains, mapContains_find?_nodup (mapContainsPairKey_mc hpk) hndA,
       Option.isSome_some, Bool.or_true]
 

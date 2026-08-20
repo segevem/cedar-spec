@@ -39,6 +39,22 @@ inductive DefinedEntityType : List EntityType → EntityType → Prop where
       DefinedEntityType rest et →
       DefinedEntityType (et' :: rest) et
 
+/-! ## Record-key ordering bound
+
+`KeyAbove lb a` holds when `a` strictly exceeds the lower bound `lb` (`none` is
+−∞). Threaded through `WfAttrs` so each successive attribute key strictly
+exceeds the previous — making every well-formed attribute list strictly sorted
+by key, hence duplicate-free and already canonical (`Map.mk attrs = Map.make
+attrs`). This mirrors the same threading through `HasTypeRecord` (record
+literals) and matches what the schema generator produces after its
+`canonicalizeAttrs` post-processing. Without it, `WfAttrs` would admit
+duplicate-keyed attribute maps on which `Map.find?` (first match) disagrees
+with a structural `MapContains` witness, breaking the typechecker
+correspondence for `getAttr`/`hasAttr`. -/
+inductive KeyAbove : Option Attr → Attr → Prop where
+  | none : ∀ a, KeyAbove Option.none a
+  | some : ∀ b a, b < a → KeyAbove (Option.some b) a
+
 /-! ## Well-formed CedarType and attributes (mutually recursive) -/
 
 mutual
@@ -54,23 +70,27 @@ inductive WfCedarType : List EntityType → CedarType → Prop where
       WfCedarType ets ty →
       WfCedarType ets (.set ty)
   | record : ∀ ets attrs,
-      WfAttrs ets attrs →
+      WfAttrs Option.none ets attrs →
       WfCedarType ets (.record (Map.mk attrs))
   | extDecimal : ∀ ets, WfCedarType ets (.ext .decimal)
   | extIPAddr : ∀ ets, WfCedarType ets (.ext .ipAddr)
   | extDatetime : ∀ ets, WfCedarType ets (.ext .datetime)
   | extDuration : ∀ ets, WfCedarType ets (.ext .duration)
 
-inductive WfAttrs : List EntityType → List (Attr × QualifiedType) → Prop where
-  | nil : ∀ ets, WfAttrs ets []
-  | consRequired : ∀ ets attr ty rest,
+/-- Well-formed attribute list, threading a strict lower bound `lb` on keys so
+    the generated attribute list is strictly sorted (hence duplicate-free). -/
+inductive WfAttrs : Option Attr → List EntityType → List (Attr × QualifiedType) → Prop where
+  | nil : ∀ lb ets, WfAttrs lb ets []
+  | consRequired : ∀ lb ets attr ty rest,
+      KeyAbove lb attr →
       WfCedarType ets ty →
-      WfAttrs ets rest →
-      WfAttrs ets ((attr, .required ty) :: rest)
-  | consOptional : ∀ ets attr ty rest,
+      WfAttrs (Option.some attr) ets rest →
+      WfAttrs lb ets ((attr, .required ty) :: rest)
+  | consOptional : ∀ lb ets attr ty rest,
+      KeyAbove lb attr →
       WfCedarType ets ty →
-      WfAttrs ets rest →
-      WfAttrs ets ((attr, .optional ty) :: rest)
+      WfAttrs (Option.some attr) ets rest →
+      WfAttrs lb ets ((attr, .optional ty) :: rest)
 
 end
 -- __cedar is reserved name
@@ -141,7 +161,7 @@ inductive WfEntitiesGo :
   | standard : ∀ built names et ancestors attrs tags allNames rest,
       NotInET et names →
       PickClosedAncestors built ancestors →
-      WfAttrs (et :: names) attrs →
+      WfAttrs Option.none (et :: names) attrs →
       WfTags (et :: names) tags →
       WfEntitiesGo ((et, ancestors) :: built) (et :: names) allNames rest →
       WfEntitiesGo built names allNames
@@ -260,7 +280,7 @@ inductive WfActionsGo :
       PickClosedActionAncestors built ancestors →            -- transitively-closed parents
       WfPrincipalTypes ets principals →
       WfResourceTypes ets resources →
-      WfAttrs ets context →
+      WfAttrs Option.none ets context →
       WfActionsGo ets ((⟨actionEntityType, eid⟩, ancestors) :: built) avail' rest →
       WfActionsGo ets built avail
         ((⟨actionEntityType, eid⟩,
