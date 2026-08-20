@@ -1324,6 +1324,57 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     split
     · exact absurd (BothLit.mk _ _) a5
     · simp [ht1, ht2, lub_entity_ne a2, ok]
+  -- mem (generic, non-action-literal) → `typeOfInₑ`/`typeOfInₛ` fallback + ancestry
+  | binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := descendentOf_sound (reqty := reqty) a1 (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a2, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppMemEntitySame x₁ x₂ c ets acts reqty ety a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := descendentOf_sound (reqty := reqty) (DescendentOf.refl ets acts ety)
+      (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a1, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := descendentOf_sound (reqty := reqty) a1 (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a2, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppMemEntitySetSame x₁ x₂ c ets acts reqty ety a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := descendentOf_sound (reqty := reqty) (DescendentOf.refl ets acts ety)
+      (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a1, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppMemEntityEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 a5 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := notDescendentOf_sound (reqty := reqty) a2 (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a3, hd, if_false, ok, Bool.false_eq_true], rfl, fun _ => Iff.rfl⟩
+  | binaryAppMemEntitySetFf x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 a5 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hd := notDescendentOf_sound (reqty := reqty) a2 (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
+        typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a3, hd, if_false, ok, Bool.false_eq_true], rfl, fun _ => Iff.rfl⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
