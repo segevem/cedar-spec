@@ -131,6 +131,84 @@ theorem mapContains_find? {α β : Type} [DecidableEq α] [LT α] [DecidableLT �
     m.find? k = some v :=
   (Map.in_list_iff_find?_some wf).mp (mapContains_mem h)
 
+/-- Converse of `mapContains_mem`: list membership rebuilds a `MapContains` witness. -/
+theorem mem_toList_mapContains {α β : Type} {k : α} {v : β} {m : Map α β}
+    (h : (k, v) ∈ m.toList) : MapContains k v m := by
+  obtain ⟨l⟩ := m
+  simp only [Map.toList] at h
+  induction l with
+  | nil => simp at h
+  | cons hd tl ih =>
+    obtain ⟨k', v'⟩ := hd
+    rcases List.mem_cons.mp h with heq | hmem
+    · simp only [Prod.mk.injEq] at heq
+      obtain ⟨rfl, rfl⟩ := heq
+      exact MapContains.here _ _ _
+    · exact MapContains.there _ _ _ _ _ (ih hmem)
+
+/-- On a map with duplicate-free keys, `MapContains` agrees with `find?`. This is the
+    distinctness-based analogue of `mapContains_find?` (which needs full `WellFormed`); the
+    generated schema maps are distinct-keyed but *not* sorted, so this is the usable form. -/
+theorem mapContains_find?_nodup {α β : Type} [BEq α] [LawfulBEq α]
+    {k : α} {v : β} {m : Map α β}
+    (h : MapContains k v m) (hnd : (m.toList.map Prod.fst).Nodup) :
+    m.find? k = some v := by
+  induction h with
+  | here rest => simp [Map.find?, Map.toList]
+  | there k' v' rest hmc ih =>
+    simp only [Map.toList, List.map_cons, List.nodup_cons] at hnd
+    obtain ⟨hnotin, hnd'⟩ := hnd
+    have hkin : k ∈ rest.map Prod.fst :=
+      List.mem_map.mpr ⟨(k, v), by simpa only [Map.toList] using mapContains_mem hmc, rfl⟩
+    have hne : (k' == k) = false := by
+      rw [beq_eq_false_iff_ne]; exact fun heq => hnotin (heq ▸ hkin)
+    have hih := ih hnd'
+    simp only [Map.find?, Map.toList, List.find?_cons, hne] at hih ⊢
+    exact hih
+
+/-- `MapNotContainsKey` mirrors `find? = none`. -/
+theorem mapNotContainsKey_find? {α β : Type} [DecidableEq α] [BEq α] [LawfulBEq α]
+    {k : α} {m : Map α β} (h : MapNotContainsKey k m) : m.find? k = none := by
+  induction h with
+  | empty => simp [Map.find?, Map.toList]
+  | skip k' v' rest hne hrec ih =>
+    have : (k' == k) = false := by rw [beq_eq_false_iff_ne]; exact fun heq => hne heq.symm
+    simp only [Map.find?, Map.toList, List.find?_cons, this] at ih ⊢
+    exact ih
+
+/-- Converse of `setContains_mem`. -/
+theorem mem_elts_setContains {α} {x : α} {s : Set α} (h : x ∈ s.elts) : SetContains x s := by
+  obtain ⟨l⟩ := s
+  simp only [Set.elts] at h
+  induction l with
+  | nil => simp at h
+  | cons hd tl ih =>
+    rcases List.mem_cons.mp h with rfl | hmem
+    · exact SetContains.here _ _
+    · exact SetContains.there _ _ _ (ih hmem)
+
+/-- `SetContains` mirrors `Set.contains`. -/
+theorem setContains_iff_contains {α} [DecidableEq α] {x : α} {s : Set α} :
+    SetContains x s ↔ s.contains x = true := by
+  constructor
+  · intro h; simp only [Set.contains, List.elem_eq_mem, decide_eq_true_eq]; exact setContains_mem h
+  · intro h; simp only [Set.contains, List.elem_eq_mem, decide_eq_true_eq] at h
+    exact mem_elts_setContains h
+
+/-- `CapTagMem` mirrors capability membership. -/
+theorem capTagMem_iff {x e : Expr} {c : Capabilities} :
+    CapTagMem x e c ↔ (x, Key.tag e) ∈ c := by
+  constructor
+  · intro h; induction h with
+    | here => simp
+    | there _ _ _ _ ih => exact List.mem_cons_of_mem _ ih
+  · intro h; induction c with
+    | nil => simp at h
+    | cons hd tl ih =>
+      rcases List.mem_cons.mp h with rfl | hmem
+      · exact CapTagMem.here _ _ _
+      · obtain ⟨x', k'⟩ := hd; exact CapTagMem.there _ _ _ _ _ (ih hmem)
+
 /-! ## Least-upper-bound soundness
 
 `Lub` mirrors `⊔`/`lub?`.  Mutual with `LubRecord`/`LubQualified`. -/
@@ -508,6 +586,187 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
       have hm2 := typeOfList_capsEquiv (fun x hx => ih1 x hx h) hm
       simp only [hm, hm2, Except.bind_ok] at h1 ⊢
       exact ⟨_, h1, CapsEquiv.refl _⟩
+
+/-! ## Schema well-formedness ⇒ distinct keys
+
+`WfEntitiesGo`/`WfActionsGo` build entries with distinct keys (via `NotInET`
+threading and `SelectRemove` draw-without-replacement) but *not* sorted, so
+`mapContains_find?_nodup` — not the `WellFormed` form — is the applicable bridge. -/
+
+theorem notInET_not_mem {et : EntityType} {names : List EntityType}
+    (h : Schema.NotInET et names) : et ∉ names := by
+  induction h with
+  | nil => simp
+  | cons x rest hne hrec ih => simp only [List.mem_cons, not_or]; exact ⟨hne, ih⟩
+
+theorem wfEntitiesGo_nodup {built names allNames entries}
+    (h : Schema.WfEntitiesGo built names allNames entries) :
+    (entries.map Prod.fst).Nodup ∧ ∀ k ∈ entries.map Prod.fst, k ∉ names := by
+  induction h with
+  | nil => simp
+  | standard built names et ancestors attrs tags allNames rest hni hpca hattrs htags hgo ih =>
+    obtain ⟨ihnd, ihnotin⟩ := ih
+    refine ⟨?_, ?_⟩
+    · simp only [List.map_cons, List.nodup_cons]
+      exact ⟨fun hmem => (ihnotin et hmem) List.mem_cons_self, ihnd⟩
+    · intro k hk
+      simp only [List.map_cons, List.mem_cons] at hk
+      rcases hk with rfl | hk
+      · exact notInET_not_mem hni
+      · exact fun hmem => ihnotin k hk (List.mem_cons_of_mem et hmem)
+  | enum built names et eids allNames rest hni hgo ih =>
+    obtain ⟨ihnd, ihnotin⟩ := ih
+    refine ⟨?_, ?_⟩
+    · simp only [List.map_cons, List.nodup_cons]
+      exact ⟨fun hmem => (ihnotin et hmem) List.mem_cons_self, ihnd⟩
+    · intro k hk
+      simp only [List.map_cons, List.mem_cons] at hk
+      rcases hk with rfl | hk
+      · exact notInET_not_mem hni
+      · exact fun hmem => ihnotin k hk (List.mem_cons_of_mem et hmem)
+
+theorem wfEntitySchema_nodup {allNames entries}
+    (h : Schema.WfEntitySchema allNames entries) : (entries.map Prod.fst).Nodup := by
+  cases h with
+  | mk hgo => exact (wfEntitiesGo_nodup hgo).1
+
+/-- Entity-store keys of a well-formed `TypeEnv` are distinct. -/
+theorem wfTypeEnv_ets_nodup {env : TypeEnv} (h : Schema.WfTypeEnv env) :
+    (env.ets.toList.map Prod.fst).Nodup := by
+  cases h with
+  | mk entityTypes entityEntries actionEntries reqty hes _ _ =>
+    simpa only [Map.toList] using wfEntitySchema_nodup hes
+
+theorem selectRemove_mem {α} {avail : List α} {eid : α} {avail' : List α}
+    (h : Schema.SelectRemove avail eid avail') : eid ∈ avail := by
+  induction h with
+  | here => exact List.mem_cons_self
+  | there x xs y ys hsr ih => exact List.mem_cons_of_mem _ ih
+
+theorem selectRemove_subset {α} {avail : List α} {eid : α} {avail' : List α}
+    (h : Schema.SelectRemove avail eid avail') : ∀ x ∈ avail', x ∈ avail := by
+  induction h with
+  | here => exact fun x hx => List.mem_cons_of_mem _ hx
+  | there x xs y ys hsr ih =>
+    intro z hz
+    rcases List.mem_cons.mp hz with rfl | hz
+    · exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (ih z hz)
+
+theorem selectRemove_nodup {α} {avail : List α} {eid : α} {avail' : List α}
+    (h : Schema.SelectRemove avail eid avail') (hnd : avail.Nodup) :
+    avail'.Nodup ∧ eid ∉ avail' := by
+  induction h with
+  | here => rw [List.nodup_cons] at hnd; exact ⟨hnd.2, hnd.1⟩
+  | there x xs y ys hsr ih =>
+    rw [List.nodup_cons] at hnd
+    obtain ⟨hxnotin, hndxs⟩ := hnd
+    obtain ⟨ihnd, ihnotin⟩ := ih hndxs
+    refine ⟨?_, ?_⟩
+    · rw [List.nodup_cons]; exact ⟨fun hmem => hxnotin (selectRemove_subset hsr x hmem), ihnd⟩
+    · simp only [List.mem_cons, not_or]
+      exact ⟨fun heq => hxnotin (heq ▸ selectRemove_mem hsr), ihnotin⟩
+
+theorem actionEidPool_nodup : Schema.actionEidPool.Nodup := by decide
+
+theorem wfActionsGo_nodup {ets built avail entries}
+    (h : Schema.WfActionsGo ets built avail entries) :
+    avail.Nodup → (entries.map Prod.fst).Nodup ∧
+      ∀ uid ∈ entries.map Prod.fst, EntityUID.eid uid ∈ avail := by
+  induction h with
+  | nil => intro _; simp
+  | cons =>
+    rename_i hsr hpca hp hr hattrs hgo ih
+    intro hnd
+    obtain ⟨hndavail', hnotin⟩ := selectRemove_nodup hsr hnd
+    obtain ⟨ihnd, ihmem⟩ := ih hndavail'
+    refine ⟨?_, ?_⟩
+    · simp only [List.map_cons, List.nodup_cons]
+      exact ⟨fun hmem => hnotin (ihmem _ hmem), ihnd⟩
+    · intro uid huid
+      simp only [List.map_cons, List.mem_cons] at huid
+      rcases huid with rfl | huid
+      · exact selectRemove_mem hsr
+      · exact selectRemove_subset hsr _ (ihmem _ huid)
+
+theorem wfActionSchema_nodup {ets entries} (h : Schema.WfActionSchema ets entries) :
+    (entries.map Prod.fst).Nodup := by
+  cases h with
+  | mk hgo => exact (wfActionsGo_nodup hgo actionEidPool_nodup).1
+
+/-- Action-store keys of a well-formed `TypeEnv` are distinct. -/
+theorem wfTypeEnv_acts_nodup {env : TypeEnv} (h : Schema.WfTypeEnv env) :
+    (env.acts.toList.map Prod.fst).Nodup := by
+  cases h with
+  | mk entityTypes entityEntries actionEntries reqty _ has _ =>
+    simpa only [Map.toList] using wfActionSchema_nodup has
+
+/-! ## Structural extractors ↔ schema lookups -/
+
+theorem mapContainsAttrs_mc {ety rty ets} (h : MapContainsAttrs ety rty ets) :
+    ∃ entry, MapContains ety entry ets ∧ EntitySchemaEntry.attrs entry = rty := by
+  induction h with
+  | here => exact ⟨_, MapContains.here _ _ _, rfl⟩
+  | there => rename_i ih; obtain ⟨e, hmc, he⟩ := ih; exact ⟨e, MapContains.there _ _ _ _ _ hmc, he⟩
+
+theorem mapContainsTagType_mc {ety ty ets} (h : MapContainsTagType ety ty ets) :
+    ∃ entry, MapContains ety entry ets ∧ EntitySchemaEntry.tags? entry = some ty := by
+  induction h with
+  | here => exact ⟨_, MapContains.here _ _ _, rfl⟩
+  | there => rename_i ih; obtain ⟨e, hmc, he⟩ := ih; exact ⟨e, MapContains.there _ _ _ _ _ hmc, he⟩
+
+theorem mapContainsNoTags_mc {ety ets} (h : MapContainsNoTags ety ets) :
+    ∃ entry, MapContains ety entry ets ∧ EntitySchemaEntry.tags? entry = none := by
+  induction h with
+  | here => exact ⟨_, MapContains.here _ _ _, rfl⟩
+  | there => rename_i ih; obtain ⟨e, hmc, he⟩ := ih; exact ⟨e, MapContains.there _ _ _ _ _ hmc, he⟩
+
+theorem mapContainsAncestors_mc {ety ancs ets} (h : MapContainsAncestors ety ancs ets) :
+    ∃ entry, MapContains ety entry ets ∧ EntitySchemaEntry.ancestors entry = ancs := by
+  induction h with
+  | here => exact ⟨_, MapContains.here _ _ _, rfl⟩
+  | there => rename_i ih; obtain ⟨e, hmc, he⟩ := ih; exact ⟨e, MapContains.there _ _ _ _ _ hmc, he⟩
+
+theorem mapContainsPairKey_mc {v : Type} {ety : EntityType} {eid : String} {entry : v}
+    {acts : Map EntityUID v} (h : MapContainsPairKey ety eid entry acts) :
+    MapContains ⟨ety, eid⟩ entry acts := by
+  induction h with
+  | here => exact MapContains.here _ _ _
+  | nextA hne _ ih => exact MapContains.there _ _ _ _ _ ih
+  | nextB hne _ ih => exact MapContains.there _ _ _ _ _ ih
+
+/-- `MapContainsAttrs` ⇒ `EntitySchema.attrs?` (on distinct-keyed store). -/
+theorem mapContainsAttrs_attrs? {ety rty ets} (h : MapContainsAttrs ety rty ets)
+    (hnd : (ets.toList.map Prod.fst).Nodup) : EntitySchema.attrs? ets ety = some rty := by
+  obtain ⟨entry, hmc, he⟩ := mapContainsAttrs_mc h
+  simp only [EntitySchema.attrs?, mapContains_find?_nodup hmc hnd, Option.map_some, he]
+
+/-- `HasTagSchema` ⇒ `EntitySchema.tags? = some (some ty)`. -/
+theorem hasTagSchema_tags? {ety ty ets} (h : HasTagSchema ets ety ty)
+    (hnd : (ets.toList.map Prod.fst).Nodup) : EntitySchema.tags? ets ety = some (some ty) := by
+  cases h with
+  | mk hmct =>
+    obtain ⟨entry, hmc, he⟩ := mapContainsTagType_mc hmct
+    simp only [EntitySchema.tags?, mapContains_find?_nodup hmc hnd, Option.map_some, he]
+
+/-- `NoTags` ⇒ `EntitySchema.tags? = some none`. -/
+theorem noTags_tags? {ety ets} (h : NoTags ets ety)
+    (hnd : (ets.toList.map Prod.fst).Nodup) : EntitySchema.tags? ets ety = some none := by
+  cases h with
+  | none hmcn =>
+    obtain ⟨entry, hmc, he⟩ := mapContainsNoTags_mc hmcn
+    simp only [EntitySchema.tags?, mapContains_find?_nodup hmc hnd, Option.map_some, he]
+
+/-- `lub?` of two distinct entity types is `none`. -/
+theorem lub_entity_ne {ety₁ ety₂ : EntityType} (h : ety₁ ≠ ety₂) :
+    lub? (.entity ety₁) (.entity ety₂) = none := by
+  simp only [lub?, CedarType.entity.injEq, ite_eq_right_iff]
+  intro heq; exact absurd heq h
+
+/-- `ValidDifferentEntityType` carries the disequality. -/
+theorem validDifferentEntityType_ne {other ety ets acts}
+    (h : ValidDifferentEntityType other ety ets acts) : ety ≠ other := by
+  cases h <;> assumption
 
 /-! ## Main soundness theorem
 
