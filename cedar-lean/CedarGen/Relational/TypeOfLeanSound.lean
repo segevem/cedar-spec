@@ -987,37 +987,122 @@ Case plan (each maps to one `typeOf*` arm):
 -/
 
 /-- Soundness of `HasType`: a derivation implies `typeOf` succeeds with the same
-    type and capability-equivalent output. -/
+    type and capability-equivalent output. Proven by the mutual recursor
+    `HasType.rec`, providing motives for `HasTypeList`/`HasTypeRecord`/`HasTypeExtCall`
+    so the `set`/`record`/`call` cases have IHs. `WfTypeEnv` is threaded through each
+    motive (it is needed for the schema-lookup cases and `env` is fixed throughout). -/
 theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     {ty : CedarType} {cout : Capabilities}
     (hwf : Schema.WfTypeEnv env)
     (h : HasType x c env ty cout) :
     ∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty ∧ CapsEquiv cout c' := by
-  -- `cases` (not `induction`: `HasType` is mutually inductive). Leaf cases need no
-  -- IH; the recursive cases will be discharged via a 4-way mutual-theorem structure
-  -- (as in `lub_sound`), which is the documented next step.
-  cases h
-  -- Literals → `typeOfLit`.  Provide the `TypedExpr` witness explicitly so
-  -- elaboration never has to synthesize it; the equation is then a `simp`, the
-  -- type projection an `rfl`, and the (empty) capabilities are trivially equal.
-  case litBoolTrue ets acts reqty =>
+  induction h using HasType.rec (motive_2 := fun xs c env tys _ =>
+      Schema.WfTypeEnv env → ∃ txs, xs.mapM (fun x => justType (typeOf x c env)) = .ok txs ∧
+        txs.map TypedExpr.typeOf = tys)
+    (motive_3 := fun lb axs c env atys _ =>
+      Schema.WfTypeEnv env → ∃ txs,
+        axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok txs ∧
+        txs.map (fun p => (p.1, Qualified.required p.2.typeOf)) = atys ∧ Map.make atys = Map.mk atys)
+    (motive_4 := fun xfn args c env ty _ =>
+      Schema.WfTypeEnv env → ∃ tx c', typeOf (.call xfn args) c env = .ok (tx, c') ∧
+        tx.typeOf = ty ∧ CapsEquiv [] c') with
+  -- Literals → `typeOfLit`.
+  | litBoolTrue c ets acts reqty =>
+    rename_i hwf
     exact ⟨.lit (.bool true) (.bool .tt), [], by simp [typeOf, typeOfLit, ok], rfl, fun _ => Iff.rfl⟩
-  case litBoolFalse ets acts reqty =>
+  | litBoolFalse c ets acts reqty =>
+    rename_i hwf
     exact ⟨.lit (.bool false) (.bool .ff), [], by simp [typeOf, typeOfLit, ok], rfl, fun _ => Iff.rfl⟩
-  case litInt i ets acts reqty =>
+  | litInt i c ets acts reqty =>
+    rename_i hwf
     exact ⟨.lit (.int i) .int, [], by simp [typeOf, typeOfLit, ok], rfl, fun _ => Iff.rfl⟩
-  case litString s ets acts reqty =>
+  | litString s c ets acts reqty =>
+    rename_i hwf
     exact ⟨.lit (.string s) .string, [], by simp [typeOf, typeOfLit, ok], rfl, fun _ => Iff.rfl⟩
   -- Variables → `typeOfVar`
-  case varPrincipal ets acts princ action resource ctx =>
+  | varPrincipal c ets acts princ action resource ctx =>
+    rename_i hwf
     exact ⟨.var .principal (.entity princ), [], by simp [typeOf, typeOfVar, ok], rfl, fun _ => Iff.rfl⟩
-  case varAction ets acts princ actionTy actionEid resource ctx =>
+  | varAction c ets acts princ actionTy actionEid resource ctx =>
+    rename_i hwf
     exact ⟨.var .action (.entity actionTy), [], by simp [typeOf, typeOfVar, ok], rfl, fun _ => Iff.rfl⟩
-  case varResource ets acts princ action resource ctx =>
+  | varResource c ets acts princ action resource ctx =>
+    rename_i hwf
     exact ⟨.var .resource (.entity resource), [], by simp [typeOf, typeOfVar, ok], rfl, fun _ => Iff.rfl⟩
-  case varContext ets acts princ action resource ctx =>
+  | varContext c ets acts princ action resource ctx =>
+    rename_i hwf
     exact ⟨.var .context (.record ctx), [], by simp [typeOf, typeOfVar, ok], rfl, fun _ => Iff.rfl⟩
-  -- Remaining cases: see the case plan above.
-  all_goals sorry
+  -- Unary → `typeOfUnaryApp`
+  | unaryAppNotTt x₁ c env a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp .not t1 (.bool .ff), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppNotFf x₁ c env a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp .not t1 (.bool .tt), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppNotAny x₁ c env a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp .not t1 (.bool .anyBool), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppNeg x₁ c env a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp .neg t1 .int, ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppIsEmpty x₁ c env elemTy a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp .isEmpty t1 (.bool .anyBool), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  | unaryAppLike pat x₁ c env a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.unaryApp (.like pat) t1 (.bool .anyBool), ∅,
+      by simp [typeOf, h1, typeOfUnaryApp, ht1, BoolType.not, ok], rfl, fun _ => Iff.rfl⟩
+  -- Arithmetic / comparison binaryApps → `typeOfBinaryApp`
+  | binaryAppLessInt x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .less t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppLessDatetime x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .less t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppLessDuration x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .less t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppLessEqInt x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .lessEq t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppLessEqDatetime x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .lessEq t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppLessEqDuration x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .lessEq t1 t2 (.bool .anyBool), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppAdd x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .add t1 t2 .int, ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppSub x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .sub t1 t2 .int, ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppMul x₁ x₂ c env a a' ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    exact ⟨.binaryApp .mul t1 t2 .int, ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ok], rfl,
+      fun _ => Iff.rfl⟩
+  | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
