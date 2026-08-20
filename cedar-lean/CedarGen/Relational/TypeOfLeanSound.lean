@@ -1434,6 +1434,145 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
       List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
+  | ip s c env a =>
+    rename_i hwf; obtain ⟨ipv, hd⟩ := a
+    have hj : justType (typeOfLit (Prim.string s) env) = .ok (.lit (.string s) .string) := by
+      simp [justType, typeOfLit, Except.map, ok]
+    refine ⟨.call .ip [.lit (.string s) .string] (.ext .ipAddr), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      typeOfConstructor, hd, ok]
+  | datetime s c env a =>
+    rename_i hwf; obtain ⟨dt, hd⟩ := a
+    have hj : justType (typeOfLit (Prim.string s) env) = .ok (.lit (.string s) .string) := by
+      simp [justType, typeOfLit, Except.map, ok]
+    refine ⟨.call .datetime [.lit (.string s) .string] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      typeOfConstructor, hd, ok]
+  | duration s c env a =>
+    rename_i hwf; obtain ⟨dur, hd⟩ := a
+    have hj : justType (typeOfLit (Prim.string s) env) = .ok (.lit (.string s) .string) := by
+      simp [justType, typeOfLit, Except.map, ok]
+    refine ⟨.call .duration [.lit (.string s) .string] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      typeOfConstructor, hd, ok]
+  | lessThanOrEqual a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .lessThanOrEqual [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | greaterThan a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .greaterThan [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | greaterThanOrEqual a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .greaterThanOrEqual [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | isIpv6 a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .isIpv6 [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | isLoopback a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .isLoopback [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | isMulticast a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .isMulticast [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | isInRange a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .isInRange [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | durationSince a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .durationSince [ta, tb] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | toDate a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toDate [ta] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toTime a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toTime [ta] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toMilliseconds a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toMilliseconds [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toSeconds a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toSeconds [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toMinutes a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toMinutes [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toHours a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toHours [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | toDays a c env ha ih_a =>
+    rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .toDays [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
