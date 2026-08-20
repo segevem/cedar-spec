@@ -768,6 +768,84 @@ theorem validDifferentEntityType_ne {other ety ets acts}
     (h : ValidDifferentEntityType other ety ets acts) : ety ≠ other := by
   cases h <;> assumption
 
+/-! ## Entity/action hierarchy ↔ `descendentOf` -/
+
+/-- `DescendentOf` ⇒ `TypeEnv.descendentOf = true`. -/
+theorem descendentOf_sound {ets acts ety₁ ety₂ reqty} (h : DescendentOf ets acts ety₁ ety₂)
+    (hnd : (ets.toList.map Prod.fst).Nodup) :
+    TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true := by
+  cases h with
+  | refl => simp only [TypeEnv.descendentOf, ↓reduceIte]
+  | ancestor ancs hanc hsc =>
+    by_cases heq : ety₁ = ety₂
+    · simp only [TypeEnv.descendentOf, heq, ↓reduceIte]
+    · obtain ⟨entry, hmc, he⟩ := mapContainsAncestors_mc hanc
+      simp only [TypeEnv.descendentOf, if_neg heq, mapContains_find?_nodup hmc hnd, he,
+        (setContains_iff_contains).mp hsc]
+
+/-- `NotDescendentOf` ⇒ `TypeEnv.descendentOf = false`. -/
+theorem notDescendentOf_sound {ets acts ety₁ ety₂ reqty} (h : NotDescendentOf ets acts ety₁ ety₂)
+    (hnd : (ets.toList.map Prod.fst).Nodup) :
+    TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
+  cases h with
+  | diff ancs hne hanc hnsc =>
+    obtain ⟨entry, hmc, he⟩ := mapContainsAncestors_mc hanc
+    have hc : Set.contains ancs ety₂ = false :=
+      Bool.eq_false_iff.mpr (fun hcon => hnsc ((setContains_iff_contains).mpr hcon))
+    simp only [TypeEnv.descendentOf, if_neg hne, mapContains_find?_nodup hmc hnd, he, hc]
+
+/-- `ActionDescendentOf` ⇒ `ActionSchema.descendentOf = true`. -/
+theorem actionDescendentOf_sound {acts uid₁ uid₂} (h : ActionDescendentOf acts uid₁ uid₂)
+    (hnd : (acts.toList.map Prod.fst).Nodup) :
+    ActionSchema.descendentOf acts uid₁ uid₂ = true := by
+  cases h with
+  | refl entry hmc => simp only [ActionSchema.descendentOf, beq_self_eq_true, ↓reduceIte]
+  | ancestor entry hmc hsc =>
+    by_cases heq : uid₁ = uid₂
+    · simp only [ActionSchema.descendentOf, heq, beq_self_eq_true, ↓reduceIte]
+    · simp only [ActionSchema.descendentOf, beq_iff_eq, if_neg heq,
+        mapContains_find?_nodup hmc hnd, (setContains_iff_contains).mp hsc]
+
+/-- `NotActionDescendentOf` ⇒ `ActionSchema.descendentOf = false`. -/
+theorem notActionDescendentOf_sound {acts uid₁ uid₂} (h : NotActionDescendentOf acts uid₁ uid₂)
+    (hnd : (acts.toList.map Prod.fst).Nodup) :
+    ActionSchema.descendentOf acts uid₁ uid₂ = false := by
+  cases h with
+  | diff entry hne hmc hnsc =>
+    have hc : Set.contains entry.ancestors uid₂ = false :=
+      Bool.eq_false_iff.mpr (fun hcon => hnsc ((setContains_iff_contains).mpr hcon))
+    simp only [ActionSchema.descendentOf, beq_iff_eq, if_neg hne,
+      mapContains_find?_nodup hmc hnd, hc]
+
+/-! ## `AllLub` ↔ `foldlM lub?` -/
+
+/-- `AllLub` mirrors the `foldlM lub?` pass in `typeOfSet`. -/
+theorem allLub_foldlM {acc tyList result} (h : AllLub acc tyList result) :
+    tyList.foldlM lub? acc = some result := by
+  induction h with
+  | nil => simp [List.foldlM]
+  | cons acc hd tl lubTy result hlub hrest ih =>
+    simp only [List.foldlM_cons, lub_sound hlub, Option.some_bind]
+    exact ih
+
+/-! ## `ValidEntityUID` ↔ `typeOfLit` entity validity -/
+
+/-- `ValidEntityUID` ⇒ the `typeOfLit` validity guard holds. -/
+theorem validEntityUID_lit {ety eid ets acts}
+    (h : ValidEntityUID ety eid ets acts)
+    (hndE : (ets.toList.map Prod.fst).Nodup) (hndA : (acts.toList.map Prod.fst).Nodup) :
+    (EntitySchema.isValidEntityUID ets ⟨ety, eid⟩ || ActionSchema.contains acts ⟨ety, eid⟩) = true := by
+  cases h with
+  | standard entry hmc =>
+    simp only [EntitySchema.isValidEntityUID, mapContains_find?_nodup hmc hndE,
+      EntitySchemaEntry.isValidEntityEID, Bool.true_or]
+  | enum eids hmc hsc =>
+    simp only [EntitySchema.isValidEntityUID, mapContains_find?_nodup hmc hndE,
+      EntitySchemaEntry.isValidEntityEID, (setContains_iff_contains).mp hsc, Bool.true_or]
+  | action entry hpk =>
+    simp only [ActionSchema.contains, mapContains_find?_nodup (mapContainsPairKey_mc hpk) hndA,
+      Option.isSome_some, Bool.or_true]
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
