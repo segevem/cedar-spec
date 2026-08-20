@@ -1297,6 +1297,33 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact (capIntersect_capsEquiv_inter c₁₂ c₃).trans
       (CapsEquiv.inter ((capMerge_capsEquiv_union a5).trans
         (CapsEquiv.union hcc1 (hcc2.trans ho2))) hcc3)
+  -- eq → `typeOfEq`
+  | binaryAppEqLitSame p c env ty a ih =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih hwf
+    exact ⟨.binaryApp .eq t1 t1 (.bool .tt), ∅,
+      by simp [typeOf, h1, typeOfBinaryApp, typeOfEq, ok], rfl, fun _ => Iff.rfl⟩
+  | binaryAppEqLitDiff p₁ p₂ c env ty₁ ty₂ a a1 a2 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hne := primNeq_ne a
+    exact ⟨.binaryApp .eq t1 t2 (.bool .ff), ∅,
+      by simp [typeOf, h1, h2, typeOfBinaryApp, typeOfEq, ok, beq_eq_false_iff_ne.mpr hne], rfl,
+      fun _ => Iff.rfl⟩
+  | binaryAppEqNonLitLub x₁ x₂ c env t₁ t₂ lubTy a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    refine ⟨.binaryApp .eq t1 t2 (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp]
+    unfold typeOfEq
+    split
+    · exact absurd (BothLit.mk _ _) a3
+    · simp [ht1, ht2, lub_sound a, ok]
+  | binaryAppEqEntityDiff x₁ x₂ c env ety₁ ety₂ a a1 a2 a3 a4 a5 ih1 ih2 =>
+    rename_i hwf; obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf; obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    refine ⟨.binaryApp .eq t1 t2 (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp]
+    unfold typeOfEq
+    split
+    · exact absurd (BothLit.mk _ _) a5
+    · simp [ht1, ht2, lub_entity_ne a2, ok]
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
