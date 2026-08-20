@@ -965,6 +965,82 @@ theorem typeOfInₛ_fallback {ety₁ ety₂ : EntityType} {x₁ x₂ : Expr} {en
       apply h; rw [hx1, hxs]
       exact IsActionLitMemSet.mk uid₁ xs env.acts entry hmc hall
 
+/-! ## Record-type canonicity (`TyWf`) — for the `getAttr`/`hasAttr` record-receiver cases
+
+`typeOf`'s output record types are always distinct-keyed at every nesting level.
+`TyWf` captures that; `typeOf_tyWf` proves `typeOf` produces `TyWf` types. The
+`getAttr`/`hasAttr` cases need the receiver's record type distinct so `MapContains`
+agrees with `Map.find?`. -/
+
+mutual
+/-- A `CedarType` whose every record subtype has distinct (duplicate-free) keys. -/
+inductive TyWf : CedarType → Prop where
+  | bool : ∀ b, TyWf (.bool b)
+  | int : TyWf .int
+  | string : TyWf .string
+  | entity : ∀ e, TyWf (.entity e)
+  | ext : ∀ x, TyWf (.ext x)
+  | set : ∀ t, TyWf t → TyWf (.set t)
+  | record : ∀ (m : Map Attr QualifiedType), (m.toList.map Prod.fst).Nodup →
+      (∀ q ∈ m.toList.map Prod.snd, TyWfQ q) → TyWf (.record m)
+inductive TyWfQ : QualifiedType → Prop where
+  | required : ∀ t, TyWf t → TyWfQ (.required t)
+  | optional : ∀ t, TyWf t → TyWfQ (.optional t)
+end
+
+/-- `WfAttrs` (with its `KeyAbove` threading) ⇒ strictly-ascending, hence distinct, keys. -/
+theorem wfAttrs_keys {ets attrs} : ∀ {lb}, Schema.WfAttrs lb ets attrs →
+    (attrs.map Prod.fst).Nodup ∧ ∀ k ∈ attrs.map Prod.fst, ∀ b, lb = some b → b < k := by
+  induction attrs with
+  | nil => intro lb h; simp
+  | cons hd rest ih =>
+    intro lb h; obtain ⟨a, q⟩ := hd
+    have hstep : ∀ (attr : Attr), Schema.KeyAbove lb attr → Schema.WfAttrs (some attr) ets rest →
+        ((attr :: rest.map Prod.fst).Nodup ∧
+          ∀ k ∈ attr :: rest.map Prod.fst, ∀ b, lb = some b → b < k) := by
+      intro attr hka hrest
+      obtain ⟨ihnd, ihab⟩ := ih hrest
+      have hka' : ∀ b, lb = some b → b < attr := by
+        intro b hlb; cases hka with
+        | none => exact absurd hlb (by simp)
+        | some b' _ hlt => cases hlb; exact hlt
+      refine ⟨by simp only [List.nodup_cons]; exact
+        ⟨fun hmem => absurd (ihab attr hmem attr rfl) (StrictLT.irreflexive attr), ihnd⟩, ?_⟩
+      intro k hk b hlb
+      rcases List.mem_cons.mp hk with rfl | hk
+      · exact hka' b hlb
+      · exact StrictLT.transitive _ _ _ (hka' b hlb) (ihab k hk attr rfl)
+    cases h with
+    | consRequired => simpa using hstep a (by assumption) (by assumption)
+    | consOptional => simpa using hstep a (by assumption) (by assumption)
+
+/-- Well-formed schema types are `TyWf` (record subtypes distinct via the `WfAttrs` fix). -/
+theorem wfCedarType_tyWf {ets ty} (h : Schema.WfCedarType ets ty) : TyWf ty := by
+  induction h using Schema.WfCedarType.rec (motive_2 := fun _ _ attrs _ =>
+      ∀ q ∈ attrs.map Prod.snd, TyWfQ q) with
+  | bool => exact TyWf.bool _
+  | int => exact TyWf.int
+  | string => exact TyWf.string
+  | entity => exact TyWf.entity _
+  | set _ _ _ ih => exact TyWf.set _ ih
+  | record ets attrs hwa ihf =>
+    exact TyWf.record (.mk attrs) (by simpa using (wfAttrs_keys hwa).1) (by simpa using ihf)
+  | extDecimal => exact TyWf.ext _
+  | extIPAddr => exact TyWf.ext _
+  | extDatetime => exact TyWf.ext _
+  | extDuration => exact TyWf.ext _
+  | nil => rename_i q hq; simp at hq
+  | consRequired _ _ attr ty rest hka hty hrest ihty ihrest =>
+    rename_i q hq; simp only [List.map_cons, List.mem_cons] at hq
+    rcases hq with rfl | hq
+    · exact TyWfQ.required _ ihty
+    · exact ihrest q hq
+  | consOptional _ _ attr ty rest hka hty hrest ihty ihrest =>
+    rename_i q hq; simp only [List.map_cons, List.mem_cons] at hq
+    rcases hq with rfl | hq
+    · exact TyWfQ.optional _ ihty
+    · exact ihrest q hq
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
