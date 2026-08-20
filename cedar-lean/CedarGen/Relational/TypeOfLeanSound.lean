@@ -1375,6 +1375,26 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a3, hd, if_false, ok, Bool.false_eq_true], rfl, fun _ => Iff.rfl⟩
+  -- set → `typeOfSet` (element pass via `motive_2` IH + `allLub_foldlM`)
+  | set x xs c env ty tyList lubTy a a1 a2 ih_x ih_xs =>
+    rename_i hwf
+    obtain ⟨tx, cx, hx, htx, _⟩ := ih_x hwf
+    obtain ⟨txs, hxs, htxs⟩ := ih_xs hwf
+    have hjx : justType (typeOf x c env) = .ok tx := by rw [hx]; rfl
+    refine ⟨.set (tx :: txs) (.set lubTy), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      hjx, hxs, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfSet, htx, htxs,
+      allLub_foldlM a2, ok]
+  -- HasTypeList (motive_2)
+  | nil c env =>
+    rename_i hwf; exact ⟨[], rfl, rfl⟩
+  | cons x xs c env ty tys a a1 ih_x ih_xs =>
+    rename_i hwf
+    obtain ⟨tx, cx, hx, htx, _⟩ := ih_x hwf
+    obtain ⟨txs, hxs, htxs⟩ := ih_xs hwf
+    have hjx : justType (typeOf x c env) = .ok tx := by rw [hx]; rfl
+    exact ⟨tx :: txs, by simp only [List.mapM_cons, hjx, hxs, Except.bind_ok]; rfl,
+      by simp only [List.map_cons, htx, htxs]⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
