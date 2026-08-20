@@ -18,6 +18,7 @@ import CedarGen.Relational.TypeOfLean
 import CedarGen.Relational.Schema
 import Cedar.Thm.Data.Control
 import Cedar.Thm.Data.Map
+import Cedar.Thm.Validation.Typechecker.LUB
 
 /-! # Soundness of the relational typing spec
 
@@ -1040,6 +1041,98 @@ theorem wfCedarType_tyWf {ets ty} (h : Schema.WfCedarType ets ty) : TyWf ty := b
     rcases hq with rfl | hq
     · exact TyWfQ.optional _ ihty
     · exact ihrest q hq
+
+/-- `lub?` preserves `TyWf`: the least upper bound of two well-formed types is
+    well-formed. Proven by functional induction on `lub?` (with motives for the
+    mutually-recursive `lubQualifiedType`/`lubRecordType`). The record arm relies
+    on `lubRecordType` keeping the left operand's keys, so `Nodup` transfers. -/
+theorem lub_tyWf (ty₁ ty₂ : CedarType) :
+    TyWf ty₁ → TyWf ty₂ → ∀ {t : CedarType}, lub? ty₁ ty₂ = some t → TyWf t := by
+  induction ty₁, ty₂ using lub?.induct
+    (motive_1 := fun q₁ q₂ =>
+      TyWfQ q₁ → TyWfQ q₂ → ∀ {q}, lubQualifiedType q₁ q₂ = some q → TyWfQ q)
+    (motive_3 := fun r₁ r₂ =>
+      (∀ q ∈ r₁.map Prod.snd, TyWfQ q) → (∀ q ∈ r₂.map Prod.snd, TyWfQ q) →
+        ∀ {r}, lubRecordType r₁ r₂ = some r →
+          r.map Prod.fst = r₁.map Prod.fst ∧ ∀ q ∈ r.map Prod.snd, TyWfQ q) with
+  | case1 b₁ b₂ =>
+    intro _ _ a h; simp only [lub?, Option.some.injEq] at h; subst h; exact TyWf.bool _
+  | case2 s₁ s₂ ih =>
+    intro h1 h2 a h
+    simp only [lub?] at h
+    cases hlub : s₁ ⊔ s₂ with
+    | none => rw [hlub] at h; simp at h
+    | some lub =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      cases h1 with | set _ hs1 => cases h2 with | set _ hs2 =>
+        exact TyWf.set _ (ih hs1 hs2 hlub)
+  | case3 r₁ r₂ ih3 =>
+    intro h1 h2 a h
+    simp only [lub?] at h
+    cases hlub : lubRecordType r₁ r₂ with
+    | none => rw [hlub] at h; simp at h
+    | some lub =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      cases h1 with | record _ hnd1 hfs1 => cases h2 with | record _ hnd2 hfs2 =>
+        simp only [show (Map.mk r₁).toList = r₁ from rfl] at hnd1 hfs1
+        simp only [show (Map.mk r₂).toList = r₂ from rfl] at hnd2 hfs2
+        obtain ⟨hkeys, hfields⟩ := ih3 hfs1 hfs2 hlub
+        apply TyWf.record
+        · simp only [show (Map.mk lub).toList = lub from rfl, hkeys]; exact hnd1
+        · simp only [show (Map.mk lub).toList = lub from rfl]; exact hfields
+  | case4 ty₂ _ _ _ =>
+    intro h1 _ a h
+    rw [Cedar.Thm.lub_refl] at h; simp only [Option.some.injEq] at h; subst h; exact h1
+  | case5 a ty₂ hne _ _ _ =>
+    intro _ _ t h
+    simp only [lub?] at h; split at h <;> simp_all
+  | case6 => rename_i _ _ r h; simp only [lubRecordType, Option.some.injEq] at h; subst h; simp
+  | case7 k₁ v₁ r₁ k₂ v₂ r₂ hbne =>
+    rename_i _ _ _ h; simp [lubRecordType, hbne] at h
+  | case8 k₁ v₁ r₁ k₂ v₂ r₂ hbne ihq ihr =>
+    rename_i hf1 hf2 r h
+    have hk : k₁ = k₂ := by simpa using hbne
+    subst hk
+    simp only [lubRecordType] at h; rw [if_neg hbne] at h
+    cases hty : lubQualifiedType v₁ v₂ with
+    | none => rw [hty] at h; simp at h
+    | some ty =>
+      cases htys : lubRecordType r₁ r₂ with
+      | none => rw [hty, htys] at h; simp at h
+      | some tys =>
+        rw [hty, htys] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+        rw [List.map_cons, List.forall_mem_cons] at hf1 hf2
+        obtain ⟨hv1, htl1⟩ := hf1
+        obtain ⟨hv2, htl2⟩ := hf2
+        obtain ⟨hkeys, hflds⟩ := ihr htl1 htl2 htys
+        refine ⟨by simp only [List.map_cons, hkeys], ?_⟩
+        intro q hq
+        simp only [List.map_cons, List.mem_cons] at hq
+        rcases hq with hq | hq
+        · subst hq; exact ihq hv1 hv2 hty
+        · exact hflds q hq
+  | case9 t ty₂ _ _ =>
+    rename_i _ _ _ h; simp [lubRecordType] at h
+  | case10 ty₁ ty₂ ih =>
+    rename_i hq1 hq2 q h
+    simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      cases hq1 with | optional _ ht1 => cases hq2 with | optional _ ht2 =>
+        exact TyWfQ.optional _ (ih ht1 ht2 hlub)
+  | case11 ty₁ ty₂ ih =>
+    rename_i hq1 hq2 q h
+    simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      cases hq1 with | required _ ht1 => cases hq2 with | required _ ht2 =>
+        exact TyWfQ.required _ (ih ht1 ht2 hlub)
+  | case12 t q₂ _ _ =>
+    rename_i _ _ _ h; simp [lubQualifiedType] at h
 
 /-! ## Main soundness theorem
 
