@@ -846,6 +846,117 @@ theorem validEntityUID_lit {ety eid ets acts}
     simp only [ActionSchema.contains, mapContains_find?_nodup (mapContainsPairKey_mc hpk) hndA,
       Option.isSome_some, Bool.or_true]
 
+/-! ## `LubCompat` ⇒ `lub?` succeeds -/
+
+mutual
+/-- `LubCompat` ⇒ the two types have a least upper bound. -/
+theorem lubCompat_lub? {t₁ t₂} (h : LubCompat t₁ t₂) : ∃ t, lub? t₁ t₂ = some t := by
+  cases h with
+  | bool b₁ b₂ => exact ⟨.bool (lubBool b₁ b₂), by simp [lub?]⟩
+  | int => exact ⟨.int, by simp [lub?]⟩
+  | string => exact ⟨.string, by simp [lub?]⟩
+  | entity ety => exact ⟨.entity ety, by simp [lub?]⟩
+  | ext xty => exact ⟨.ext xty, by simp [lub?]⟩
+  | set s₁ s₂ hs => obtain ⟨t, ht⟩ := lubCompat_lub? hs; exact ⟨.set t, by simp [lub?, ht]⟩
+  | record r₁ r₂ hr =>
+    obtain ⟨r, hrr⟩ := lubCompatRecord_lubRecord hr; exact ⟨.record (.mk r), by simp [lub?, hrr]⟩
+theorem lubCompatRecord_lubRecord {r₁ r₂} (h : LubCompatRecord r₁ r₂) :
+    ∃ r, lubRecordType r₁ r₂ = some r := by
+  cases h with
+  | nil => exact ⟨[], by simp [lubRecordType]⟩
+  | consReq k t₁ t₂ r₁ r₂ ht hr =>
+    obtain ⟨t, htt⟩ := lubCompat_lub? ht; obtain ⟨r, hrr⟩ := lubCompatRecord_lubRecord hr
+    exact ⟨(k, .required t) :: r, by simp [lubRecordType, lubQualifiedType, htt, hrr]⟩
+  | consOpt k t₁ t₂ r₁ r₂ ht hr =>
+    obtain ⟨t, htt⟩ := lubCompat_lub? ht; obtain ⟨r, hrr⟩ := lubCompatRecord_lubRecord hr
+    exact ⟨(k, .optional t) :: r, by simp [lubRecordType, lubQualifiedType, htt, hrr]⟩
+end
+
+/-! ## Action-literal membership: `entityUID?`/`actionUID?` inversion + `typeOfIn` fallback -/
+
+/-- `MapContains` reconstructs from `contains = true` (converse via `find?`). -/
+theorem contains_mapContains {α β : Type} [DecidableEq α] [LT α] [DecidableLT α] [StrictLT α]
+    {k : α} {m : Map α β} (h : m.contains k = true) : ∃ v, MapContains k v m := by
+  simp only [Map.contains, Option.isSome_iff_exists] at h
+  obtain ⟨v, hv⟩ := h
+  exact ⟨v, mem_toList_mapContains (Map.find?_mem_toList hv)⟩
+
+theorem entityUID?_some {x : Expr} {uid : EntityUID} (h : entityUID? x = some uid) :
+    x = .lit (.entityUID uid) := by unfold entityUID? at h; split at h <;> simp_all
+
+theorem actionUID?_some {x : Expr} {acts : ActionSchema} {uid : EntityUID}
+    (h : actionUID? x acts = some uid) : x = .lit (.entityUID uid) ∧ acts.contains uid = true := by
+  unfold actionUID? at h
+  cases he : entityUID? x with
+  | none => rw [he] at h; simp at h
+  | some uid' =>
+    rw [he] at h
+    have h2 : (if acts.contains uid' = true then some uid' else none) = some uid := h
+    split at h2
+    · rename_i hc; simp only [Option.some.injEq] at h2; subst h2; exact ⟨entityUID?_some he, hc⟩
+    · exact absurd h2 (by simp)
+
+theorem mapM_entityUID?_lits {xs : List Expr} {uids : List EntityUID}
+    (h : xs.mapM entityUID? = some uids) : ∀ y ∈ xs, ∃ uid, y = .lit (.entityUID uid) := by
+  induction xs generalizing uids with
+  | nil => intro y hy; simp at hy
+  | cons hd tl ih =>
+    simp only [List.mapM_cons] at h
+    cases hh : entityUID? hd with
+    | none => rw [hh] at h; simp at h
+    | some u =>
+      rw [hh] at h
+      cases ht : tl.mapM entityUID? with
+      | none => rw [ht] at h; simp at h
+      | some us =>
+        intro y hy
+        rcases List.mem_cons.mp hy with rfl | hy
+        · exact ⟨u, entityUID?_some hh⟩
+        · exact ih (by rw [ht]) y hy
+
+theorem entityUIDs?_some {x : Expr} {uids : List EntityUID} (h : entityUIDs? x = some uids) :
+    ∃ xs, x = .set xs ∧ ∀ y ∈ xs, ∃ uid, y = .lit (.entityUID uid) := by
+  unfold entityUIDs? at h
+  split at h
+  · rename_i xs; exact ⟨xs, rfl, mapM_entityUID?_lits h⟩
+  · simp at h
+
+/-- When `x₁ in x₂` is not a known action-literal membership, `typeOfInₑ` takes the
+    entity-hierarchy fallback branch. -/
+theorem typeOfInₑ_fallback {ety₁ ety₂ : EntityType} {x₁ x₂ : Expr} {env : TypeEnv}
+    (h : ¬ IsActionLitMem x₁ x₂ env.acts) :
+    typeOfInₑ ety₁ ety₂ x₁ x₂ env = if env.descendentOf ety₁ ety₂ then .anyBool else .ff := by
+  unfold typeOfInₑ
+  cases ha : actionUID? x₁ env.acts with
+  | none => simp
+  | some uid₁ =>
+    cases he : entityUID? x₂ with
+    | none => simp
+    | some uid₂ =>
+      exfalso
+      obtain ⟨hx1, hcont⟩ := actionUID?_some ha
+      obtain ⟨entry, hmc⟩ := contains_mapContains hcont
+      apply h; rw [hx1, entityUID?_some he]
+      exact IsActionLitMem.mk uid₁ uid₂ env.acts entry hmc
+
+/-- Set analogue of `typeOfInₑ_fallback`. -/
+theorem typeOfInₛ_fallback {ety₁ ety₂ : EntityType} {x₁ x₂ : Expr} {env : TypeEnv}
+    (h : ¬ IsActionLitMemSet x₁ x₂ env.acts) :
+    typeOfInₛ ety₁ ety₂ x₁ x₂ env = if env.descendentOf ety₁ ety₂ then .anyBool else .ff := by
+  unfold typeOfInₛ
+  cases ha : actionUID? x₁ env.acts with
+  | none => simp
+  | some uid₁ =>
+    cases he : entityUIDs? x₂ with
+    | none => simp
+    | some uids =>
+      exfalso
+      obtain ⟨hx1, hcont⟩ := actionUID?_some ha
+      obtain ⟨entry, hmc⟩ := contains_mapContains hcont
+      obtain ⟨xs, hxs, hall⟩ := entityUIDs?_some he
+      apply h; rw [hx1, hxs]
+      exact IsActionLitMemSet.mk uid₁ xs env.acts entry hmc hall
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
