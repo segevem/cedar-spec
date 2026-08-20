@@ -1138,6 +1138,44 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.binaryApp .containsAny t1 tt2 (.bool .anyBool), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, ifLubThenBool, hlt,
         ok], rfl, fun _ => Iff.rfl⟩
+  -- hasTag / getTag → `typeOfHasTag` / `typeOfGetTag`
+  | hasTagAnyBool x₁ x₂ c ets acts reqty ety ty a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have htg := hasTagSchema_tags? a (wfTypeEnv_ets_nodup hwf)
+    have hcap : ¬ ((x₁, Key.tag x₂) ∈ c) := fun hm => a1 (capTagMem_iff.mpr hm)
+    exact ⟨.binaryApp .hasTag t1 t2 (.bool .anyBool), Capabilities.singleton x₁ (.tag x₂),
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
+        if_neg hcap, ok], rfl, fun _ => Iff.rfl⟩
+  | hasTagTt x₁ x₂ c ets acts reqty ety ty a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    simp only [id_eq] at h1 h2
+    have htg := hasTagSchema_tags? a1 (wfTypeEnv_ets_nodup hwf)
+    have hcap : (x₁, Key.tag x₂) ∈ c := capTagMem_iff.mp a
+    exact ⟨.binaryApp .hasTag t1 t2 (.bool .tt), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
+        if_pos hcap, ok], rfl, fun _ => Iff.rfl⟩
+  | hasTagFf x₁ x₂ c ets acts reqty ety a a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have htg := noTags_tags? a (wfTypeEnv_ets_nodup hwf)
+    exact ⟨.binaryApp .hasTag t1 t2 (.bool .ff), ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
+        ok], rfl, fun _ => Iff.rfl⟩
+  | getTag x₁ x₂ c ets acts reqty ety ty a a1 a2 a3 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    simp only [id_eq] at h1 h2
+    have htg := hasTagSchema_tags? a1 (wfTypeEnv_ets_nodup hwf)
+    have hcap : (x₁, Key.tag x₂) ∈ c := capTagMem_iff.mp a
+    exact ⟨.binaryApp .getTag t1 t2 ty, ∅,
+      by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfGetTag, htg,
+        if_pos hcap, ok], rfl, fun _ => Iff.rfl⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
