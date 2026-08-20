@@ -1395,6 +1395,45 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjx : justType (typeOf x c env) = .ok tx := by rw [hx]; rfl
     exact ⟨tx :: txs, by simp only [List.mapM_cons, hjx, hxs, Except.bind_ok]; rfl,
       by simp only [List.map_cons, htx, htxs]⟩
+  -- callExt delegates to the motive_4 IH
+  | callExt xfn args c env ty a ih => rename_i hwf; exact ih hwf
+  -- HasTypeExtCall (motive_4): construction via `typeOfConstructor`, methods via `typeOfCall`
+  | decimal s c env a =>
+    rename_i hwf; obtain ⟨d, hd⟩ := a
+    have hj : justType (typeOfLit (Prim.string s) env) = .ok (.lit (.string s) .string) := by
+      simp [justType, typeOfLit, Except.map, ok]
+    refine ⟨.call .decimal [.lit (.string s) .string] (.ext .decimal), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      typeOfConstructor, hd, ok]
+  | lessThan a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .lessThan [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
+  | isIpv4 a c env ha ih_a =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    refine ⟨.call .isIpv4 [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, ok]
+  | offset a b c env ha hb ih_a ih_b =>
+    rename_i hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
+    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
+    refine ⟨.call .offset [ta, tb] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
+      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.map_cons, List.map_nil, htta, httb, ok]
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
