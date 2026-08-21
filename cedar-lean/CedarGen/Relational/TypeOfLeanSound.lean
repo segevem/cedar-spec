@@ -83,9 +83,9 @@ theorem capMerge_mem {c₁ c₂ c : Capabilities} (h : CapMerge c₁ c₂ c) (k 
     k ∈ c ↔ k ∈ c₁ ∨ k ∈ c₂ := by
   induction h with
   | nil => simp
-  | left _ _ _ _ _ ih => simp only [List.mem_cons, ih]; grind
-  | right _ _ _ _ _ ih => simp only [List.mem_cons, ih]; grind
-  | both _ _ _ _ _ ih => simp only [List.mem_cons, ih]; grind
+  | left _ _ _ _ _ ih => simp only [List.mem_cons]; grind
+  | right _ _ _ _ _ ih => simp only [List.mem_cons]; grind
+  | both _ _ _ _ _ ih => simp only [List.mem_cons]; grind
 
 /-- A structural `CapMerge` output is set-equivalent to the functional `∪`. -/
 theorem capMerge_capsEquiv_union {c₁ c₂ c : Capabilities} (h : CapMerge c₁ c₂ c) :
@@ -431,9 +431,9 @@ theorem typeOf_capsEquiv {x : Expr} {c₁ c₂ : Capabilities} {env : TypeEnv}
             simp only [hx2', hx3', Except.bind_ok]
             split at h1
             next ty hlub =>
-              simp only [hlub, ok, Except.ok.injEq, Prod.mk.injEq] at h1
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h1
               obtain ⟨rfl, rfl⟩ := h1
-              simp only [hlub, ok]
+              simp only [ok]
               exact ⟨_, rfl, CapsEquiv.inter (CapsEquiv.union hcc1 hc2) hc3⟩
             next hlub => simp [err] at h1
       next => simp [err] at h1 -- condition : non-boolean
@@ -1439,7 +1439,7 @@ theorem typeOfEq_tyWf {ty₁ ty₂ x₁ x₂ tx c'}
     (h : typeOfEq ty₁ ty₂ x₁ x₂ = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfEq] at h
   repeat' first
-    | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+    | (simp only [ok] at h; obtain ⟨rfl, _⟩ := h
        simp only [TypedExpr.typeOf]; exact TyWf.bool _)
     | (simp only [err, reduceCtorEq] at h)
     | split at h
@@ -1820,7 +1820,7 @@ theorem actionInSet_of_mem {acts : ActionSchema} {uid₁ : EntityUID} {xs : List
     (hdesc : ActionDescendentOf acts uid₁ u) : ActionInSet acts uid₁ xs := by
   induction xs generalizing uids with
   | nil =>
-    simp only [List.mapM_nil, pure, Except.pure, Option.some.injEq] at huids; subst huids
+    simp only [List.mapM_nil, pure, Option.some.injEq] at huids; subst huids
     simp at hmem
   | cons hd tl ih =>
     simp only [List.mapM_cons] at huids
@@ -2258,7 +2258,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjx : justType (typeOf x c env) = .ok tx := by rw [hx]; rfl
     refine ⟨.set (tx :: txs) (.set lubTy), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      hjx, hxs, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfSet, htx, htxs,
+      hjx, hxs, bind, Except.bind, pure, Except.pure, typeOfSet, htx, htxs,
       allLub_foldlM a2, ok]
   -- HasTypeList (motive_2)
   | nil c env =>
@@ -2279,7 +2279,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       simp [justType, typeOfLit, Except.map, ok]
     refine ⟨.call .decimal [.lit (.string s) .string] (.ext .decimal), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hj, bind, Except.bind, pure, Except.pure, typeOfCall,
       typeOfConstructor, hd, ok]
   | lessThan a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2289,7 +2289,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .lessThan [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | isIpv4 a c env ha ih_a =>
     rename_i hwf
@@ -2297,7 +2297,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .isIpv4 [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | offset a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2307,7 +2307,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .offset [ta, tb] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | ip s c env a =>
     rename_i hwf; obtain ⟨ipv, hd⟩ := a
@@ -2315,7 +2315,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       simp [justType, typeOfLit, Except.map, ok]
     refine ⟨.call .ip [.lit (.string s) .string] (.ext .ipAddr), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hj, bind, Except.bind, pure, Except.pure, typeOfCall,
       typeOfConstructor, hd, ok]
   | datetime s c env a =>
     rename_i hwf; obtain ⟨dt, hd⟩ := a
@@ -2323,7 +2323,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       simp [justType, typeOfLit, Except.map, ok]
     refine ⟨.call .datetime [.lit (.string s) .string] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hj, bind, Except.bind, pure, Except.pure, typeOfCall,
       typeOfConstructor, hd, ok]
   | duration s c env a =>
     rename_i hwf; obtain ⟨dur, hd⟩ := a
@@ -2331,7 +2331,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       simp [justType, typeOfLit, Except.map, ok]
     refine ⟨.call .duration [.lit (.string s) .string] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hj, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hj, bind, Except.bind, pure, Except.pure, typeOfCall,
       typeOfConstructor, hd, ok]
   | lessThanOrEqual a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2340,7 +2340,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .lessThanOrEqual [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | greaterThan a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2349,7 +2349,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .greaterThan [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | greaterThanOrEqual a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2358,28 +2358,28 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .greaterThanOrEqual [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | isIpv6 a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .isIpv6 [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | isLoopback a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .isLoopback [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | isMulticast a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .isMulticast [ta] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | isInRange a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2388,7 +2388,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .isInRange [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | durationSince a b c env ha hb ih_a ih_b =>
     rename_i hwf
@@ -2397,56 +2397,56 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
     refine ⟨.call .durationSince [ta, tb] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, httb, ok]
   | toDate a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toDate [ta] (.ext .datetime), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toTime a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toTime [ta] (.ext .duration), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toMilliseconds a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toMilliseconds [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toSeconds a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toSeconds [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toMinutes a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toMinutes [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toHours a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toHours [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   | toDays a c env ha ih_a =>
     rename_i hwf; obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
     refine ⟨.call .toDays [ta] .int, ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, Except.bind_ok, bind, Except.bind, pure, Except.pure, typeOfCall,
+      List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
   -- action-literal mem (entity) → `typeOfInₑ` action branch
   | binaryAppMemActionLitTt uid₁ uid₂ c ets acts reqty a a1 a2 ih1 ih2 =>
@@ -2465,7 +2465,9 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
     have hnd := wfTypeEnv_acts_nodup hwf
-    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by cases a <;> exact ⟨_, by assumption⟩
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
+      cases a
+      exact ⟨_, by assumption⟩
     have hc1 : acts.contains uid₁ = true := by simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
     have hdesc := notActionDescendentOf_sound a hnd
     refine ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
