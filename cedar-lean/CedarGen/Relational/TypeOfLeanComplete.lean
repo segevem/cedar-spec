@@ -15,6 +15,7 @@
 -/
 
 import CedarGen.Relational.TypeOfLeanSound
+import Cedar.Thm.WellTyped.Expr.WF
 
 /-! # Completeness of the relational typing spec
 
@@ -190,6 +191,42 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
       rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
       exact LubQualified.required _ _ _ (ih hlub)
   | case12 t q₂ _ _ => rename_i q h; simp [lubQualifiedType] at h
+
+/-! ## Entity-type declaredness invariant
+
+`typeOf` on a `WfTypeEnv` only ever produces entity types that are declared in the
+schema. This is Cedar's `typechecked_has_well_formed_type` composed with a bridge from
+the relational `WfTypeEnv` to Cedar's `TypeEnv.WellFormed`. -/
+
+/-- **Bridge (deferred).** The relational `WfTypeEnv` implies Cedar's `TypeEnv.WellFormed`.
+    Both encode the same schema well-formedness; the three components (ets/acts/reqty
+    well-formedness) follow from `WfEntitySchema`/`WfActionSchema`/`RequestFromAction`.
+    This is the sole gap feeding the declaredness invariant below. -/
+theorem wfTypeEnv_wellFormed {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    env.WellFormed := by
+  sorry
+
+/-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
+    entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
+theorem typeOf_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+    {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
+    (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .entity ety) :
+    ValidEntityType ety env.ets env.acts := by
+  have hw : CedarType.WellFormed env tx.typeOf :=
+    Cedar.Thm.typechecked_has_well_formed_type (wfTypeEnv_wellFormed hwf) hty
+  rw [hety] at hw
+  cases hw with
+  | entity_wf h =>
+    simp only [EntityType.WellFormed] at h
+    rcases h with hc | ha
+    · obtain ⟨v, hmc⟩ := contains_mapContains hc
+      exact ValidEntityType.inSchema ety v env.ets env.acts hmc
+    · simp only [ActionSchema.IsActionEntityType] at ha
+      obtain ⟨uid, hcont, hty2⟩ := ha
+      obtain ⟨e, hmc⟩ := contains_mapContains hcont
+      obtain ⟨e', hpk⟩ := mapContainsPairKey_of_mapContains hmc
+      subst hty2
+      exact ValidEntityType.isAction uid.ty uid.eid e' env.ets env.acts hpk
 
 /-! ## `WfExpr` inversion helpers (extract sub-`WfExpr`s with `env` fixed) -/
 
@@ -405,12 +442,9 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
             rcases his ety₁ rfl with _ | _
             · exact ValidDifferentEntityType.inSchema _ _ _ _ _ ‹MapContains _ _ _› hNe
             · exact ValidDifferentEntityType.isAction _ _ _ _ _ _ ‹MapContainsPairKey _ _ _ _› hNe
-          -- Operand type `ety₂` is declared. This is the `typeOf` entity-type
-          -- declaredness invariant: `typechecked_has_well_formed_type` gives
-          -- `CedarType.WellFormed env (.entity ety₂)`, whose `entity_wf` yields
-          -- `ValidEntityType ety₂` — modulo the `WfTypeEnv → env.WellFormed`
-          -- bridge. Left as the sole gap in this case.
-          have hvet₂ : ValidEntityType ety₂ env.ets env.acts := sorry
+          -- Operand type `ety₂` is declared, by the entity-type declaredness invariant.
+          have hvet₂ : ValidEntityType ety₂ env.ets env.acts :=
+            typeOf_entityType_declared hwf h1 heq
           exact HasType.unaryAppIsFalse ety₁ ety₂ x₁ c env hvet₂ hvdet (heq ▸ hHT1)
       · -- err (unexpected operand type)
         simp only [err, reduceCtorEq] at h
