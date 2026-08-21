@@ -1753,10 +1753,10 @@ theorem typeOf_tyWf {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
 
 /-- `KeyAbove` is preserved upward through `<` (the record-key threading step). -/
 theorem keyAbove_trans {lb : Option Attr} {a k : Attr}
-    (h : Schema.KeyAbove lb a) (hlt : a < k) : Schema.KeyAbove lb k := by
+    (h : KeyAbove lb a) (hlt : a < k) : KeyAbove lb k := by
   cases h with
-  | none _ => exact Schema.KeyAbove.none _
-  | some b _ hb => exact Schema.KeyAbove.some _ _ (StrictLT.transitive b a k hb hlt)
+  | none _ => exact KeyAbove.none _
+  | some b _ hb => exact KeyAbove.some _ _ (StrictLT.transitive b a k hb hlt)
 
 /-- A list of entity-UID literals maps under `entityUID?` to `some` list. -/
 theorem mapM_entityUID?_all_lits {xs : List Expr}
@@ -1838,7 +1838,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       Schema.WfTypeEnv env → ∃ txs,
         axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok txs ∧
         txs.map (fun p => (p.1, Qualified.required p.2.typeOf)) = atys ∧
-        atys.SortedBy Prod.fst ∧ ∀ k ∈ atys.map Prod.fst, Schema.KeyAbove lb k)
+        atys.SortedBy Prod.fst ∧ ∀ k ∈ atys.map Prod.fst, KeyAbove lb k)
     (motive_4 := fun xfn args c env ty _ =>
       Schema.WfTypeEnv env → ∃ tx c', typeOf (.call xfn args) c env = .ok (tx, c') ∧
         tx.typeOf = ty ∧ CapsEquiv [] c') with
@@ -2579,8 +2579,27 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     first
     | -- HasTypeRecord.nil
       (intro _; exact ⟨[], rfl, rfl, List.SortedBy.nil, by simp⟩)
-    | -- HasTypeRecord.cons: KeyAbove sortedness threading (see `cons_record_sound` below).
-      -- TODO: pending the exact `rename_i` binder count for the recursor's cons case.
-      sorry
+    | -- HasTypeRecord.cons: `KeyAbove` sortedness threading. The IHs are goal
+      -- antecedents here (introduced), not context hypotheses.
+      (rename_i lb a x axs c env ty atyList hka hHT hHTR
+       intro ihHT ihR hwf
+       obtain ⟨tx, cx, hx, htx, _⟩ := ihHT hwf
+       obtain ⟨txs, hmapM, hmap, hsorted, hkeys⟩ := ihR hwf
+       refine ⟨(a, tx) :: txs, ?_, ?_, ?_, ?_⟩
+       · simp only [List.mapM_cons, hx, hmapM, Except.bind_ok]; rfl
+       · simp only [List.map_cons, htx, hmap]
+       · cases hal : atyList with
+         | nil => exact List.SortedBy.cons_nil
+         | cons hd tl =>
+           apply List.SortedBy.cons_cons
+           · have hka2 : KeyAbove (some a) hd.fst := hkeys hd.fst (by rw [hal]; simp)
+             cases hka2 with | some _ _ hlt => exact hlt
+           · rw [hal] at hsorted; exact hsorted
+       · intro k hk
+         simp only [List.map_cons, List.mem_cons] at hk
+         rcases hk with rfl | hk
+         · exact hka
+         · have hka2 := hkeys k hk
+           cases hka2 with | some _ _ hlt => exact keyAbove_trans hka hlt)
 
 end CedarGen.Relational.Lean
