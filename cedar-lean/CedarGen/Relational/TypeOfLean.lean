@@ -1236,16 +1236,16 @@ inductive HasTypeExtCall : ExtFun → List Expr → Capabilities → TypeEnv →
   | duration : ∀ s c env, ValidDuration s → HasTypeExtCall .duration [.lit (.string s)] c env (.ext .duration)
   /- Methods: argument types stated directly as `HasType` premises. -/
   | lessThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc78 →
+    HasType a c env (.ext .decimal) oc96 → HasType b c env (.ext .decimal) oc78 →
     HasTypeExtCall .lessThan [a, b] c env (.bool .anyBool)
   | lessThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc79 →
+    HasType a c env (.ext .decimal) oc97 → HasType b c env (.ext .decimal) oc79 →
     HasTypeExtCall .lessThanOrEqual [a, b] c env (.bool .anyBool)
   | greaterThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc80 →
+    HasType a c env (.ext .decimal) oc98 → HasType b c env (.ext .decimal) oc80 →
     HasTypeExtCall .greaterThan [a, b] c env (.bool .anyBool)
   | greaterThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc81 →
+    HasType a c env (.ext .decimal) oc99 → HasType b c env (.ext .decimal) oc81 →
     HasTypeExtCall .greaterThanOrEqual [a, b] c env (.bool .anyBool)
   | isIpv4 : ∀ a c env,
     HasType a c env (.ext .ipAddr) oc82 →
@@ -1260,13 +1260,13 @@ inductive HasTypeExtCall : ExtFun → List Expr → Capabilities → TypeEnv →
     HasType a c env (.ext .ipAddr) oc85 →
     HasTypeExtCall .isMulticast [a] c env (.bool .anyBool)
   | isInRange : ∀ a b c env,
-    HasType a c env (.ext .ipAddr) [] → HasType b c env (.ext .ipAddr) oc86 →
+    HasType a c env (.ext .ipAddr) oc100 → HasType b c env (.ext .ipAddr) oc86 →
     HasTypeExtCall .isInRange [a, b] c env (.bool .anyBool)
   | offset : ∀ a b c env,
-    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .duration) oc87 →
+    HasType a c env (.ext .datetime) oc101 → HasType b c env (.ext .duration) oc87 →
     HasTypeExtCall .offset [a, b] c env (.ext .datetime)
   | durationSince : ∀ a b c env,
-    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .datetime) oc88 →
+    HasType a c env (.ext .datetime) oc102 → HasType b c env (.ext .datetime) oc88 →
     HasTypeExtCall .durationSince [a, b] c env (.ext .duration)
   | toDate : ∀ a c env,
     HasType a c env (.ext .datetime) oc89 →
