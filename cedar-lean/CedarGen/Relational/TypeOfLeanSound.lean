@@ -1134,6 +1134,163 @@ theorem lub_tyWf (ty₁ ty₂ : CedarType) :
   | case12 t q₂ _ _ =>
     rename_i _ _ _ h; simp [lubQualifiedType] at h
 
+/-! ## `TyWf` preservation lemmas (toward `typeOf_tyWf`)
+
+Helper lemmas establishing that record types produced by the functional
+typechecker are canonical (`TyWf`): a strictly-sorted key list is duplicate-free
+(`sortedBy_map_nodup`); a found record field is well-formed (`tyWf_record_find`);
+`foldlM lub?` over well-formed element types stays well-formed
+(`foldlM_lub_tyWf`); and every record type stored in a well-formed schema/request
+(entity attrs, entity tags, request context) is well-formed (the
+`wfEntitiesGo_*`/`wfActionsGo_*`/`requestFromAction_*` membership lemmas and their
+`wfTypeEnv_*` corollaries). -/
+
+/-- A strictly-sorted-by-`f` list has duplicate-free `f`-images. -/
+theorem sortedBy_map_nodup {α β} [LT β] [StrictLT β] {f : α → β} {xs : List α}
+    (h : List.SortedBy f xs) : (xs.map f).Nodup := by
+  induction xs with
+  | nil => simp
+  | cons x xs ih =>
+    simp only [List.map_cons, List.nodup_cons]
+    refine ⟨?_, ih (List.tail_sortedBy h)⟩
+    intro hmem
+    simp only [List.mem_map] at hmem
+    obtain ⟨y, hy, hfy⟩ := hmem
+    have hlt := List.sortedBy_implies_head_lt_tail h y hy
+    rw [hfy] at hlt
+    exact absurd hlt (StrictLT.irreflexive (f x))
+
+/-- The value found by `Map.find?` in a `TyWf` record is itself well-formed. -/
+theorem tyWf_record_find {rty : Map Attr QualifiedType} {a : Attr} {qty : QualifiedType}
+    (h : TyWf (.record rty)) (hf : rty.find? a = some qty) : TyWfQ qty := by
+  cases h with
+  | record _ _ hfields => exact hfields _ (List.mem_map_of_mem (Map.find?_mem_toList hf))
+
+/-- `foldlM lub?` over well-formed types yields a well-formed type. -/
+theorem foldlM_lub_tyWf {init : CedarType} {rest : List CedarType} {ty : CedarType}
+    (hinit : TyWf init) (hrest : ∀ t ∈ rest, TyWf t)
+    (h : List.foldlM lub? init rest = some ty) : TyWf ty := by
+  induction rest generalizing init with
+  | nil => simp only [List.foldlM_nil, pure, Option.some.injEq] at h; subst h; exact hinit
+  | cons hd tl ih =>
+    simp only [List.foldlM_cons] at h
+    cases hlub : lub? init hd with
+    | none => rw [hlub] at h; simp at h
+    | some m =>
+      rw [hlub] at h; simp only [Option.bind_some_fun] at h
+      exact ih (lub_tyWf init hd hinit (hrest hd (by simp)) hlub)
+        (fun t ht => hrest t (by simp [ht])) h
+
+/-- Every entry's attribute record in a well-formed entity schema is `TyWf`. -/
+theorem wfEntitiesGo_mem_attrs_tyWf {built names allNames entries}
+    (h : Schema.WfEntitiesGo built names allNames entries) :
+    ∀ {ety : EntityType} {entry : EntitySchemaEntry}, (ety, entry) ∈ entries →
+      TyWf (.record entry.attrs) := by
+  induction h with
+  | nil => intro ety entry hmem; simp at hmem
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hrest ih =>
+    intro ety entry hmem
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.attrs]
+      exact wfCedarType_tyWf (Schema.WfCedarType.record (et :: names) attrs hwa)
+    · exact ih hmem
+  | enum built names et eids allNames rest hni hrest ih =>
+    intro ety entry hmem
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.attrs]
+      exact TyWf.record Map.empty (by simp [Map.empty, Map.toList]) (by simp [Map.empty, Map.toList])
+    · exact ih hmem
+
+/-- Every entry's tag type in a well-formed entity schema is `TyWf`. -/
+theorem wfEntitiesGo_mem_tags_tyWf {built names allNames entries}
+    (h : Schema.WfEntitiesGo built names allNames entries) :
+    ∀ {ety entry ty}, (ety, entry) ∈ entries → EntitySchemaEntry.tags? entry = some ty →
+      TyWf ty := by
+  induction h with
+  | nil => intro ety entry ty hmem _; simp at hmem
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hrest ih =>
+    intro ety entry ty hmem htag
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.tags?] at htag
+      cases hwt with
+      | none => simp at htag
+      | some ty' hwct =>
+        simp only [Option.some.injEq] at htag; subst htag; exact wfCedarType_tyWf hwct
+    · exact ih hmem htag
+  | enum built names et eids allNames rest hni hrest ih =>
+    intro ety entry ty hmem htag
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp [EntitySchemaEntry.tags?] at htag
+    · exact ih hmem htag
+
+/-- The request context comes from an action entry present in the action schema. -/
+theorem requestFromAction_ctx_mem {ets acts reqty}
+    (h : Schema.RequestFromAction ets acts reqty) :
+    ∃ uid p r a ctx, reqty.context = Map.mk ctx ∧
+      (uid, ActionSchemaEntry.mk p r a (Map.mk ctx)) ∈ acts := by
+  induction h with
+  | here acts uid principals resources ancestors context principal resource hp hr =>
+    exact ⟨uid, Set.mk principals, Set.mk resources, Set.mk ancestors, context, rfl, by simp⟩
+  | there act acts reqty hrfa ih =>
+    obtain ⟨uid, p, r, a, ctx, hc, hmem⟩ := ih
+    exact ⟨uid, p, r, a, ctx, hc, by simp [hmem]⟩
+
+/-- Every action entry's context record in a well-formed action schema is `WfAttrs`. -/
+theorem wfActionsGo_mem_ctx_wf {ets built avail entries}
+    (h : Schema.WfActionsGo ets built avail entries) :
+    ∀ {uid p r a ctx}, (uid, ActionSchemaEntry.mk p r a (Map.mk ctx)) ∈ entries →
+      Schema.WfAttrs Option.none ets ctx := by
+  induction h with
+  | nil => intro uid p r a ctx hmem; simp at hmem
+  | cons built avail avail' eid ancestors principals resources context rest
+      hsel hpick hwp hwr hwa hrest ih =>
+    intro uid p r a ctx hmem
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq
+      injection he with _ _ _ hctx; injection hctx with hcc; subst hcc; exact hwa
+    · exact ih hmem
+
+/-- Entity attributes looked up in a well-formed schema form a `TyWf` record. -/
+theorem wfTypeEnv_attrs?_tyWf {env : TypeEnv} {ety rty}
+    (hwf : Schema.WfTypeEnv env)
+    (hattr : EntitySchema.attrs? env.ets ety = some rty) : TyWf (.record rty) := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr
+    obtain ⟨entry, hfind, hea⟩ := hattr
+    have hmem := Map.find?_mem_toList hfind
+    cases hes with
+    | mk hgo => have h := wfEntitiesGo_mem_attrs_tyWf hgo hmem; rw [hea] at h; exact h
+
+/-- An entity tag type looked up in a well-formed schema is `TyWf`. -/
+theorem wfTypeEnv_tags?_tyWf {env : TypeEnv} {ety ty}
+    (hwf : Schema.WfTypeEnv env)
+    (htag : EntitySchema.tags? env.ets ety = some (some ty)) : TyWf ty := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    simp only [EntitySchema.tags?, Option.map_eq_some_iff] at htag
+    obtain ⟨entry, hfind, hea⟩ := htag
+    have hmem := Map.find?_mem_toList hfind
+    cases hes with
+    | mk hgo => exact wfEntitiesGo_mem_tags_tyWf hgo hmem hea
+
+/-- The request context record type in a well-formed environment is `TyWf`. -/
+theorem wfTypeEnv_context_tyWf {env : TypeEnv}
+    (hwf : Schema.WfTypeEnv env) : TyWf (.record env.reqty.context) := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    obtain ⟨uid, p, r, a, ctx, hc, hmem⟩ := requestFromAction_ctx_mem hrfa
+    cases has with
+    | mk hgo =>
+      have hwa := wfActionsGo_mem_ctx_wf hgo hmem
+      show TyWf (.record reqty.context)
+      rw [hc]
+      exact wfCedarType_tyWf (Schema.WfCedarType.record entityTypes ctx hwa)
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
