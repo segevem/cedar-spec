@@ -68,6 +68,39 @@ inductive WfExpr : TypeEnv → Expr → Prop where
       WfExpr env (.record axs)
   | call : ∀ env f xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.call f xs)
 
+/-! ## Reverse bridges (functional lookup ⇒ relational witness) -/
+
+/-- List membership ⇒ `MapContains`. -/
+theorem mem_mapContains {α β : Type} {k : α} {v : β} {l : List (α × β)} (h : (k, v) ∈ l) :
+    MapContains k v (Map.mk l) := by
+  induction l with
+  | nil => simp at h
+  | cons hd tl ih =>
+    rcases List.mem_cons.mp h with rfl | h
+    · exact MapContains.here _ _ _
+    · exact MapContains.there _ _ _ _ _ (ih h)
+
+/-- `Map.find? = some` ⇒ `MapContains` (reverse of `mapContains_find?_nodup`). -/
+theorem find?_mapContains {α β : Type} [LT α] [DecidableLT α] [DecidableEq α]
+    {m : Map α β} {k : α} {v : β} (h : m.find? k = some v) : MapContains k v m := by
+  obtain ⟨l⟩ := m
+  exact mem_mapContains (Map.find?_mem_toList h)
+
+/-- `EntitySchema.isValidEntityUID` ⇒ `ValidEntityUID` (standard/enum witnesses). -/
+theorem validEntityUID_of_isValid {ets : EntitySchema} {acts : ActionSchema} {uid : EntityUID}
+    (hnd : (ets.toList.map Prod.fst).Nodup) (h : ets.isValidEntityUID uid = true) :
+    ValidEntityUID uid.ty uid.eid ets acts := by
+  simp only [EntitySchema.isValidEntityUID] at h
+  split at h
+  · rename_i entry hfind
+    have hmc := find?_mapContains hfind
+    cases entry with
+    | standard s => exact ValidEntityUID.standard _ _ _ _ _ hmc
+    | enum eids =>
+      simp only [EntitySchemaEntry.isValidEntityEID] at h
+      exact ValidEntityUID.enum _ _ _ _ _ hmc ((setContains_iff_contains).mpr h)
+  · simp at h
+
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
     declared-`is`-type) expression is witnessed by a `HasType` derivation with a
@@ -78,8 +111,40 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
       ∃ cout, HasType x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
   intro x c
   induction x, c using typeOf.induct with
-  | case1 c p => intro hwfx tx c' h; sorry
-  | case2 c v => intro hwfx tx c' h; sorry
+  | case1 c p =>
+    intro hwfx tx c' h
+    obtain ⟨ets, acts, reqty⟩ := env
+    simp only [typeOf, typeOfLit] at h
+    split at h
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h; exact ⟨[], HasType.litBoolTrue _ _ _ _, fun _ => Iff.rfl⟩
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h; exact ⟨[], HasType.litBoolFalse _ _ _ _, fun _ => Iff.rfl⟩
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h; exact ⟨[], HasType.litInt _ _ _ _ _, fun _ => Iff.rfl⟩
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h; exact ⟨[], HasType.litString _ _ _ _ _, fun _ => Iff.rfl⟩
+    · split at h
+      · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        rename_i uid hcond
+        have hval : ValidEntityUID uid.ty uid.eid ets acts := by
+          rcases Bool.or_eq_true_iff.mp hcond with hv | hc
+          · exact validEntityUID_of_isValid (wfTypeEnv_ets_nodup hwf) hv
+          · -- action UID: acts.contains uid = true (needs a find?⇒MapContainsPairKey bridge)
+            sorry
+        exact ⟨[], HasType.litEntity uid.ty uid.eid c ets acts reqty hval, fun _ => Iff.rfl⟩
+      · simp only [err, reduceCtorEq] at h
+  | case2 c v =>
+    intro hwfx tx c' h
+    obtain ⟨ets, acts, princ, ⟨actionTy, actionEid⟩, resource, ctx⟩ := env
+    simp only [typeOf, typeOfVar] at h
+    split at h <;>
+      (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h)
+    · exact ⟨[], HasType.varPrincipal _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
+    · exact ⟨[], HasType.varAction _ _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
+    · exact ⟨[], HasType.varResource _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
+    · exact ⟨[], HasType.varContext _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
   | case3 c x₁ x₂ x₃ ih1 ih2 ih3 => intro hwfx tx c' h; sorry
   | case4 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
   | case5 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
