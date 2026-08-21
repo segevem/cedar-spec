@@ -284,6 +284,7 @@ inductive MapContainsEnum : EntityType → Set String → EntitySchema → Prop 
   | here : ∀ ety eids rest,
     MapContainsEnum ety eids (.mk ((ety, .enum eids) :: rest))
   | there : ∀ ety eids k' v' rest,
+    k' ≠ ety →
     MapContainsEnum ety eids (.mk rest) →
     MapContainsEnum ety eids (.mk ((k', v') :: rest))
 
