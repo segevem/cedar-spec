@@ -574,13 +574,343 @@ theorem lub?_typeValid {env : TypeEnv} (ty₁ ty₂ : CedarType) :
       exact ih hlub hv1 hv2
   | case12 t q₂ _ _ => rename_i q h _ _; simp [lubQualifiedType] at h
 
+/-! ### `typeOf`-helper `TypeValid` lemmas (result-type validity) -/
+
+/-- `getAttrInRecord` returns a `TypeValid` type when the receiver record is `TypeValid`. -/
+theorem getAttrInRecord_typeValid {env : TypeEnv} {ty rty x a c aty ac}
+    (hrec : TypeValid env (.record rty)) (hg : getAttrInRecord ty rty x a c = .ok (aty, ac)) :
+    TypeValid env aty := by
+  simp only [getAttrInRecord] at hg
+  cases hrec with
+  | record rts hcomp =>
+    split at hg
+    · rename_i qty hfind
+      simp only [ok, Except.ok.injEq, Prod.mk.injEq] at hg; obtain ⟨rfl, _⟩ := hg
+      have := hcomp _ (Map.find?_mem_toList hfind); simpa using this
+    · rename_i aty' hfind
+      split at hg
+      · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at hg; obtain ⟨rfl, _⟩ := hg
+        have := hcomp _ (Map.find?_mem_toList hfind); simpa using this
+      · simp only [err, reduceCtorEq] at hg
+    · simp only [err, reduceCtorEq] at hg
+
+/-- `hasAttrInRecord` always returns a boolean type. -/
+theorem hasAttrInRecord_typeValid {env : TypeEnv} {rty x a c k ty c'}
+    (h : hasAttrInRecord rty x a c k = .ok (ty, c')) : TypeValid env ty := by
+  simp only [hasAttrInRecord] at h
+  split at h
+  · split at h <;> (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact TypeValid.bool _)
+  · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact TypeValid.bool _
+
+/-- `typeOfEq` always returns a boolean type. -/
+theorem typeOfEq_typeValid {env : TypeEnv} {ty₁ ty₂ : TypedExpr} {x₁ x₂ tx c'}
+    (h : typeOfEq ty₁ ty₂ x₁ x₂ = .ok (tx, c')) : TypeValid env tx.typeOf := by
+  simp only [typeOfEq] at h
+  split at h
+  · split at h <;>
+      (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _)
+  · split at h
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _
+    · split at h
+      · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _
+      · simp only [err, reduceCtorEq] at h
+
+/-- `typeOfHasTag` always returns a boolean type. -/
+theorem typeOfHasTag_typeValid {env : TypeEnv} {ety x₁ x₂ c ty c'}
+    (h : typeOfHasTag ety x₁ x₂ c env = .ok (ty, c')) : TypeValid env ty := by
+  simp only [typeOfHasTag] at h
+  split at h
+  · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact TypeValid.bool _
+  · split at h <;> (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact TypeValid.bool _)
+  · split at h
+    · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact TypeValid.bool _
+    · simp only [err, reduceCtorEq] at h
+
+/-- `typeOfGetTag` returns a `TypeValid` tag type (the schema tag type is declared). -/
+theorem typeOfGetTag_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety x₁ x₂ c ty c'}
+    (h : typeOfGetTag ety x₁ x₂ c env = .ok (ty, c')) : TypeValid env ty := by
+  simp only [typeOfGetTag] at h
+  split at h
+  · simp only [err, reduceCtorEq] at h
+  · rename_i tagTy htags
+    split at h
+    · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      exact wfTypeEnv_tags?_typeValid hwf htags
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+/-- An extension constructor returns the (given, `TypeValid`) type. -/
+theorem typeOfConstructor_typeValid {α : Type} {env : TypeEnv} {mk : String → Option α} {xs ty t c'}
+    (hty : TypeValid env ty) (h : typeOfConstructor mk xs ty = .ok (t, c')) : TypeValid env t := by
+  simp only [typeOfConstructor] at h
+  split at h
+  · split at h
+    · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h; exact hty
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+/-- Folding `lub?` over `TypeValid` element types yields a `TypeValid` type. -/
+theorem foldlM_lub?_typeValid {env : TypeEnv} :
+    ∀ (l : List CedarType) (acc res : CedarType), TypeValid env acc →
+      (∀ t ∈ l, TypeValid env t) → l.foldlM lub? acc = some res → TypeValid env res := by
+  intro l
+  induction l with
+  | nil =>
+    intro acc res hacc _ h
+    simp only [List.foldlM_nil, Option.pure_def, Option.some.injEq] at h; exact h ▸ hacc
+  | cons hd tl ih =>
+    intro acc res hacc hall h
+    simp only [List.foldlM_cons] at h
+    cases hlub : lub? acc hd with
+    | none => rw [hlub] at h; simp at h
+    | some m =>
+      rw [hlub] at h; simp only [Option.bind_some_fun] at h
+      exact ih m res (lub?_typeValid acc hd hlub hacc (hall hd (by simp)))
+        (fun t ht => hall t (by simp [ht])) h
+
+/-- **Type validity of `typeOf`.** On a `WfTypeEnv`, every type `typeOf` produces has all its
+    entity components declared. The relational analogue of Cedar's `typechecked_has_well_formed_type`,
+    tracking only entity-declaredness (so it needs no map sortedness). -/
+theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
+      typeOf x c env = .ok (tx, c') → TypeValid env tx.typeOf := by
+  intro x c
+  induction x, c using typeOf.induct with
+  | case1 c p =>
+    intro tx c' h
+    obtain ⟨ets, acts, reqty⟩ := env
+    simp only [typeOf, typeOfLit] at h
+    split at h
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.int
+    · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.string
+    · split at h
+      · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        rename_i uid hcond
+        refine TypeValid.entity _ (validEntityUID_validType (eid := uid.eid) ?_)
+        rcases Bool.or_eq_true_iff.mp hcond with hv | hc
+        · exact validEntityUID_of_isValid (wfTypeEnv_ets_nodup hwf) hv
+        · simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
+          obtain ⟨entry, hfind⟩ := hc
+          obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
+          exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
+      · simp only [err, reduceCtorEq] at h
+  | case2 c v =>
+    intro tx c' h
+    obtain ⟨hp, hr, ha, hctx⟩ := wfTypeEnv_reqty_valid hwf
+    simp only [typeOf, typeOfVar] at h
+    split at h <;>
+      (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h)
+    · exact TypeValid.entity _ hp
+    · exact TypeValid.entity _ ha
+    · exact TypeValid.entity _ hr
+    · exact hctx
+  | case3 c x₁ x₂ x₃ ih1 ih2 ih3 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfIf] at h
+      split at h
+      · cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h
+          simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+          simp only [TypedExpr.typeOf]; exact ih2 cc1 h2
+      · cases h3 : typeOf x₃ c env with
+        | error e => rw [h3] at h; simp at h
+        | ok r3 =>
+          obtain ⟨ty3, cc3⟩ := r3; rw [h3] at h
+          simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+          simp only [TypedExpr.typeOf]; exact ih3 h3
+      · cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
+          cases h3 : typeOf x₃ c env with
+          | error e => rw [h3] at h; simp at h
+          | ok r3 =>
+            obtain ⟨ty3, cc3⟩ := r3; rw [h3] at h; simp only [Except.bind_ok] at h
+            split at h
+            · rename_i lubTy hlub
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+              simp only [TypedExpr.typeOf]; exact lub?_typeValid _ _ hlub (ih2 cc1 h2) (ih3 h3)
+            · simp only [err, reduceCtorEq] at h
+      · simp only [err, reduceCtorEq] at h
+  | case4 c x₁ x₂ ih1 ih2 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfAnd] at h
+      split at h
+      · rename_i heq; simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        rw [heq]; exact TypeValid.bool _
+      · cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
+          split at h <;>
+            first
+            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _)
+            | (simp only [err, reduceCtorEq] at h)
+      · simp only [err, reduceCtorEq] at h
+  | case5 c x₁ x₂ ih1 ih2 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfOr] at h
+      split at h
+      · rename_i heq; simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        rw [heq]; exact TypeValid.bool _
+      · cases h2 : typeOf x₂ c env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
+          split at h
+          · rename_i heq2; simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+            simp only [TypedExpr.typeOf]; exact ih2 h2
+          · simp only [err, reduceCtorEq] at h
+      · cases h2 : typeOf x₂ c env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
+          split at h <;>
+            first
+            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _)
+            | (simp only [err, reduceCtorEq] at h)
+      · simp only [err, reduceCtorEq] at h
+  | case6 c op₁ x₁ ih1 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfUnaryApp] at h
+      split at h <;>
+        first
+        | (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; first | exact TypeValid.bool _ | exact TypeValid.int)
+        | (split at h <;> (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _))
+        | (simp only [err, reduceCtorEq] at h)
+  | case7 c op₂ x₁ x₂ ih1 ih2 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      cases h2 : typeOf x₂ c env with
+      | error e => rw [h2] at h; simp at h
+      | ok r2 =>
+        obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok, typeOfBinaryApp] at h
+        split at h <;>
+          first
+          | exact typeOfEq_typeValid h
+          | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h;
+             first | exact TypeValid.bool _ | exact TypeValid.int)
+          | (rename_i ety _ _
+             cases hgt : typeOfGetTag ety x₁ x₂ c env with
+             | error e => rw [hgt] at h; simp at h
+             | ok r => obtain ⟨tgy, tgc⟩ := r; rw [hgt] at h;
+                       simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
+                       obtain ⟨rfl, rfl⟩ := h; exact typeOfGetTag_typeValid hwf hgt)
+          | (rename_i ety _ _
+             cases hht : typeOfHasTag ety x₁ x₂ c env with
+             | error e => rw [hht] at h; simp at h
+             | ok r => obtain ⟨thy, thc⟩ := r; rw [hht] at h;
+                       simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
+                       obtain ⟨rfl, rfl⟩ := h; exact typeOfHasTag_typeValid hht)
+          | (simp only [ifLubThenBool] at h; split at h <;>
+             first
+             | (simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _)
+             | (simp [err] at h))
+          | (simp only [err, reduceCtorEq] at h)
+  | case8 c x₁ a ih1 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfHasAttr] at h
+      split at h <;>
+        first
+        | (cases hh : hasAttrInRecord _ x₁ a c _ with
+           | error e => rw [hh] at h; simp at h
+           | ok r => obtain ⟨hy, hcc⟩ := r; rw [hh] at h;
+                     simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
+                     obtain ⟨rfl, rfl⟩ := h; exact hasAttrInRecord_typeValid hh)
+        | (split at h <;>
+           first
+           | (cases hh : hasAttrInRecord _ x₁ a c _ with
+              | error e => rw [hh] at h; simp at h
+              | ok r => obtain ⟨hy, hcc⟩ := r; rw [hh] at h;
+                        simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
+                        obtain ⟨rfl, rfl⟩ := h; exact hasAttrInRecord_typeValid hh)
+           | (split at h <;>
+              first
+              | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _)
+              | (simp only [err, reduceCtorEq] at h)))
+        | (simp only [err, reduceCtorEq] at h)
+  | case9 c x₁ a ih1 =>
+    intro tx c' h
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfGetAttr] at h
+      split at h
+      · rename_i rty heqty
+        cases hg : getAttrInRecord ty1.typeOf rty x₁ a c with
+        | error e => rw [hg] at h; simp at h
+        | ok r => obtain ⟨aty, ac⟩ := r; rw [hg] at h;
+                  simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+                  simp only [TypedExpr.typeOf]; exact getAttrInRecord_typeValid (heqty ▸ ih1 h1) hg
+      · rename_i ety heqty
+        split at h
+        · rename_i rty hattr
+          cases hg : getAttrInRecord ty1.typeOf rty x₁ a c with
+          | error e => rw [hg] at h; simp at h
+          | ok r => obtain ⟨aty, ac⟩ := r; rw [hg] at h;
+                    simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+                    simp only [TypedExpr.typeOf]
+                    exact getAttrInRecord_typeValid (wfTypeEnv_attrs?_typeValid hwf hattr) hg
+        · simp only [err, reduceCtorEq] at h
+      · simp only [err, reduceCtorEq] at h
+  | case10 c xs ih => intro tx c' h; sorry
+  | case11 c axs ih => intro tx c' h; sorry
+  | case12 c xfn xs ih =>
+    intro tx c' h
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
+    cases hm : xs.mapM (fun x => justType (typeOf x c env)) with
+    | error e => rw [hm] at h; simp at h
+    | ok tys =>
+      rw [hm] at h; simp only [Except.bind_ok, typeOfCall] at h
+      split at h <;>
+        first
+        | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h;
+           first | exact TypeValid.bool _ | exact TypeValid.int | exact TypeValid.ext _)
+        | (cases hcon : typeOfConstructor _ xs _ with
+           | error e => rw [hcon] at h; simp at h
+           | ok r => obtain ⟨cy, cc⟩ := r; rw [hcon] at h;
+                     simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
+                     obtain ⟨rfl, rfl⟩ := h; exact typeOfConstructor_typeValid (TypeValid.ext _) hcon)
+        | (simp only [err, reduceCtorEq] at h)
+
 /-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
 theorem typeOf_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .entity ety) :
     ValidEntityType ety env.ets env.acts := by
-  sorry
+  have hv := typeOf_type_valid hwf hty
+  rw [hety] at hv
+  cases hv with | entity _ hvet => exact hvet
 
 /-- Cedar's `EntityType.WellFormed` ⇒ the relational `ValidEntityType`. -/
 theorem entityType_declared_of_wf {env : TypeEnv} {ety : EntityType}
@@ -602,7 +932,9 @@ theorem typeOf_setElem_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeE
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .set (.entity ety)) :
     ValidEntityType ety env.ets env.acts := by
-  sorry
+  have hv := typeOf_type_valid hwf hty
+  rw [hety] at hv
+  cases hv with | set _ hv2 => cases hv2 with | entity _ hvet => exact hvet
 
 /-! ## `WfExpr` inversion helpers (extract sub-`WfExpr`s with `env` fixed) -/
 
