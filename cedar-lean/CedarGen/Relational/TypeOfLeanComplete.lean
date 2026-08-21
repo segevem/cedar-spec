@@ -414,6 +414,166 @@ theorem wfTypeEnv_tags?_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {
         fun e hd => definedEntityType_valid (WfEntitySchema.mk _ _ hgo) hd
       exact wfEntitiesGo_tags_typeValid hgo hbridge (fun _ h => by cases h) _ entry ty hmem hea
 
+/-! ### Request-type declaredness (reqty entity components come from the action schema) -/
+
+theorem definedEntityType_setContains {l : List EntityType} {x : EntityType}
+    (h : DefinedEntityType l x) : SetContains x (Set.mk l) := by
+  induction h with
+  | here et rest => exact SetContains.here _ _
+  | there et et' rest _ _ ih => exact SetContains.there _ _ _ ih
+
+theorem wfPrincipalTypes_defined {ets principals p} (h : WfPrincipalTypes ets principals)
+    (hmem : SetContains p (Set.mk principals)) : DefinedEntityType ets p := by
+  induction h with
+  | nil => cases hmem
+  | cons p' rest hdef hrest ih =>
+    cases hmem with
+    | here => exact hdef
+    | there _ _ hm => exact ih hm
+
+theorem wfResourceTypes_defined {ets resources r} (h : WfResourceTypes ets resources)
+    (hmem : SetContains r (Set.mk resources)) : DefinedEntityType ets r := by
+  induction h with
+  | nil => cases hmem
+  | cons r' rest hdef hrest ih =>
+    cases hmem with
+    | here => exact hdef
+    | there _ _ hm => exact ih hm
+
+theorem wfActionsGo_mem_principals {ets built avail entries}
+    (h : WfActionsGo ets built avail entries) :
+    ∀ {uid principals r a ctx}, (uid, ActionSchemaEntry.mk (Set.mk principals) r a ctx) ∈ entries →
+      WfPrincipalTypes ets principals := by
+  induction h with
+  | nil => intro uid principals r a ctx hmem; simp at hmem
+  | cons built avail avail' eid ancestors principals resources context rest
+      hsel hpick hwp hwr hwa hrest ih =>
+    intro uid principals' r a ctx hmem
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq
+      injection he with hp _ _ _; injection hp with hpp; subst hpp; exact hwp
+    · exact ih hmem
+
+theorem wfActionsGo_mem_resources {ets built avail entries}
+    (h : WfActionsGo ets built avail entries) :
+    ∀ {uid p resources a ctx}, (uid, ActionSchemaEntry.mk p (Set.mk resources) a ctx) ∈ entries →
+      WfResourceTypes ets resources := by
+  induction h with
+  | nil => intro uid p resources a ctx hmem; simp at hmem
+  | cons built avail avail' eid ancestors principals resources context rest
+      hsel hpick hwp hwr hwa hrest ih =>
+    intro uid p resources' a ctx hmem
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq
+      injection he with _ hr _ _; injection hr with hrr; subst hrr; exact hwr
+    · exact ih hmem
+
+theorem requestFromAction_mem {ets acts reqty} (h : RequestFromAction ets acts reqty) :
+    ∃ entry, (reqty.action, entry) ∈ acts ∧
+      SetContains reqty.principal entry.appliesToPrincipal ∧
+      SetContains reqty.resource entry.appliesToResource := by
+  induction h with
+  | here acts uid principals resources ancestors context principal resource hp hr =>
+    exact ⟨ActionSchemaEntry.mk (Set.mk principals) (Set.mk resources) (Set.mk ancestors) (Map.mk context),
+      by simp, definedEntityType_setContains hp, definedEntityType_setContains hr⟩
+  | there act acts reqty hrfa ih =>
+    obtain ⟨entry, hmem, hp, hr⟩ := ih
+    exact ⟨entry, by simp [hmem], hp, hr⟩
+
+/-- The request type's principal/resource/action entity types are declared, and its
+    context is a `TypeValid` record. -/
+theorem wfTypeEnv_reqty_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    ValidEntityType env.reqty.principal env.ets env.acts ∧
+    ValidEntityType env.reqty.resource env.ets env.acts ∧
+    ValidEntityType env.reqty.action.ty env.ets env.acts ∧
+    TypeValid env (.record env.reqty.context) := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    obtain ⟨entry, hmem, hp, hr⟩ := requestFromAction_mem hrfa
+    have hbridge : ∀ e, DefinedEntityType entityTypes e →
+        ValidEntityType e (Map.mk entityEntries) (Map.mk actionEntries) :=
+      fun e hd => definedEntityType_valid hes hd
+    cases has with
+    | mk hgo =>
+      obtain ⟨aprin, ares, aanc, actx⟩ := entry
+      obtain ⟨pl⟩ := aprin; obtain ⟨rl⟩ := ares
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · exact hbridge _ (wfPrincipalTypes_defined (wfActionsGo_mem_principals hgo hmem) hp)
+      · exact hbridge _ (wfResourceTypes_defined (wfActionsGo_mem_resources hgo hmem) hr)
+      · obtain ⟨e', hpk⟩ := mapContainsPairKey_of_mapContains (mem_mapContains hmem)
+        exact ValidEntityType.isAction _ _ _ _ _ hpk
+      · obtain ⟨uid, p, r, a, ctx, hc, hcmem⟩ := requestFromAction_ctx_mem hrfa
+        rw [hc]
+        exact wfCedarType_typeValid
+          (WfCedarType.record entityTypes ctx (wfActionsGo_mem_ctx_wf hgo hcmem)) hbridge
+
+/-! ### `lub?` preserves `TypeValid` -/
+
+theorem lub?_typeValid {env : TypeEnv} (ty₁ ty₂ : CedarType) :
+    ∀ {t}, lub? ty₁ ty₂ = some t → TypeValid env ty₁ → TypeValid env ty₂ → TypeValid env t := by
+  induction ty₁, ty₂ using lub?.induct
+    (motive_1 := fun q₁ q₂ => ∀ {q}, lubQualifiedType q₁ q₂ = some q →
+      TypeValid env q₁.getType → TypeValid env q₂.getType → TypeValid env q.getType)
+    (motive_3 := fun r₁ r₂ => ∀ {r}, lubRecordType r₁ r₂ = some r →
+      TypeValid env (.record (Map.mk r₁)) → TypeValid env (.record (Map.mk r₂)) →
+        TypeValid env (.record (Map.mk r))) with
+  | case1 b₁ b₂ => intro t h _ _; simp only [lub?, Option.some.injEq] at h; subst h; exact TypeValid.bool _
+  | case2 s₁ s₂ ih =>
+    intro t h hv1 hv2; simp only [lub?] at h
+    cases hs : s₁ ⊔ s₂ with
+    | none => rw [hs] at h; simp at h
+    | some s =>
+      rw [hs] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      cases hv1 with | set _ hv1' => cases hv2 with | set _ hv2' => exact TypeValid.set _ (ih hs hv1' hv2')
+  | case3 r₁ r₂ ih3 =>
+    intro t h hv1 hv2; simp only [lub?] at h
+    cases hr : lubRecordType r₁ r₂ with
+    | none => rw [hr] at h; simp at h
+    | some r =>
+      rw [hr] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact ih3 hr hv1 hv2
+  | case4 ty₂ hb hs hr =>
+    intro t h _ hv2; rw [Cedar.Thm.lub_refl] at h; simp only [Option.some.injEq] at h; subst h; exact hv2
+  | case5 a ty₂ hne _ _ _ => intro t h _ _; simp only [lub?] at h; split at h <;> simp_all
+  | case6 => rename_i r h _ _; simp only [lubRecordType, Option.some.injEq] at h; subst h; exact TypeValid.record [] (by simp)
+  | case7 k₁ v₁ r₁ k₂ v₂ r₂ hbne => rename_i r h _ _; simp [lubRecordType, hbne] at h
+  | case8 k₁ v₁ r₁ k₂ v₂ r₂ hbne ihq ihr =>
+    rename_i r h hvr1 hvr2
+    have hk : k₁ = k₂ := by simpa using hbne
+    subst hk
+    simp only [lubRecordType] at h; rw [if_neg hbne] at h
+    cases hty : lubQualifiedType v₁ v₂ with
+    | none => rw [hty] at h; simp at h
+    | some ty =>
+      cases htys : lubRecordType r₁ r₂ with
+      | none => rw [hty, htys] at h; simp at h
+      | some tys =>
+        rw [hty, htys] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+        cases hvr1 with | record _ hc1 => cases hvr2 with | record _ hc2 =>
+          refine TypeValid.record _ ?_
+          intro p hp
+          rcases List.mem_cons.mp hp with rfl | hpm
+          · exact ihq hty (hc1 (k₁, v₁) (by simp)) (hc2 (k₁, v₂) (by simp))
+          · have hrec := ihr htys (TypeValid.record _ (fun q hq => hc1 q (by simp [hq])))
+              (TypeValid.record _ (fun q hq => hc2 q (by simp [hq])))
+            cases hrec with | record _ hct => exact hct p hpm
+  | case9 t ty₂ _ _ => rename_i r h _ _; simp [lubRecordType] at h
+  | case10 ty₁ ty₂ ih =>
+    rename_i q h hv1 hv2; simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact ih hlub hv1 hv2
+  | case11 ty₁ ty₂ ih =>
+    rename_i q h hv1 hv2; simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact ih hlub hv1 hv2
+  | case12 t q₂ _ _ => rename_i q h _ _; simp [lubQualifiedType] at h
+
 /-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
 theorem typeOf_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
