@@ -326,6 +326,11 @@ inductive NotDescendentOf : EntitySchema → ActionSchema → EntityType → Ent
     MapContainsAncestors ety₁ ancs ets →
     Not (SetContains ety₂ ancs) →
     NotDescendentOf ets acts ety₁ ety₂
+  -- An enum entity type has no ancestors, so it descends from nothing but itself.
+  | enum : ∀ ets acts ety₁ ety₂ eids,
+    ety₁ ≠ ety₂ →
+    MapContainsEnum ety₁ eids ets →
+    NotDescendentOf ets acts ety₁ ety₂
 
 /- ## Action hierarchy (for precise mem typing) -/
 
@@ -374,6 +379,10 @@ inductive HasTagSchema : EntitySchema → EntityType → CedarType → Prop wher
 inductive NoTags : EntitySchema → EntityType → Prop where
   | none : ∀ ets ety,
     MapContainsNoTags ety ets →
+    NoTags ets ety
+  -- An enum entity type carries no tags (`tags?` returns the empty tag set).
+  | enum : ∀ ets ety eids,
+    MapContainsEnum ety eids ets →
     NoTags ets ety
 
 /- ## Set element type accumulation -/
@@ -904,6 +913,30 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc51 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
+  /- ### Binary: mem — false (action-typed operand, non-literal) -/
+  -- An action-typed operand `ety₁` (all action UIDs have the reserved `Action` type) can
+  -- only descend from another action type; comparing it to a *different* type `ety₂` is
+  -- always `.ff` (`typeOfInₑ`/`typeOfInₛ` take the `maybeDescendentOf` fallback, which is
+  -- false since action ancestors are `Action`-typed). `NotDescendentOf` can't witness this
+  -- (it walks standard `ets` entries), so these are separate rules; soundness uses the
+  -- `WfActionSchema` invariant that action ancestors are `Action`-typed.
+  | binaryAppMemActionEntityFf :
+    ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
+    MapNotContainsKey ety₁ ets →
+    ety₁ ≠ ety₂ →
+    ¬ IsActionLitMem x₁ x₂ acts →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc103 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc104 →
+    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+  | binaryAppMemActionSetFf :
+    ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
+    MapNotContainsKey ety₁ ets →
+    ety₁ ≠ ety₂ →
+    ¬ IsActionLitMemSet x₁ x₂ acts →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc105 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc106 →
+    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+
   /- ### Binary: mem — true (known action literal hierarchy) -/
   | binaryAppMemActionLitTt :
     ∀ uid₁ uid₂ c ets acts reqty,
@@ -988,6 +1021,16 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc64 →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
+  /- ### hasAttr — action-typed entity (no attributes) -/
+  -- An action type is absent from `ets`, so `typeOfHasAttr` takes its `actionType?` branch:
+  -- `hasAttr` on an action-typed operand is `.bool .ff` (action attributes not allowed).
+  | hasAttrActionFf :
+    ∀ x₁ a c ets acts reqty ety eid entry,
+    MapNotContainsKey ety ets →
+    MapContainsPairKey ety eid entry acts →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc109 →
+    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+
   /- ### getAttr — record -/
   -- `id rty`: produce `rty` from the record-type inference `HasType x₁ (.record
   -- rty)` (bounded), not by enumerating it inside `GetAttrInRecord` over all
@@ -1041,6 +1084,17 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     NoTags ets ety →
     HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc71 →
     HasType x₂ c ⟨ets, acts, reqty⟩ .string oc72 →
+    HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+
+  /- ### hasTag — action-typed entity (no tags) -/
+  -- An action type is absent from `ets`, so `typeOfHasTag` takes its `actionType?` branch:
+  -- `hasTag` on an action-typed operand is `.bool .ff` (action tags not allowed).
+  | hasTagActionFf :
+    ∀ x₁ x₂ c ets acts reqty ety eid entry,
+    MapNotContainsKey ety ets →
+    MapContainsPairKey ety eid entry acts →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc107 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc108 →
     HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### getTag — entity with tags, capability present -/

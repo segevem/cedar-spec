@@ -716,6 +716,91 @@ theorem wfTypeEnv_acts_nodup {env : TypeEnv} (h : Schema.WfTypeEnv env) :
   | mk entityTypes entityEntries actionEntries reqty _ has _ =>
     simpa only [Map.toList] using wfActionSchema_nodup has
 
+/-! ## Action-type invariant: all action UIDs and their ancestors have the reserved `Action` type
+
+Used to show that an action-typed operand of `mem`/`in` never descends from a *different*
+type (`maybeDescendentOf … = false`), which is what makes the relational `binaryAppMemAction*Ff`
+rules sound. -/
+
+/-- Every UID in the list has the reserved action type. -/
+def AllActTy (l : List EntityUID) : Prop := ∀ uid ∈ l, uid.ty = Schema.actionEntityType
+
+/-- Invariant on the `WfActionsGo` accumulator: every built action UID and each of its
+    ancestor UIDs has the reserved action type. -/
+def BuiltInv (built : List (EntityUID × List EntityUID)) : Prop :=
+  ∀ p ∈ built, p.1.ty = Schema.actionEntityType ∧ AllActTy p.2
+
+theorem appendUID_allActTy {xs ys zs} (h : Schema.AppendUID xs ys zs) :
+    AllActTy xs → AllActTy ys → AllActTy zs := by
+  induction h with
+  | nil ys => intro _ hy; exact hy
+  | cons x xs ys zs happ ih =>
+    intro hx hy uid huid
+    rcases List.mem_cons.mp huid with rfl | hmem
+    · exact hx uid (by simp)
+    · exact ih (fun q hq => hx q (List.mem_cons_of_mem _ hq)) hy uid hmem
+
+theorem pick_allActTy {built chosen} (h : Schema.PickClosedActionAncestors built chosen) :
+    BuiltInv built → AllActTy chosen := by
+  induction h with
+  | none => intro _ uid huid; simp at huid
+  | skip p pset built chosen hpca ih => intro hb; exact ih (fun q hq => hb q (List.mem_cons_of_mem _ hq))
+  | pick p pset built chosen merged hpca happ ih =>
+    intro hb uid huid
+    have hpp := hb (p, pset) (by simp)
+    have hmerged := appendUID_allActTy happ hpp.2 (ih (fun q hq => hb q (List.mem_cons_of_mem _ hq)))
+    rcases List.mem_cons.mp huid with rfl | hmem
+    · exact hpp.1
+    · exact hmerged uid hmem
+
+theorem wfActionsGo_actTy {ets built avail entries} (h : Schema.WfActionsGo ets built avail entries) :
+    BuiltInv built → ∀ p ∈ entries, p.1.ty = Schema.actionEntityType ∧ AllActTy p.2.ancestors.elts := by
+  induction h with
+  | nil => intro _ p hp; simp at hp
+  | cons built avail avail' eid ancestors principals resources context rest
+      hsel hpick hwp hwr hwa hrest ih =>
+    intro hb p hp'
+    have hanc : AllActTy ancestors := pick_allActTy hpick hb
+    have hbnew : BuiltInv ((⟨Schema.actionEntityType, eid⟩, ancestors) :: built) := by
+      intro q hq; rcases List.mem_cons.mp hq with rfl | hmem
+      · exact ⟨rfl, hanc⟩
+      · exact hb q hmem
+    rcases List.mem_cons.mp hp' with rfl | hmem
+    · exact ⟨rfl, hanc⟩
+    · exact ih hbnew p hmem
+
+theorem wfActionSchema_actTy {ets entries} (h : Schema.WfActionSchema ets entries) :
+    ∀ p ∈ entries, p.1.ty = Schema.actionEntityType ∧ AllActTy p.2.ancestors.elts := by
+  cases h with | mk hgo => exact wfActionsGo_actTy hgo (fun p hp => nomatch hp)
+
+/-- An action schema never routes `maybeDescendentOf` to a *different* target type: since every
+    action UID and ancestor has the reserved `Action` type, the fold's conjunct can only fire when
+    both types are `Action`, impossible when `ety₁ ≠ ety₂`. -/
+theorem wfActionSchema_maybeDescendentOf_false {ets entries ety₁ ety₂}
+    (h : Schema.WfActionSchema ets entries) (hne : ety₁ ≠ ety₂) :
+    ActionSchema.maybeDescendentOf (Map.mk entries) ety₁ ety₂ = false := by
+  have hac := wfActionSchema_actTy h
+  simp only [ActionSchema.maybeDescendentOf, Map.toList, List.any_eq_false, Bool.not_eq_true,
+    Bool.and_eq_false_iff]
+  intro p hp
+  obtain ⟨htk, hanc⟩ := hac p hp
+  by_cases hae : ety₁ = Schema.actionEntityType
+  · right
+    have hne2 : ety₂ ≠ Schema.actionEntityType := fun heq => hne (hae.trans heq.symm)
+    simp only [Set.any, List.any_eq_false, Bool.not_eq_true, beq_eq_false_iff_ne, ne_eq]
+    intro uid huid
+    rw [hanc uid huid]; exact fun heq => hne2 heq.symm
+  · left
+    simp only [decide_eq_false_iff_not]
+    rw [htk]; exact fun heq => hae heq.symm
+
+/-- `WfTypeEnv`-level corollary: comparing distinct types never succeeds via the action fallback. -/
+theorem wfTypeEnv_maybeDescendentOf_false {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+    {ety₁ ety₂} (hne : ety₁ ≠ ety₂) : env.acts.maybeDescendentOf ety₁ ety₂ = false := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty _ has _ =>
+    exact wfActionSchema_maybeDescendentOf_false has hne
+
 /-! ## Structural extractors ↔ schema lookups -/
 
 theorem mapContainsAttrs_mc {ety rty ets} (h : MapContainsAttrs ety rty ets) :
@@ -756,6 +841,15 @@ theorem mapContainsPairKey_mc {v : Type} {ety : EntityType} {eid : String} {entr
   | nextA hne _ ih => exact MapContains.there _ _ _ _ _ ih
   | nextB hne _ ih => exact MapContains.there _ _ _ _ _ ih
 
+/-- A `MapContainsPairKey` witness makes the type an action type (`actionType?`). -/
+theorem mapContainsPairKey_actionType? {ety eid entry acts}
+    (h : MapContainsPairKey ety eid entry acts) : ActionSchema.actionType? acts ety = true := by
+  simp only [ActionSchema.actionType?, Set.any, Map.keys, Map.toList, List.any_eq_true]
+  induction h with
+  | here => exact ⟨_, List.mem_cons_self, by simp⟩
+  | nextA hne hrec ih => obtain ⟨x, hx, hxe⟩ := ih; exact ⟨x, List.mem_cons_of_mem _ hx, hxe⟩
+  | nextB hne hrec ih => obtain ⟨x, hx, hxe⟩ := ih; exact ⟨x, List.mem_cons_of_mem _ hx, hxe⟩
+
 /-- `MapContainsAttrs` ⇒ `EntitySchema.attrs?` (on distinct-keyed store). -/
 theorem mapContainsAttrs_attrs? {ety rty ets} (h : MapContainsAttrs ety rty ets)
     (hnd : (ets.toList.map Prod.fst).Nodup) : EntitySchema.attrs? ets ety = some rty := by
@@ -777,6 +871,10 @@ theorem noTags_tags? {ety ets} (h : NoTags ets ety)
   | none hmcn =>
     obtain ⟨entry, hmc, he⟩ := mapContainsNoTags_mc hmcn
     simp only [EntitySchema.tags?, mapContains_find?_nodup hmc hnd, Option.map_some, he]
+  | enum eids hmce =>
+    have hmc := mapContainsEnum_mc hmce
+    simp only [EntitySchema.tags?, mapContains_find?_nodup hmc hnd, Option.map_some,
+      EntitySchemaEntry.tags?]
 
 /-- `lub?` of two distinct entity types is `none`. -/
 theorem lub_entity_ne {ety₁ ety₂ : EntityType} (h : ety₁ ≠ ety₂) :
@@ -816,6 +914,12 @@ theorem notDescendentOf_sound {ets acts ety₁ ety₂ reqty} (h : NotDescendentO
     have hc : Set.contains _ ety₂ = false :=
       Bool.eq_false_iff.mpr (fun hcon => hnsc ((setContains_iff_contains).mpr hcon))
     simp only [TypeEnv.descendentOf, if_neg hne, mapContains_find?_nodup hmc hnd, he, hc]
+  | enum =>
+    rename_i hne hmce
+    have hmc := mapContainsEnum_mc hmce
+    have hc : Set.contains (EntitySchemaEntry.enum ‹Set String›).ancestors ety₂ = false := by
+      simp [EntitySchemaEntry.ancestors, Set.contains, Set.elts_empty]
+    simp only [TypeEnv.descendentOf, if_neg hne, mapContains_find?_nodup hmc hnd, hc]
 
 /-- `ActionDescendentOf` ⇒ `ActionSchema.descendentOf = true`. -/
 theorem actionDescendentOf_sound {acts uid₁ uid₂} (h : ActionDescendentOf acts uid₁ uid₂)
@@ -2647,6 +2751,44 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
           = CedarType.record (Map.mk atyList)
       rw [hmap, hmake]
   -- HasTypeRecord (motive_3): nil / cons — handled together (they share the `nil`/`cons`
+  -- Gap-B action-operand rules (all produce `.bool .ff` with `[]` caps).
+  | binaryAppMemActionEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ hnc hne hnal a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨tx₁, c₁', hty1, htty1, _⟩ := ih1 hwf
+    obtain ⟨tx₂, c₂', hty2, htty2, _⟩ := ih2 hwf
+    have hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
+      simp only [TypeEnv.descendentOf, if_neg hne, mapNotContainsKey_find? hnc]
+      exact wfTypeEnv_maybeDescendentOf_false hwf hne
+    have hfb : typeOfInₑ ety₁ ety₂ x₁ x₂ ⟨ets, acts, reqty⟩ = .ff := by
+      rw [typeOfInₑ_fallback hnal, hdesc]; rfl
+    refine ⟨.binaryApp .mem tx₁ tx₂ (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, hty1, hty2, Except.bind_ok, typeOfBinaryApp, htty1, htty2, hfb, ok]
+  | binaryAppMemActionSetFf x₁ x₂ c ets acts reqty ety₁ ety₂ hnc hne hnal a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨tx₁, c₁', hty1, htty1, _⟩ := ih1 hwf
+    obtain ⟨tx₂, c₂', hty2, htty2, _⟩ := ih2 hwf
+    have hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
+      simp only [TypeEnv.descendentOf, if_neg hne, mapNotContainsKey_find? hnc]
+      exact wfTypeEnv_maybeDescendentOf_false hwf hne
+    have hfb : typeOfInₛ ety₁ ety₂ x₁ x₂ ⟨ets, acts, reqty⟩ = .ff := by
+      rw [typeOfInₛ_fallback hnal, hdesc]; rfl
+    refine ⟨.binaryApp .mem tx₁ tx₂ (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, hty1, hty2, Except.bind_ok, typeOfBinaryApp, htty1, htty2, hfb, ok]
+  | hasTagActionFf x₁ x₂ c ets acts reqty ety eid entry hnc hpk a1 a2 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨tx₁, c₁', hty1, htty1, _⟩ := ih1 hwf
+    obtain ⟨tx₂, c₂', hty2, htty2, _⟩ := ih2 hwf
+    refine ⟨.binaryApp .hasTag tx₁ tx₂ (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, hty1, hty2, Except.bind_ok, typeOfBinaryApp, htty1, htty2, typeOfHasTag,
+      EntitySchema.tags?, mapNotContainsKey_find? hnc, Option.map,
+      mapContainsPairKey_actionType? hpk, if_true, ok]
+  | hasAttrActionFf x₁ a c ets acts reqty ety eid entry hnc hpk a1 ih1 =>
+    rename_i hwf
+    obtain ⟨tx₁, c₁', hty1, htty1, _⟩ := ih1 hwf
+    refine ⟨.hasAttr tx₁ a (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [typeOf, hty1, Except.bind_ok, typeOfHasAttr, htty1, EntitySchema.attrs?,
+      mapNotContainsKey_find? hnc, Option.map, mapContainsPairKey_actionType? hpk,
+      if_true, ok]
   -- recursor tags with `HasTypeList`, so cannot be named separately in `with`).
   | _ =>
     first
