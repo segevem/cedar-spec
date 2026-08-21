@@ -736,6 +736,12 @@ theorem mapContainsNoTags_mc {ety ets} (h : MapContainsNoTags ety ets) :
   | here => exact ⟨_, MapContains.here _ _ _, rfl⟩
   | there => rename_i ih; obtain ⟨e, hmc, he⟩ := ih; exact ⟨e, MapContains.there _ _ _ _ _ hmc, he⟩
 
+theorem mapContainsEnum_mc {ety eids ets} (h : MapContainsEnum ety eids ets) :
+    MapContains ety (.enum eids) ets := by
+  induction h with
+  | here => exact MapContains.here _ _ _
+  | there => rename_i ih; exact MapContains.there _ _ _ _ _ ih
+
 theorem mapContainsAncestors_mc {ety ancs ets} (h : MapContainsAncestors ety ancs ets) :
     ∃ entry, MapContains ety entry ets ∧ EntitySchemaEntry.ancestors entry = ancs := by
   induction h with
@@ -2577,6 +2583,17 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
       simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, ok],
       rfl, fun _ => Iff.rfl⟩
+  -- hasAttr — enum entity: `attrs? = some Map.empty`, so `hasAttrInRecord` finds
+  -- nothing and returns `.bool .ff`.
+  | hasAttrEnum x₁ a c ets acts reqty ety eids a1 a2 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have hfind := mapContains_find?_nodup (mapContainsEnum_mc a1) (wfTypeEnv_ets_nodup hwf)
+    have hattr : EntitySchema.attrs? ets ety = some Map.empty := by
+      simp only [EntitySchema.attrs?, hfind, Option.map_some, EntitySchemaEntry.attrs]
+    exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
+      simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hattr, hasAttrInRecord,
+        show (Map.empty : RecordType).find? a = none from rfl, ok], rfl, fun _ => Iff.rfl⟩
   -- mem — action literal in a set of entity literals (tt: some descendent).
   | binaryAppMemActionLitSetTt uid₁ xs c ets acts reqty ety₂ a1 a2 a3 a4 ih1 ih2 =>
     rename_i hwf

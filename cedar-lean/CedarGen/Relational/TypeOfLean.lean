@@ -280,6 +280,13 @@ inductive MapContainsNoTags : EntityType → EntitySchema → Prop where
     MapContainsNoTags ety (.mk rest) →
     MapContainsNoTags ety (.mk ((k', v') :: rest))
 
+inductive MapContainsEnum : EntityType → Set String → EntitySchema → Prop where
+  | here : ∀ ety eids rest,
+    MapContainsEnum ety eids (.mk ((ety, .enum eids) :: rest))
+  | there : ∀ ety eids k' v' rest,
+    MapContainsEnum ety eids (.mk rest) →
+    MapContainsEnum ety eids (.mk ((k', v') :: rest))
+
 instance [BEq v] : DecOpt (MapContainsPairKey (v := v) a b va m) where
   decOpt _ := .ok (match m with | .mk l => l.any (fun (uid, val) => uid.ty == a && uid.eid == b && val == va))
 
@@ -298,6 +305,10 @@ instance : DecOpt (MapContainsTagType ety ty (ets : EntitySchema)) where
 instance : DecOpt (MapContainsNoTags ety (ets : EntitySchema)) where
   decOpt _ := .ok (match ets with | .mk l => l.any (fun (k, v) => k == ety &&
     match v with | .standard ⟨_, _, .none⟩ => true | _ => false))
+
+instance : DecOpt (MapContainsEnum ety eids (ets : EntitySchema)) where
+  decOpt _ := .ok (match ets with | .mk l => l.any (fun (k, v) => k == ety &&
+    match v with | .enum e => e == eids | _ => false))
 
 /- ## Entity ancestry -/
 
@@ -959,6 +970,21 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     MapContainsAttrs ety rty ets →
     HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
     MapNotContainsKey a rty →
+    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+
+  /- ### hasAttr — enum entity (no attributes) -/
+  -- An enum entity type carries no attributes: `EntitySchema.attrs?` returns the
+  -- empty record for it, so `hasAttr` on an enum-typed operand types as `.bool .ff`.
+  -- Mirrors `typeOfHasAttr`'s enum path (`attrs? ety = some Map.empty` →
+  -- `hasAttrInRecord` finds nothing → `.bool .ff`). Uses `MapContains … (.enum …)`
+  -- (the enum entry) rather than `MapContainsAttrs` (which matches only standard
+  -- entries), so enum-typed operands get a derivation. `MapContainsEnum` extracts
+  -- the enum entry as a top-level output (Specimen-friendly), like the other
+  -- `MapContains…` field projectors.
+  | hasAttrEnum :
+    ∀ x₁ a c ets acts reqty ety eids,
+    MapContainsEnum ety eids ets →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### getAttr — record -/
