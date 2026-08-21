@@ -1421,6 +1421,235 @@ theorem typeOfOr_tyWf {r₁ r₂ tx c'} (h : typeOfOr r₁ r₂ = .ok (tx, c')) 
            | (simp only [err, reduceCtorEq] at h))
     | (simp only [err, reduceCtorEq] at h)
 
+theorem typeOfEq_tyWf {ty₁ ty₂ x₁ x₂ tx c'}
+    (h : typeOfEq ty₁ ty₂ x₁ x₂ = .ok (tx, c')) : TyWf tx.typeOf := by
+  simp only [typeOfEq] at h
+  repeat' first
+    | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+       simp only [TypedExpr.typeOf]; exact TyWf.bool _)
+    | (simp only [err, reduceCtorEq] at h)
+    | split at h
+
+theorem typeOfHasTag_bool {ety x t c env ty c'}
+    (h : typeOfHasTag ety x t c env = .ok (ty, c')) : ∃ b, ty = .bool b := by
+  simp only [typeOfHasTag] at h
+  repeat' first
+    | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; exact ⟨_, h.1.symm⟩)
+    | (simp only [err, reduceCtorEq] at h)
+    | split at h
+
+theorem ifLubThenBool_bool {ty₁ ty₂ ty c'}
+    (h : ifLubThenBool ty₁ ty₂ = .ok (ty, c')) : ∃ b, ty = .bool b := by
+  simp only [ifLubThenBool] at h
+  split at h
+  · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; exact ⟨_, h.1.symm⟩
+  · simp only [err, reduceCtorEq] at h
+
+theorem typeOfGetTag_tyWf {ety x t c env ty c'} (hwf : Schema.WfTypeEnv env)
+    (h : typeOfGetTag ety x t c env = .ok (ty, c')) : TyWf ty := by
+  simp only [typeOfGetTag] at h
+  split at h
+  · simp only [err, reduceCtorEq] at h
+  · rename_i tagty htags
+    split at h
+    · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      exact wfTypeEnv_tags?_tyWf hwf htags
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+theorem getAttrInRecord_tyWf {ty rty x a c aty c'}
+    (hrec : TyWf (.record rty)) (h : getAttrInRecord ty rty x a c = .ok (aty, c')) : TyWf aty := by
+  simp only [getAttrInRecord] at h
+  split at h
+  · rename_i aty' heqf
+    have hq := tyWf_record_find hrec heqf
+    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+    cases hq with | required _ ht => exact ht
+  · rename_i aty' heqf
+    split at h
+    · have hq := tyWf_record_find hrec heqf
+      simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      cases hq with | optional _ ht => exact ht
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+theorem typeOfGetAttr_tyWf {ty x a c env tx c'} (hwf : Schema.WfTypeEnv env)
+    (hty : TyWf ty.typeOf) (h : typeOfGetAttr ty x a c env = .ok (tx, c')) : TyWf tx.typeOf := by
+  simp only [typeOfGetAttr] at h
+  split at h
+  · rename_i rty heqty
+    cases hg : getAttrInRecord ty.typeOf rty x a c with
+    | error e => rw [hg] at h; simp at h
+    | ok r =>
+      obtain ⟨aty, ac⟩ := r; rw [hg] at h
+      simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      simp only [TypedExpr.typeOf]
+      have hrec : TyWf (.record rty) := by rw [← heqty]; exact hty
+      exact getAttrInRecord_tyWf hrec hg
+  · rename_i ety heqty
+    split at h
+    · rename_i rty hattr
+      cases hg : getAttrInRecord ty.typeOf rty x a c with
+      | error e => rw [hg] at h; simp at h
+      | ok r =>
+        obtain ⟨aty, ac⟩ := r; rw [hg] at h
+        simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+        simp only [TypedExpr.typeOf]
+        exact getAttrInRecord_tyWf (wfTypeEnv_attrs?_tyWf hwf hattr) hg
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+theorem typeOfBinaryApp_tyWf {op ty₁ ty₂ x₁ x₂ c env tx c'} (hwf : Schema.WfTypeEnv env)
+    (h : typeOfBinaryApp op ty₁ ty₂ x₁ x₂ c env = .ok (tx, c')) : TyWf tx.typeOf := by
+  simp only [typeOfBinaryApp] at h
+  split at h <;>
+    first
+    | exact typeOfEq_tyWf h
+    | (cases hs : typeOfGetTag _ x₁ x₂ c env with
+       | error e => rw [hs] at h; simp at h
+       | ok r =>
+         obtain ⟨rty, rc⟩ := r; rw [hs] at h
+         simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+         simp only [TypedExpr.typeOf]; exact typeOfGetTag_tyWf hwf hs)
+    | (cases hs : typeOfHasTag _ x₁ x₂ c env with
+       | error e => rw [hs] at h; simp at h
+       | ok r =>
+         obtain ⟨rty, rc⟩ := r; rw [hs] at h
+         simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+         obtain ⟨b, hb⟩ := typeOfHasTag_bool hs
+         simp only [TypedExpr.typeOf, hb]; exact TyWf.bool _)
+    | (cases hs : ifLubThenBool _ _ with
+       | error e => rw [hs] at h; simp at h
+       | ok r =>
+         obtain ⟨rty, rc⟩ := r; rw [hs] at h
+         simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+         obtain ⟨b, hb⟩ := ifLubThenBool_bool hs
+         simp only [TypedExpr.typeOf, hb]; exact TyWf.bool _)
+    | (simp only [ok, err, Except.ok.injEq, Prod.mk.injEq, reduceCtorEq] at h
+       obtain ⟨rfl, _⟩ := h; simp only [TypedExpr.typeOf]
+       first | exact TyWf.bool _ | exact TyWf.int)
+    | (simp only [err, reduceCtorEq] at h)
+
+theorem typeOfIf_tyWf {r₁ r₂ r₃ tx c'}
+    (h2 : ∀ t2 cc2, r₂ = .ok (t2, cc2) → TyWf t2.typeOf)
+    (h3 : ∀ t3 cc3, r₃ = .ok (t3, cc3) → TyWf t3.typeOf)
+    (h : typeOfIf r₁ r₂ r₃ = .ok (tx, c')) : TyWf tx.typeOf := by
+  simp only [typeOfIf] at h
+  split at h
+  · cases hr2 : r₂ with
+    | error e => rw [hr2] at h; simp at h
+    | ok p =>
+      obtain ⟨t2, cc2⟩ := p; rw [hr2] at h
+      simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      simp only [TypedExpr.typeOf]; exact h2 t2 cc2 hr2
+  · cases hr3 : r₃ with
+    | error e => rw [hr3] at h; simp at h
+    | ok p =>
+      obtain ⟨t3, cc3⟩ := p; rw [hr3] at h
+      simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      simp only [TypedExpr.typeOf]; exact h3 t3 cc3 hr3
+  · cases hr2 : r₂ with
+    | error e => rw [hr2] at h; simp at h
+    | ok p2 =>
+      obtain ⟨t2, cc2⟩ := p2; rw [hr2] at h; simp only [Except.bind_ok] at h
+      cases hr3 : r₃ with
+      | error e => rw [hr3] at h; simp at h
+      | ok p3 =>
+        obtain ⟨t3, cc3⟩ := p3; rw [hr3] at h; simp only [Except.bind_ok] at h
+        split at h
+        · rename_i ty hlub
+          simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+          simp only [TypedExpr.typeOf]
+          exact lub_tyWf _ _ (h2 t2 cc2 hr2) (h3 t3 cc3 hr3) hlub
+        · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+theorem typeOfSet_tyWf {tys tx c'} (htys : ∀ t ∈ tys, TyWf (TypedExpr.typeOf t))
+    (h : typeOfSet tys = .ok (tx, c')) : TyWf tx.typeOf := by
+  simp only [typeOfSet] at h
+  split at h
+  · simp only [err, reduceCtorEq] at h
+  · rename_i hd tl
+    split at h
+    · rename_i ty hfold
+      simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+      simp only [TypedExpr.typeOf]
+      refine TyWf.set _ (foldlM_lub_tyWf (htys hd (by simp)) ?_ hfold)
+      intro t ht; simp only [List.mem_map] at ht
+      obtain ⟨t', ht', rfl⟩ := ht; exact htys t' (by simp [ht'])
+    · simp only [err, reduceCtorEq] at h
+
+/-- `typeOf` produces canonical (`TyWf`) types on a well-formed environment. This
+    is the invariant that makes `Map.find?` on a record-typed receiver agree with
+    the structural attribute witness in the `getAttr`/`hasAttr` soundness cases. -/
+theorem typeOf_tyWf {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
+      typeOf x c env = .ok (tx, c') → TyWf tx.typeOf := by
+  intro x c
+  induction x, c using typeOf.induct with
+  | case1 c p => intro tx c' h; simp only [typeOf] at h; exact typeOfLit_tyWf h
+  | case2 c v => intro tx c' h; simp only [typeOf] at h; exact typeOfVar_tyWf hwf h
+  | case3 c x₁ x₂ x₃ ih1 ih2 ih3 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfIf_tyWf (fun t2 cc2 he => ih2 cc1 he) (fun t3 cc3 he => ih3 he) h
+  | case4 c x₁ x₂ ih1 ih2 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfAnd_tyWf h
+  | case5 c x₁ x₂ ih1 ih2 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfOr_tyWf h
+  | case6 c op₁ x₁ ih1 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfUnaryApp_tyWf h
+  | case7 c op₂ x₁ x₂ ih1 ih2 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      cases h2 : typeOf x₂ c env with
+      | error e => rw [h2] at h; simp at h
+      | ok r2 =>
+        obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
+        exact typeOfBinaryApp_tyWf hwf h
+  | case8 c x₁ a ih1 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfHasAttr_tyWf h
+  | case9 c x₁ a ih1 =>
+    intro tx c' h; simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
+      exact typeOfGetAttr_tyWf hwf (ih1 h1) h
+  | case10 c xs ih => intro tx c' h; sorry
+  | case11 c axs ih => intro tx c' h; sorry
+  | case12 c xfn xs ih =>
+    intro tx c' h; simp only [typeOf] at h
+    cases hm : xs.mapM₁ (fun x => justType (typeOf x.1 c env)) with
+    | error e => rw [hm] at h; simp at h
+    | ok tys => rw [hm] at h; simp only [Except.bind_ok] at h; exact typeOfCall_tyWf h
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
