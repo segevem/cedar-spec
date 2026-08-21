@@ -14,6 +14,7 @@
  limitations under the License.
 -/
 
+import CedarGen.Relational.TypeOfLeanCapsCongr
 import CedarGen.Relational.TypeOfLeanSound
 import Cedar.Thm.WellTyped.Expr.WF
 
@@ -866,6 +867,16 @@ theorem hasAttrInRecord_found_of_ok {rty : RecordType} {x : Expr} {a : Attr} {c 
       | optional ty' => exact HasAttrInRecord.found_optional_known rty x a c ty' hmc hncap'
       | required ty' => simp [Qualified.isRequired] at hnrq
 
+/-- Transport an input capability across `∪` to a `++` `CapMerge` witness. `typeOf`
+    types the taken branch of `and`/`ite` at `c ∪ c₁` (dedup union), while the relational
+    rules require it at a `CapMerge c cout₁ ·` witness; `c ++ cout₁` is such a witness
+    (`capMerge_append'`) and is `CapsEquiv` to `c ∪ c₁` when `cout₁ ≈ c₁`. Feeds
+    `hasType_capsCongr` to move the branch IH onto the witness. -/
+theorem capsEquiv_union_append {c cc₁ cout₁ : Capabilities} (hce₁ : CapsEquiv cout₁ cc₁) :
+    CapsEquiv (c ∪ cc₁) (c ++ cout₁) :=
+  (CapsEquiv.union (CapsEquiv.refl c) hce₁.symm).trans
+    (capMerge_capsEquiv_union (capMerge_append' c cout₁)).symm
+
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
     declared-`is`-type) expression is witnessed by a `HasType` derivation with a
@@ -913,8 +924,151 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     · exact ⟨[], HasType.varAction _ _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
     · exact ⟨[], HasType.varResource _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
     · exact ⟨[], HasType.varContext _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
-  | case3 c x₁ x₂ x₃ ih1 ih2 ih3 => intro hwfx tx c' h; sorry
-  | case4 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
+  | case3 c x₁ x₂ x₃ ih1 ih2 ih3 =>
+    intro tx c' hwfx h
+    obtain ⟨hw1, hw2, hw3⟩ := wfExpr_ite hwfx
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1
+      rw [h1] at h; simp only [Except.bind_ok] at h
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      simp only [typeOfIf] at h
+      split at h
+      · -- ty1.typeOf = .bool tt → iteTt (x₃ untaken)
+        rename_i heq
+        cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2
+          rw [h2] at h; simp only [Except.bind_ok] at h
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
+          simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          refine ⟨cout1 ++ cout2', ?_, ?_⟩
+          · simp only [TypedExpr.typeOf]
+            exact HasType.iteTt x₁ x₂ x₃ c env cout1 _ ty2.typeOf cout2' _ (heq ▸ hHT1)
+              (capMerge_append' c cout1) hHT2' (capMerge_append' cout1 cout2')
+          · exact (capMerge_capsEquiv_union (capMerge_append' cout1 cout2')).trans
+              (CapsEquiv.union hce1 (hce2'.symm.trans hce2))
+      · -- ty1.typeOf = .bool ff → iteFf (x₂ untaken)
+        rename_i heq
+        cases h3 : typeOf x₃ c env with
+        | error e => rw [h3] at h; simp at h
+        | ok r3 =>
+          obtain ⟨ty3, cc3⟩ := r3
+          rw [h3] at h; simp only [Except.bind_ok] at h
+          obtain ⟨cout3, hHT3, hce3⟩ := ih3 hw3 h3
+          simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          refine ⟨cout3, ?_, hce3⟩
+          simp only [TypedExpr.typeOf]
+          exact HasType.iteFf x₁ x₂ x₃ c env cout1 ty3.typeOf cout3 (heq ▸ hHT1) hHT3
+      · -- ty1.typeOf = .bool anyBool → iteAnyBool
+        rename_i heq
+        cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2
+          rw [h2] at h; simp only [Except.bind_ok] at h
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
+          cases h3 : typeOf x₃ c env with
+          | error e => rw [h3] at h; simp at h
+          | ok r3 =>
+            obtain ⟨ty3, cc3⟩ := r3
+            rw [h3] at h; simp only [Except.bind_ok] at h
+            obtain ⟨cout3, hHT3, hce3⟩ := ih3 hw3 h3
+            split at h
+            · -- ty2.typeOf ⊔ ty3.typeOf = some lubTy → iteAnyBool
+              rename_i lubTy hlub
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+              obtain ⟨rfl, rfl⟩ := h
+              refine ⟨capIntersect (cout1 ++ cout2') cout3, ?_, ?_⟩
+              · simp only [TypedExpr.typeOf]
+                exact HasType.iteAnyBool x₁ x₂ x₃ c env cout1 _ ty2.typeOf cout2' ty3.typeOf cout3
+                  lubTy _ (heq ▸ hHT1) (capMerge_append' c cout1) hHT2' hHT3 (lub?_lub _ _ hlub)
+                  (capMerge_append' cout1 cout2')
+              · exact (capIntersect_capsEquiv_inter _ _).trans (CapsEquiv.inter
+                  ((capMerge_capsEquiv_union (capMerge_append' cout1 cout2')).trans
+                    (CapsEquiv.union hce1 (hce2'.symm.trans hce2))) hce3)
+            · -- lub = none → err
+              simp only [err, reduceCtorEq] at h
+      · -- ty1.typeOf non-bool → err
+        simp only [err, reduceCtorEq] at h
+  | case4 c x₁ x₂ ih1 ih2 =>
+    intro tx c' hwfx h
+    obtain ⟨hw1, hw2⟩ := wfExpr_and hwfx
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1
+      rw [h1] at h; simp only [Except.bind_ok] at h
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      simp only [typeOfAnd] at h
+      split at h
+      · -- ty1.typeOf = .bool .ff → andShort (short-circuit)
+        rename_i heq
+        simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        refine ⟨[], ?_, fun _ => Iff.rfl⟩
+        rw [heq]
+        exact HasType.andShort x₁ x₂ c env cout1 (heq ▸ hHT1)
+      · -- ty1.typeOf = .bool ty₁ (ty₁ ∈ {tt, anyBool}); x₂ typed at c ∪ cc1
+        rename_i _ ty₁ hne heq
+        cases h2 : typeOf x₂ (c ∪ cc1) env with
+        | error e => rw [h2] at h; simp at h
+        | ok r2 =>
+          obtain ⟨ty2, cc2⟩ := r2
+          rw [h2] at h; simp only [Except.bind_ok] at h
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          -- transport the branch IH from (c ∪ cc1) onto the CapMerge witness (c ++ cout1)
+          obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
+          have hm₁ : CapMerge c cout1 (c ++ cout1) := capMerge_append' c cout1
+          have hm₂ : CapMerge cout1 cout2' (cout1 ++ cout2') := capMerge_append' cout1 cout2'
+          have hout : CapsEquiv (cout1 ++ cout2') (cc1 ∪ cc2) :=
+            (capMerge_capsEquiv_union hm₂).trans (CapsEquiv.union hce1 (hce2'.symm.trans hce2))
+          split at h
+          · -- ty2 = .bool ff → (.bool ff, ∅): andTtFf / andAnyFf
+            rename_i heq2
+            simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            refine ⟨[], ?_, fun _ => Iff.rfl⟩
+            simp only [TypedExpr.typeOf]
+            cases ty₁ with
+            | ff => exact absurd rfl hne
+            | tt => exact HasType.andTtFf x₁ x₂ c env cout1 _ cout2' (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2')
+            | anyBool => exact HasType.andAnyFf x₁ x₂ c env cout1 _ cout2' (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2')
+          · -- ty2 = .bool tt → (.bool ty₁, cc1 ∪ cc2): andTtTt / andAnyTt
+            rename_i heq2
+            simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            refine ⟨cout1 ++ cout2', ?_, hout⟩
+            simp only [TypedExpr.typeOf]
+            cases ty₁ with
+            | ff => exact absurd rfl hne
+            | tt => exact HasType.andTtTt x₁ x₂ c env cout1 _ cout2' _ (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2') hm₂
+            | anyBool => exact HasType.andAnyTt x₁ x₂ c env cout1 _ cout2' _ (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2') hm₂
+          · -- ty2 = .bool bty (anyBool) → (.bool anyBool, cc1 ∪ cc2): andTtAny / andAnyAny
+            rename_i _ bty2 hnt2 hnf2 heq2
+            have hany2 : bty2 = BoolType.anyBool := by
+              cases bty2 <;> first | rfl | exact absurd rfl hnt2 | exact absurd rfl hnf2
+            subst hany2
+            simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            refine ⟨cout1 ++ cout2', ?_, hout⟩
+            simp only [TypedExpr.typeOf]
+            cases ty₁ with
+            | ff => exact absurd rfl hne
+            | tt => exact HasType.andTtAny x₁ x₂ c env cout1 _ cout2' _ (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2') hm₂
+            | anyBool => exact HasType.andAnyAny x₁ x₂ c env cout1 _ cout2' _ (heq ▸ hHT1) hm₁ (heq2 ▸ hHT2') hm₂
+          · -- ty2 non-bool → err
+            simp only [err, reduceCtorEq] at h
+      · -- ty1.typeOf non-bool → err
+        simp only [err, reduceCtorEq] at h
   | case5 c x₁ x₂ ih1 ih2 =>
     intro tx c' hwfx h
     obtain ⟨hw1, hw2⟩ := wfExpr_or hwfx
