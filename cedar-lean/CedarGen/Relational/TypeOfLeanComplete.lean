@@ -321,7 +321,80 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
               · exact (capIntersect_capsEquiv_inter cout1 cout2).trans (CapsEquiv.inter hce1 hce2)
             · simp only [err, reduceCtorEq] at h
         · simp only [err, reduceCtorEq] at h
-  | case6 c op₁ x₁ ih1 => intro hwfx tx c' h; sorry
+  | case6 c op₁ x₁ ih1 =>
+    intro tx c' hwfx h
+    obtain ⟨his, hw1⟩ := wfExpr_unaryApp hwfx
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1
+      rw [h1] at h; simp only [Except.bind_ok] at h
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      simp only [typeOfUnaryApp] at h
+      split at h
+      · -- `.not`, `.bool bx`: pick not-rule by the operand's bool subtype
+        rename_i _ _ bx heq
+        simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        refine ⟨[], ?_, fun _ => Iff.rfl⟩
+        simp only [TypedExpr.typeOf]
+        cases bx <;>
+          first
+            | exact HasType.unaryAppNotTt x₁ c env (heq ▸ hHT1)
+            | exact HasType.unaryAppNotFf x₁ c env (heq ▸ hHT1)
+            | exact HasType.unaryAppNotAny x₁ c env (heq ▸ hHT1)
+      · -- `.neg`, `.int`
+        rename_i _ _ heq
+        simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        refine ⟨[], ?_, fun _ => Iff.rfl⟩
+        simp only [TypedExpr.typeOf]
+        exact HasType.unaryAppNeg x₁ c env (heq ▸ hHT1)
+      · -- `.isEmpty`, `.set elemTy`
+        rename_i _ _ elemTy heq
+        simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        refine ⟨[], ?_, fun _ => Iff.rfl⟩
+        simp only [TypedExpr.typeOf]
+        exact HasType.unaryAppIsEmpty x₁ c env elemTy (heq ▸ hHT1)
+      · -- `.like pat`, `.string`
+        rename_i _ _ _ heq
+        simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        refine ⟨[], ?_, fun _ => Iff.rfl⟩
+        simp only [TypedExpr.typeOf]
+        exact HasType.unaryAppLike _ x₁ c env (heq ▸ hHT1)
+      · -- `.is ety₁`, `.entity ety₂`
+        rename_i _ _ ety₁ ety₂ heq
+        split at h
+        · -- ety₁ = ety₂ → `.tt`; tested type declared via `his`
+          rename_i hEq
+          simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          subst hEq
+          refine ⟨[], ?_, fun _ => Iff.rfl⟩
+          simp only [TypedExpr.typeOf]
+          exact HasType.unaryAppIsTrue ety₁ x₁ c env (his ety₁ rfl) (heq ▸ hHT1)
+        · -- ety₁ ≠ ety₂ → `.ff`
+          rename_i hNe
+          simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          refine ⟨[], ?_, fun _ => Iff.rfl⟩
+          simp only [TypedExpr.typeOf]
+          have hvdet : ValidDifferentEntityType ety₂ ety₁ env.ets env.acts := by
+            rcases his ety₁ rfl with _ | _
+            · exact ValidDifferentEntityType.inSchema _ _ _ _ _ ‹MapContains _ _ _› hNe
+            · exact ValidDifferentEntityType.isAction _ _ _ _ _ _ ‹MapContainsPairKey _ _ _ _› hNe
+          -- Operand type `ety₂` is declared. This is the `typeOf` entity-type
+          -- declaredness invariant: `typechecked_has_well_formed_type` gives
+          -- `CedarType.WellFormed env (.entity ety₂)`, whose `entity_wf` yields
+          -- `ValidEntityType ety₂` — modulo the `WfTypeEnv → env.WellFormed`
+          -- bridge. Left as the sole gap in this case.
+          have hvet₂ : ValidEntityType ety₂ env.ets env.acts := sorry
+          exact HasType.unaryAppIsFalse ety₁ ety₂ x₁ c env hvet₂ hvdet (heq ▸ hHT1)
+      · -- err (unexpected operand type)
+        simp only [err, reduceCtorEq] at h
   | case7 c op₂ x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
   | case8 c x₁ a ih1 => intro hwfx tx c' h; sorry
   | case9 c x₁ a ih1 => intro hwfx tx c' h; sorry
