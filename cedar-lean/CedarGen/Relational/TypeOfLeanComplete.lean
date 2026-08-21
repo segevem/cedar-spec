@@ -101,6 +101,80 @@ theorem validEntityUID_of_isValid {ets : EntitySchema} {acts : ActionSchema} {ui
       exact ValidEntityUID.enum _ _ _ _ _ hmc ((setContains_iff_contains).mpr h)
   · simp at h
 
+/-- `≠` on `BoolType` ⇒ `BoolTypeNeq` (reverse of `boolTypeNeq_ne`). -/
+theorem boolTypeNeq_of_ne {b₁ b₂ : BoolType} (h : b₁ ≠ b₂) : BoolTypeNeq b₁ b₂ := by
+  cases b₁ <;> cases b₂ <;> first | exact absurd rfl h | constructor
+
+/-- `lub? = some` ⇒ `Lub` (reverse of `lub_sound`), with the `LubQualified`/`LubRecord`
+    reverses proved simultaneously by functional induction on `lub?`. -/
+theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t → Lub ty₁ ty₂ t := by
+  induction ty₁, ty₂ using lub?.induct
+    (motive_1 := fun q₁ q₂ => ∀ {q}, lubQualifiedType q₁ q₂ = some q → LubQualified q₁ q₂ q)
+    (motive_3 := fun r₁ r₂ => ∀ {r}, lubRecordType r₁ r₂ = some r → LubRecord r₁ r₂ r) with
+  | case1 b₁ b₂ =>
+    intro t h; simp only [lub?, Option.some.injEq] at h; subst h
+    by_cases hb : b₁ = b₂
+    · subst hb; simp only [lubBool, ite_self]; exact Lub.boolSame _
+    · rw [show lubBool b₁ b₂ = .anyBool from by simp only [lubBool, if_neg hb]]
+      exact Lub.boolDiff _ _ (boolTypeNeq_of_ne hb)
+  | case2 s₁ s₂ ih =>
+    intro t h; simp only [lub?] at h
+    cases hs : s₁ ⊔ s₂ with
+    | none => rw [hs] at h; simp at h
+    | some s =>
+      rw [hs] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact Lub.set _ _ _ (ih hs)
+  | case3 r₁ r₂ ih3 =>
+    intro t h; simp only [lub?] at h
+    cases hr : lubRecordType r₁ r₂ with
+    | none => rw [hr] at h; simp at h
+    | some r =>
+      rw [hr] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact Lub.record _ _ _ (ih3 hr)
+  | case4 ty₂ hb hs hr =>
+    intro t h
+    rw [Cedar.Thm.lub_refl] at h; simp only [Option.some.injEq] at h; subst h
+    cases ty₂ with
+    | int => exact Lub.int
+    | string => exact Lub.string
+    | entity ety => exact Lub.entity ety
+    | ext xty => exact Lub.ext xty
+    | bool b => exact (hb b b rfl rfl).elim
+    | set s => exact (hs s s rfl rfl).elim
+    | record m => obtain ⟨kvs⟩ := m; exact (hr kvs kvs rfl rfl).elim
+  | case5 a ty₂ hne _ _ _ => intro t h; simp only [lub?] at h; split at h <;> simp_all
+  | case6 => rename_i r h; simp only [lubRecordType, Option.some.injEq] at h; subst h; exact LubRecord.nil
+  | case7 k₁ v₁ r₁ k₂ v₂ r₂ hbne => rename_i r h; simp [lubRecordType, hbne] at h
+  | case8 k₁ v₁ r₁ k₂ v₂ r₂ hbne ihq ihr =>
+    rename_i r h
+    have hk : k₁ = k₂ := by simpa using hbne
+    subst hk
+    simp only [lubRecordType] at h; rw [if_neg hbne] at h
+    cases hty : lubQualifiedType v₁ v₂ with
+    | none => rw [hty] at h; simp at h
+    | some ty =>
+      cases htys : lubRecordType r₁ r₂ with
+      | none => rw [hty, htys] at h; simp at h
+      | some tys =>
+        rw [hty, htys] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+        exact LubRecord.cons _ _ _ _ _ _ _ (ihq hty) (ihr htys)
+  | case9 t ty₂ _ _ => rename_i r h; simp [lubRecordType] at h
+  | case10 ty₁ ty₂ ih =>
+    rename_i q h; simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact LubQualified.optional _ _ _ (ih hlub)
+  | case11 ty₁ ty₂ ih =>
+    rename_i q h; simp only [lubQualifiedType] at h
+    cases hlub : lub? ty₁ ty₂ with
+    | none => rw [hlub] at h; simp at h
+    | some ty =>
+      rw [hlub] at h; simp only [Option.bind_some_fun, Option.some.injEq] at h; subst h
+      exact LubQualified.required _ _ _ (ih hlub)
+  | case12 t q₂ _ _ => rename_i q h; simp [lubQualifiedType] at h
+
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
     declared-`is`-type) expression is witnessed by a `HasType` derivation with a
