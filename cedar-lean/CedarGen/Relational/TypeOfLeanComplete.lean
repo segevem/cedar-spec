@@ -668,6 +668,77 @@ theorem foldlM_lub?_typeValid {env : TypeEnv} :
       exact ih m res (lub?_typeValid acc hd hlub hacc (hall hd (by simp)))
         (fun t ht => hall t (by simp [ht])) h
 
+/-- `justType` success reflects to a `typeOf` success (recovering the discarded caps). -/
+theorem justType_ok {x : Expr} {c : Capabilities} {env : TypeEnv} {tx : TypedExpr}
+    (h : justType (typeOf x c env) = .ok tx) : ∃ cc, typeOf x c env = .ok (tx, cc) := by
+  cases hx : typeOf x c env with
+  | error e => rw [hx] at h; simp [justType, Except.map] at h
+  | ok v =>
+    obtain ⟨t, cc⟩ := v
+    rw [hx] at h; simp only [justType, Except.map, Except.ok.injEq] at h; subst h
+    exact ⟨cc, rfl⟩
+
+/-- Every element type produced by `mapM`-ing `typeOf` over a list is `TypeValid`. -/
+theorem mapM_all_typeValid {env : TypeEnv} {c : Capabilities} :
+    ∀ {xs' : List Expr} {ttl : List TypedExpr},
+      (∀ x ∈ xs', ∀ {tx cc}, typeOf x c env = .ok (tx, cc) → TypeValid env tx.typeOf) →
+      xs'.mapM (fun x => justType (typeOf x c env)) = .ok ttl →
+      ∀ t ∈ ttl.map TypedExpr.typeOf, TypeValid env t := by
+  intro xs'
+  induction xs' with
+  | nil =>
+    intro ttl _ hm t ht
+    simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm; simp at ht
+  | cons x₀ xs'' ih =>
+    intro ttl hall hm t ht
+    simp only [List.mapM_cons] at hm
+    cases hx0 : justType (typeOf x₀ c env) with
+    | error e => rw [hx0] at hm; simp at hm
+    | ok thd =>
+      rw [hx0] at hm; simp only [Except.bind_ok] at hm
+      cases hxs : xs''.mapM (fun x => justType (typeOf x c env)) with
+      | error e => rw [hxs] at hm; simp at hm
+      | ok ttl' =>
+        rw [hxs] at hm; simp only [pure, Except.pure, Except.bind_ok, Except.ok.injEq] at hm
+        subst hm
+        simp only [List.map_cons, List.mem_cons] at ht
+        obtain ⟨cc0, hx02⟩ := justType_ok hx0
+        rcases ht with rfl | ht
+        · exact hall x₀ (by simp) hx02
+        · exact ih (fun x hx => hall x (by simp [hx])) hxs t ht
+
+/-- Every value type produced by `mapM₂`-ing `typeOf` over a record's fields is `TypeValid`. -/
+theorem mapM₂_all_typeValid {env : TypeEnv} {c : Capabilities} :
+    ∀ {axs : List (Attr × Expr)} {atys : List (Attr × TypedExpr)},
+      (∀ ax ∈ axs, ∀ {tx cc}, typeOf ax.2 c env = .ok (tx, cc) → TypeValid env tx.typeOf) →
+      axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok atys →
+      ∀ p ∈ atys, TypeValid env p.2.typeOf := by
+  intro axs
+  induction axs with
+  | nil =>
+    intro atys _ hm p hp
+    simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm; simp at hp
+  | cons ax₀ axs'' ih =>
+    intro atys hall hm p hp
+    simp only [List.mapM_cons] at hm
+    cases ha0 : (typeOf ax₀.2 c env).map (fun r => (ax₀.1, r.1)) with
+    | error e => rw [ha0] at hm; simp at hm
+    | ok ahd =>
+      rw [ha0] at hm; simp only [Except.bind_ok] at hm
+      cases has : axs''.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) with
+      | error e => rw [has] at hm; simp at hm
+      | ok atys' =>
+        rw [has] at hm; simp only [pure, Except.pure, Except.bind_ok, Except.ok.injEq] at hm; subst hm
+        simp only [List.mem_cons] at hp
+        rcases hp with rfl | hp
+        · cases hx0 : typeOf ax₀.2 c env with
+          | error e => rw [hx0] at ha0; simp [Except.map] at ha0
+          | ok r =>
+            obtain ⟨thd, cc⟩ := r; rw [hx0] at ha0
+            simp only [Except.map, Except.ok.injEq] at ha0; subst ha0
+            exact hall ax₀ (by simp) hx0
+        · exact ih (fun ax hax => hall ax (by simp [hax])) has p hp
+
 /-- **Type validity of `typeOf`.** On a `WfTypeEnv`, every type `typeOf` produces has all its
     entity components declared. The relational analogue of Cedar's `typechecked_has_well_formed_type`,
     tracking only entity-declaredness (so it needs no map sortedness). -/
@@ -882,8 +953,55 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                     exact getAttrInRecord_typeValid (wfTypeEnv_attrs?_typeValid hwf hattr) hg
         · simp only [err, reduceCtorEq] at h
       · simp only [err, reduceCtorEq] at h
-  | case10 c xs ih => intro tx c' h; sorry
-  | case11 c axs ih => intro tx c' h; sorry
+  | case10 c xs ih =>
+    intro tx c' h
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
+    cases xs with
+    | nil =>
+      simp only [List.mapM_nil, pure, Except.pure, bind, Except.bind, typeOfSet, err, reduceCtorEq] at h
+    | cons x₀ xs' =>
+      simp only [List.mapM_cons] at h
+      cases hx0 : justType (typeOf x₀ c env) with
+      | error e => rw [hx0] at h; simp at h
+      | ok thd =>
+        rw [hx0] at h; simp only [Except.bind_ok] at h
+        cases hxs' : xs'.mapM (fun x => justType (typeOf x c env)) with
+        | error e => rw [hxs'] at h; simp at h
+        | ok ttl =>
+          rw [hxs'] at h; simp only [pure, Except.pure, bind, Except.bind, typeOfSet] at h
+          split at h
+          · rename_i lubty hfold
+            simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+            simp only [TypedExpr.typeOf]
+            obtain ⟨cc0, hx02⟩ := justType_ok hx0
+            refine TypeValid.set _ (foldlM_lub?_typeValid _ thd.typeOf lubty (ih x₀ (by simp) hx02) ?_ hfold)
+            exact mapM_all_typeValid (fun x hx => ih x (by simp [hx])) hxs'
+          · simp only [err, reduceCtorEq] at h
+  | case11 c axs ih =>
+    intro tx c' h
+    simp only [typeOf,
+      List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c env).map (fun r => (p.1, r.1)))] at h
+    cases hm : axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) with
+    | error e => rw [hm] at h; simp at h
+    | ok atys =>
+      rw [hm] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      have hcomp : ∀ p ∈ atys, TypeValid env p.2.typeOf := by
+        apply mapM₂_all_typeValid ?_ hm
+        intro ax hax tx cc htyp
+        have hsz : sizeOf (ax.1, ax.2).snd < 1 + sizeOf axs := by
+          have hlt := List.sizeOf_lt_of_mem hax
+          obtain ⟨a, x⟩ := ax
+          simp only [sizeOf, Prod._sizeOf_1] at *
+          omega
+        exact ih ax.1 ax.2 hsz htyp
+      simp only [TypedExpr.typeOf]
+      refine TypeValid.record _ ?_
+      intro q hq
+      have hqL := Map.mem_make_mem_list hq
+      simp only [List.mem_map] at hqL
+      obtain ⟨p, hp, rfl⟩ := hqL
+      simpa using hcomp p hp
   | case12 c xfn xs ih =>
     intro tx c' h
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
@@ -973,16 +1091,6 @@ theorem wfExpr_call {env f xs} (h : WfExpr env (.call f xs)) : ∀ e ∈ xs, WfE
   cases h; assumption
 
 /-! ## Reverse bridges for the list/set/record/call cases -/
-
-/-- `justType (typeOf …) = .ok tx` recovers a full `typeOf … = .ok (tx, cc)`. -/
-theorem justType_ok {x : Expr} {c : Capabilities} {env : TypeEnv} {tx : TypedExpr}
-    (h : justType (typeOf x c env) = .ok tx) : ∃ cc, typeOf x c env = .ok (tx, cc) := by
-  cases hx : typeOf x c env with
-  | error e => rw [hx] at h; simp [justType, Except.map] at h
-  | ok v =>
-    obtain ⟨t, cc⟩ := v
-    rw [hx] at h; simp only [justType, Except.map, Except.ok.injEq] at h; subst h
-    exact ⟨cc, rfl⟩
 
 /-- Reverse of `allLub_foldlM`: a successful `foldlM lub?` yields an `AllLub` witness. -/
 theorem allLub_of_foldlM {acc : CedarType} {l : List CedarType} {result : CedarType}
