@@ -1579,6 +1579,63 @@ theorem typeOfSet_tyWf {tys tx c'} (htys : ∀ t ∈ tys, TyWf (TypedExpr.typeOf
       obtain ⟨t', ht', rfl⟩ := ht; exact htys t' (by simp [ht'])
     · simp only [err, reduceCtorEq] at h
 
+/-- Every element type produced by the `set` element pass (`mapM`) is `TyWf`. -/
+theorem mapM_forall_tyWf {xs : List Expr} {c : Capabilities} {env tys}
+    (ih : ∀ x ∈ xs, ∀ {tx cc}, typeOf x c env = .ok (tx, cc) → TyWf (TypedExpr.typeOf tx))
+    (hm : xs.mapM (fun x => justType (typeOf x c env)) = .ok tys) :
+    ∀ t ∈ tys, TyWf (TypedExpr.typeOf t) := by
+  induction xs generalizing tys with
+  | nil =>
+    simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm; simp
+  | cons hd tl ih2 =>
+    simp only [List.mapM_cons] at hm
+    cases hhd : justType (typeOf hd c env) with
+    | error e => rw [hhd] at hm; simp at hm
+    | ok thd =>
+      rw [hhd] at hm; simp only [Except.bind_ok] at hm
+      cases htl : tl.mapM (fun x => justType (typeOf x c env)) with
+      | error e => rw [htl] at hm; simp at hm
+      | ok ttl =>
+        rw [htl] at hm
+        simp only [Except.bind_ok, pure, Except.pure, Except.ok.injEq] at hm
+        subst hm
+        intro t ht; simp only [List.mem_cons] at ht
+        rcases ht with rfl | ht
+        · cases hhd2 : typeOf hd c env with
+          | error e => rw [hhd2] at hhd; simp [justType, Except.map] at hhd
+          | ok v =>
+            have hvt : v.fst = t := by
+              rw [hhd2] at hhd; simp only [justType, Except.map, Except.ok.injEq] at hhd; exact hhd
+            exact ih hd (by simp) (show typeOf hd c env = .ok (t, v.2) by rw [hhd2, ← hvt])
+        · exact ih2 (fun x hx => ih x (by simp [hx])) htl t ht
+
+/-- Every field type produced by the `record` element pass (`mapM₂`) is `TyWf`. -/
+theorem mapM₂_record_forall_tyWf {axs : List (Attr × Expr)} {c : Capabilities} {env atys}
+    (ih : ∀ p ∈ axs, ∀ {tx cc}, typeOf p.2 c env = .ok (tx, cc) → TyWf (TypedExpr.typeOf tx))
+    (hm : axs.mapM (fun p => (typeOf p.2 c env).map (fun r => (p.1, r.1))) = .ok atys) :
+    ∀ q ∈ atys, TyWf (TypedExpr.typeOf q.2) := by
+  induction axs generalizing atys with
+  | nil => simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm; simp
+  | cons hd tl ih2 =>
+    simp only [List.mapM_cons] at hm
+    cases hhd : (typeOf hd.2 c env).map (fun r => (hd.1, r.1)) with
+    | error e => rw [hhd] at hm; simp at hm
+    | ok qhd =>
+      rw [hhd] at hm; simp only [Except.bind_ok] at hm
+      cases htl : tl.mapM (fun p => (typeOf p.2 c env).map (fun r => (p.1, r.1))) with
+      | error e => rw [htl] at hm; simp at hm
+      | ok qtl =>
+        rw [htl] at hm; simp only [Except.bind_ok, pure, Except.pure, Except.ok.injEq] at hm
+        subst hm
+        intro q hq; simp only [List.mem_cons] at hq
+        rcases hq with rfl | hq
+        · cases hhd2 : typeOf hd.2 c env with
+          | error e => rw [hhd2] at hhd; simp [Except.map] at hhd
+          | ok v =>
+            rw [hhd2] at hhd; simp only [Except.map, Except.ok.injEq] at hhd
+            rw [← hhd]; exact ih hd (by simp) (by rw [hhd2])
+        · exact ih2 (fun p hp => ih p (by simp [hp])) htl q hq
+
 /-- `typeOf` produces canonical (`TyWf`) types on a well-formed environment. This
     is the invariant that makes `Map.find?` on a record-typed receiver agree with
     the structural attribute witness in the `getAttr`/`hasAttr` soundness cases. -/
@@ -1642,8 +1699,38 @@ theorem typeOf_tyWf {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok] at h
       exact typeOfGetAttr_tyWf hwf (ih1 h1) h
-  | case10 c xs ih => intro tx c' h; sorry
-  | case11 c axs ih => intro tx c' h; sorry
+  | case10 c xs ih =>
+    intro tx c' h
+    simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
+    cases hm : xs.mapM (fun x => justType (typeOf x c env)) with
+    | error e => rw [hm] at h; simp at h
+    | ok tys =>
+      rw [hm] at h; simp only [Except.bind_ok] at h
+      exact typeOfSet_tyWf (mapM_forall_tyWf ih hm) h
+  | case11 c axs ih =>
+    intro tx c' h
+    simp only [typeOf,
+      List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c env).map (fun r => (p.1, r.1)))] at h
+    cases hm : axs.mapM (fun p => (typeOf p.2 c env).map (fun r => (p.1, r.1))) with
+    | error e => rw [hm] at h; simp at h
+    | ok atys =>
+      rw [hm] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, _⟩ := h
+      simp only [TypedExpr.typeOf]
+      have hfields := mapM₂_record_forall_tyWf
+        (fun p hp => ih p.1 p.2 (by
+          have h := List.sizeOf_lt_of_mem hp
+          obtain ⟨a, x⟩ := p
+          simp only [sizeOf, Prod._sizeOf_1] at *
+          omega)) hm
+      apply TyWf.record
+      · rw [Map.toList_make_eq_canonicalize]
+        exact sortedBy_map_nodup (List.canonicalize_sortedBy Prod.fst _)
+      · intro q hq
+        have hval := Map.mem_values_make (v := q) hq
+        simp only [List.map_map, Function.comp, List.mem_map] at hval
+        obtain ⟨⟨a, ty⟩, hp, rfl⟩ := hval
+        exact TyWfQ.required _ (hfields (a, ty) hp)
   | case12 c xfn xs ih =>
     intro tx c' h; simp only [typeOf] at h
     cases hm : xs.mapM₁ (fun x => justType (typeOf x.1 c env)) with
