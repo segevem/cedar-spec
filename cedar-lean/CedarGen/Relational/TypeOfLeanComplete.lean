@@ -86,6 +86,22 @@ theorem find?_mapContains {α β : Type} [LT α] [DecidableLT α] [DecidableEq �
   obtain ⟨l⟩ := m
   exact mem_mapContains (Map.find?_mem_toList h)
 
+/-- `MapContains` on an `EntityUID` key ⇒ `MapContainsPairKey` (some entry, possibly a
+    duplicate-key head). Proved by induction on the membership witness. -/
+theorem mapContainsPairKey_of_mapContains {v : Type} {ety : EntityType} {eid : String}
+    {entry : v} {acts : Map EntityUID v} (h : MapContains ⟨ety, eid⟩ entry acts) :
+    ∃ e, MapContainsPairKey ety eid e acts := by
+  induction h with
+  | here => exact ⟨entry, MapContainsPairKey.here⟩
+  | there k' _ _ _ ih =>
+    obtain ⟨e, he⟩ := ih
+    obtain ⟨a', b'⟩ := k'
+    by_cases ha : ety = a'
+    · by_cases hb : eid = b'
+      · subst ha; subst hb; exact ⟨_, MapContainsPairKey.here⟩
+      · exact ⟨e, MapContainsPairKey.nextB hb he⟩
+    · exact ⟨e, MapContainsPairKey.nextA ha he⟩
+
 /-- `EntitySchema.isValidEntityUID` ⇒ `ValidEntityUID` (standard/enum witnesses). -/
 theorem validEntityUID_of_isValid {ets : EntitySchema} {acts : ActionSchema} {uid : EntityUID}
     (hnd : (ets.toList.map Prod.fst).Nodup) (h : ets.isValidEntityUID uid = true) :
@@ -241,8 +257,11 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         have hval : ValidEntityUID uid.ty uid.eid ets acts := by
           rcases Bool.or_eq_true_iff.mp hcond with hv | hc
           · exact validEntityUID_of_isValid (wfTypeEnv_ets_nodup hwf) hv
-          · -- action UID: acts.contains uid = true (needs a find?⇒MapContainsPairKey bridge)
-            sorry
+          · -- action UID: `acts.find? uid` is some entry ⇒ `MapContainsPairKey`
+            simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
+            obtain ⟨entry, hfind⟩ := hc
+            obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
+            exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
         exact ⟨[], HasType.litEntity uid.ty uid.eid c ets acts reqty hval, fun _ => Iff.rfl⟩
       · simp only [err, reduceCtorEq] at h
   | case2 c v =>
