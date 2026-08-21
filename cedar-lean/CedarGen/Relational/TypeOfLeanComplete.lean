@@ -175,6 +175,42 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
       exact LubQualified.required _ _ _ (ih hlub)
   | case12 t q₂ _ _ => rename_i q h; simp [lubQualifiedType] at h
 
+/-! ## `WfExpr` inversion helpers (extract sub-`WfExpr`s with `env` fixed) -/
+
+theorem wfExpr_or {env a b} (h : WfExpr env (.or a b)) : WfExpr env a ∧ WfExpr env b := by
+  cases h; exact ⟨by assumption, by assumption⟩
+
+theorem wfExpr_and {env a b} (h : WfExpr env (.and a b)) : WfExpr env a ∧ WfExpr env b := by
+  cases h; exact ⟨by assumption, by assumption⟩
+
+theorem wfExpr_ite {env a b d} (h : WfExpr env (.ite a b d)) :
+    WfExpr env a ∧ WfExpr env b ∧ WfExpr env d := by
+  cases h; exact ⟨by assumption, by assumption, by assumption⟩
+
+theorem wfExpr_unaryApp {env op a} (h : WfExpr env (.unaryApp op a)) :
+    (∀ ety, op = .is ety → ValidEntityType ety env.ets env.acts) ∧ WfExpr env a := by
+  cases h; exact ⟨by assumption, by assumption⟩
+
+theorem wfExpr_binaryApp {env op a b} (h : WfExpr env (.binaryApp op a b)) :
+    WfExpr env a ∧ WfExpr env b := by
+  cases h; exact ⟨by assumption, by assumption⟩
+
+theorem wfExpr_getAttr {env a k} (h : WfExpr env (.getAttr a k)) : WfExpr env a := by
+  cases h; assumption
+
+theorem wfExpr_hasAttr {env a k} (h : WfExpr env (.hasAttr a k)) : WfExpr env a := by
+  cases h; assumption
+
+theorem wfExpr_set {env xs} (h : WfExpr env (.set xs)) : ∀ e ∈ xs, WfExpr env e := by
+  cases h; assumption
+
+theorem wfExpr_record {env axs} (h : WfExpr env (.record axs)) :
+    (axs.map Prod.fst).SortedBy id ∧ ∀ e ∈ axs.map Prod.snd, WfExpr env e := by
+  cases h; exact ⟨by assumption, by assumption⟩
+
+theorem wfExpr_call {env f xs} (h : WfExpr env (.call f xs)) : ∀ e ∈ xs, WfExpr env e := by
+  cases h; assumption
+
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
     declared-`is`-type) expression is witnessed by a `HasType` derivation with a
@@ -221,7 +257,70 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     · exact ⟨[], HasType.varContext _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
   | case3 c x₁ x₂ x₃ ih1 ih2 ih3 => intro hwfx tx c' h; sorry
   | case4 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
-  | case5 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
+  | case5 c x₁ x₂ ih1 ih2 =>
+    intro tx c' hwfx h
+    obtain ⟨hw1, hw2⟩ := wfExpr_or hwfx
+    · simp only [typeOf] at h
+      cases h1 : typeOf x₁ c env with
+      | error e => rw [h1] at h; simp at h
+      | ok r1 =>
+        obtain ⟨ty1, cc1⟩ := r1
+        rw [h1] at h; simp only [Except.bind_ok] at h
+        obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+        simp only [typeOfOr] at h
+        split at h
+        · rename_i heq
+          simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+          refine ⟨[], ?_, fun _ => Iff.rfl⟩
+          rw [heq]; exact HasType.orShort x₁ x₂ c env cout1 (heq ▸ hHT1)
+        · rename_i heq
+          cases h2 : typeOf x₂ c env with
+          | error e => rw [h2] at h; simp at h
+          | ok r2 =>
+            obtain ⟨ty2, cc2⟩ := r2
+            rw [h2] at h; simp only [Except.bind_ok] at h
+            obtain ⟨cout2, hHT2, hce2⟩ := ih2 hw2 h2
+            split at h
+            · rename_i heq2
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+              refine ⟨cout2, ?_, hce2⟩
+              rw [heq2]
+              exact HasType.orFfThen x₁ x₂ c env cout1 _ cout2 (heq ▸ hHT1) (heq2 ▸ hHT2)
+            · simp only [err, reduceCtorEq] at h
+        · -- outer `.bool _`: reached only for `anyBool` (tt/ff handled above)
+          rename_i _ bty hnt hnf heq
+          have hany : bty = BoolType.anyBool := by
+            cases bty <;> first | rfl | exact absurd rfl hnt | exact absurd rfl hnf
+          subst hany
+          cases h2 : typeOf x₂ c env with
+          | error e => rw [h2] at h; simp at h
+          | ok r2 =>
+            obtain ⟨ty2, cc2⟩ := r2
+            rw [h2] at h; simp only [Except.bind_ok] at h
+            obtain ⟨cout2, hHT2, hce2⟩ := ih2 hw2 h2
+            split at h
+            · rename_i heq2
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+              refine ⟨[], ?_, fun _ => Iff.rfl⟩
+              simp only [TypedExpr.typeOf]
+              exact HasType.orAnyTt x₁ x₂ c env cout1 cout2 (heq ▸ hHT1) (heq2 ▸ hHT2)
+            · rename_i heq2
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+              refine ⟨cout1, ?_, hce1⟩
+              simp only [TypedExpr.typeOf]
+              exact HasType.orAnyFf x₁ x₂ c env cout1 cout2 (heq ▸ hHT1) (heq2 ▸ hHT2)
+            · -- inner `.bool _`: reached only for `anyBool`
+              rename_i _ bty2 hnt2 hnf2 heq2
+              have hany2 : bty2 = BoolType.anyBool := by
+                cases bty2 <;> first | rfl | exact absurd rfl hnt2 | exact absurd rfl hnf2
+              subst hany2
+              simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+              refine ⟨capIntersect cout1 cout2, ?_, ?_⟩
+              · simp only [TypedExpr.typeOf]
+                exact HasType.orAnyAny x₁ x₂ c env cout1 cout2 (heq ▸ hHT1) (heq2 ▸ hHT2)
+              · exact (capIntersect_capsEquiv_inter cout1 cout2).trans (CapsEquiv.inter hce1 hce2)
+            · simp only [err, reduceCtorEq] at h
+        · simp only [err, reduceCtorEq] at h
   | case6 c op₁ x₁ ih1 => intro hwfx tx c' h; sorry
   | case7 c op₂ x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
   | case8 c x₁ a ih1 => intro hwfx tx c' h; sorry
