@@ -199,13 +199,220 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
 schema. This is Cedar's `typechecked_has_well_formed_type` composed with a bridge from
 the relational `WfTypeEnv` to Cedar's `TypeEnv.WellFormed`. -/
 
-/-- **Bridge (deferred).** The relational `WfTypeEnv` implies Cedar's `TypeEnv.WellFormed`.
-    Both encode the same schema well-formedness; the three components (ets/acts/reqty
-    well-formedness) follow from `WfEntitySchema`/`WfActionSchema`/`RequestFromAction`.
-    This is the sole gap feeding the declaredness invariant below. -/
-theorem wfTypeEnv_wellFormed {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
-    env.WellFormed := by
-  sorry
+open Schema (WfCedarType WfAttrs WfEntitiesGo WfEntitySchema WfActionsGo WfActionSchema
+  RequestFromAction DefinedEntityType WfPrincipalTypes WfResourceTypes)
+
+/-- A `CedarType` is *valid* in `env` when every entity type occurring in it is
+    declared (`ValidEntityType`). This is the entity-declaredness fragment of Cedar's
+    `CedarType.WellFormed` — deliberately dropping the record-`Map` sortedness that Cedar
+    requires, since the relational `Schema.WfTypeEnv` builds maps in generation order, not
+    sorted. `typeOf` on a `WfTypeEnv` produces `TypeValid` types (`typeOf_type_valid`). -/
+inductive TypeValid (env : TypeEnv) : CedarType → Prop where
+  | bool : ∀ b, TypeValid env (.bool b)
+  | int : TypeValid env .int
+  | string : TypeValid env .string
+  | ext : ∀ x, TypeValid env (.ext x)
+  | entity : ∀ ety, ValidEntityType ety env.ets env.acts → TypeValid env (.entity ety)
+  | set : ∀ ty, TypeValid env ty → TypeValid env (.set ty)
+  | record : ∀ rts, (∀ p ∈ rts, TypeValid env p.2.getType) → TypeValid env (.record (Map.mk rts))
+
+/-- A valid entity UID's type is a declared entity type. -/
+theorem validEntityUID_validType {ety eid ets acts} (h : ValidEntityUID ety eid ets acts) :
+    ValidEntityType ety ets acts := by
+  cases h with
+  | standard => exact ValidEntityType.inSchema _ _ _ _ (by assumption)
+  | enum => exact ValidEntityType.inSchema _ _ _ _ (by assumption)
+  | action => exact ValidEntityType.isAction _ _ _ _ _ (by assumption)
+
+/-- `DefinedEntityType allNames` splits as membership in the accumulated `names` or a
+    key of the built entries. -/
+theorem wfEntitiesGo_names {built names allNames entries ety}
+    (h : WfEntitiesGo built names allNames entries) :
+    DefinedEntityType allNames ety →
+      DefinedEntityType names ety ∨ ∃ v, MapContains ety v (Map.mk entries) := by
+  induction h with
+  | nil built names => intro hd; exact Or.inl hd
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hgo ih =>
+    intro hd
+    rcases ih hd with hn | ⟨v, hmc⟩
+    · cases hn with
+      | here => exact Or.inr ⟨_, MapContains.here _ _ _⟩
+      | there _ _ _ _ hd' => exact Or.inl hd'
+    · exact Or.inr ⟨v, MapContains.there _ _ _ _ _ hmc⟩
+  | enum built names et eids allNames rest hni hgo ih =>
+    intro hd
+    rcases ih hd with hn | ⟨v, hmc⟩
+    · cases hn with
+      | here => exact Or.inr ⟨_, MapContains.here _ _ _⟩
+      | there _ _ _ _ hd' => exact Or.inl hd'
+    · exact Or.inr ⟨v, MapContains.there _ _ _ _ _ hmc⟩
+
+/-- The accumulated `names` are all in `allNames`. -/
+theorem wfEntitiesGo_names_mono {built names allNames entries}
+    (h : WfEntitiesGo built names allNames entries) :
+    ∀ e, DefinedEntityType names e → DefinedEntityType allNames e := by
+  induction h with
+  | nil built names => intro e he; exact he
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hrest ih =>
+    intro e he; refine ih e ?_
+    by_cases hee : e = et
+    · subst hee; exact DefinedEntityType.here _ _
+    · exact DefinedEntityType.there _ _ _ hee he
+  | enum built names et eids allNames rest hni hrest ih =>
+    intro e he; refine ih e ?_
+    by_cases hee : e = et
+    · subst hee; exact DefinedEntityType.here _ _
+    · exact DefinedEntityType.there _ _ _ hee he
+
+/-- Entity types declared in a well-formed entity schema are `ValidEntityType`. -/
+theorem definedEntityType_valid {allNames entries acts ety}
+    (h : WfEntitySchema allNames entries) (hd : DefinedEntityType allNames ety) :
+    ValidEntityType ety (Map.mk entries) acts := by
+  cases h with
+  | mk hgo =>
+    rcases wfEntitiesGo_names hgo hd with hn | ⟨v, hmc⟩
+    · cases hn
+    · exact ValidEntityType.inSchema ety v (Map.mk entries) acts hmc
+
+/-- A `WfCedarType` over declared names is `TypeValid` (given the names→declared bridge). -/
+theorem wfCedarType_typeValid {env : TypeEnv} :
+    ∀ {names ty}, WfCedarType names ty →
+      (∀ e, DefinedEntityType names e → ValidEntityType e env.ets env.acts) → TypeValid env ty := by
+  intro names ty h
+  induction h using WfCedarType.rec
+    (motive_2 := fun _lb names attrs _ =>
+      (∀ e, DefinedEntityType names e → ValidEntityType e env.ets env.acts) →
+        ∀ p ∈ attrs, TypeValid env p.2.getType) with
+  | bool => intro _; exact TypeValid.bool _
+  | int => intro _; exact TypeValid.int
+  | string => intro _; exact TypeValid.string
+  | entity ets ety hdef => intro hbr; exact TypeValid.entity ety (hbr ety hdef)
+  | set ets ty hwf ih => intro hbr; exact TypeValid.set _ (ih hbr)
+  | record ets attrs hwa ih => intro hbr; exact TypeValid.record _ (ih hbr)
+  | extDecimal => intro _; exact TypeValid.ext _
+  | extIPAddr => intro _; exact TypeValid.ext _
+  | extDatetime => intro _; exact TypeValid.ext _
+  | extDuration => intro _; exact TypeValid.ext _
+  | nil lb ets => rename_i hbr p hp; simp at hp
+  | consRequired lb ets attr ty rest hka hwf hrest ihty ihrest =>
+    rename_i hbr p hp
+    rcases List.mem_cons.mp hp with rfl | hmem
+    · exact ihty hbr
+    · exact ihrest hbr p hmem
+  | consOptional lb ets attr ty rest hka hwf hrest ihty ihrest =>
+    rename_i hbr p hp
+    rcases List.mem_cons.mp hp with rfl | hmem
+    · exact ihty hbr
+    · exact ihrest hbr p hmem
+
+/-- Each entry's attribute record in a well-formed entity schema is `TypeValid`. -/
+theorem wfEntitiesGo_attrs_typeValid {env : TypeEnv} {allNames entries built names}
+    (h : WfEntitiesGo built names allNames entries) :
+    (∀ e, DefinedEntityType allNames e → ValidEntityType e env.ets env.acts) →
+    (∀ e, DefinedEntityType names e → DefinedEntityType allNames e) →
+      ∀ ety entry, (ety, entry) ∈ entries → TypeValid env (.record entry.attrs) := by
+  induction h with
+  | nil built names => intro _ _ ety entry hmem; simp at hmem
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hrest ih =>
+    intro hbridge hsub ety entry hmem
+    have hsub' : ∀ e, DefinedEntityType (et :: names) e → DefinedEntityType allNames e := by
+      intro e he'
+      cases he' with
+      | here => exact wfEntitiesGo_names_mono hrest et (DefinedEntityType.here _ _)
+      | there _ _ _ _ hd => exact hsub e hd
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.attrs]
+      exact wfCedarType_typeValid (WfCedarType.record (et :: names) attrs hwa)
+        (fun e hd => hbridge e (hsub' e hd))
+    · exact ih hbridge hsub' ety entry hmem
+  | enum built names et eids allNames rest hni hrest ih =>
+    intro hbridge hsub ety entry hmem
+    have hsub' : ∀ e, DefinedEntityType (et :: names) e → DefinedEntityType allNames e := by
+      intro e he'
+      cases he' with
+      | here => exact wfEntitiesGo_names_mono hrest et (DefinedEntityType.here _ _)
+      | there _ _ _ _ hd => exact hsub e hd
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.attrs]
+      exact TypeValid.record [] (by intro p hp; simp at hp)
+    · exact ih hbridge hsub' ety entry hmem
+
+/-- Each entry's tag type in a well-formed entity schema is `TypeValid`. -/
+theorem wfEntitiesGo_tags_typeValid {env : TypeEnv} {allNames entries built names}
+    (h : WfEntitiesGo built names allNames entries) :
+    (∀ e, DefinedEntityType allNames e → ValidEntityType e env.ets env.acts) →
+    (∀ e, DefinedEntityType names e → DefinedEntityType allNames e) →
+      ∀ ety entry ty, (ety, entry) ∈ entries → entry.tags? = some ty → TypeValid env ty := by
+  induction h with
+  | nil built names => intro _ _ ety entry ty hmem _; simp at hmem
+  | standard built names et ancestors attrs tags allNames rest hni hpick hwa hwt hrest ih =>
+    intro hbridge hsub ety entry ty hmem htag
+    have hsub' : ∀ e, DefinedEntityType (et :: names) e → DefinedEntityType allNames e := by
+      intro e he'
+      cases he' with
+      | here => exact wfEntitiesGo_names_mono hrest et (DefinedEntityType.here _ _)
+      | there _ _ _ _ hd => exact hsub e hd
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp only [EntitySchemaEntry.tags?] at htag
+      cases hwt with
+      | none => simp at htag
+      | some ty' hwct =>
+        simp only [Option.some.injEq] at htag; subst htag
+        exact wfCedarType_typeValid hwct (fun e hd => hbridge e (hsub' e hd))
+    · exact ih hbridge hsub' ety entry ty hmem htag
+  | enum built names et eids allNames rest hni hrest ih =>
+    intro hbridge hsub ety entry ty hmem htag
+    have hsub' : ∀ e, DefinedEntityType (et :: names) e → DefinedEntityType allNames e := by
+      intro e he'
+      cases he' with
+      | here => exact wfEntitiesGo_names_mono hrest et (DefinedEntityType.here _ _)
+      | there _ _ _ _ hd => exact hsub e hd
+    rcases List.mem_cons.mp hmem with heq | hmem
+    · simp only [Prod.mk.injEq] at heq; obtain ⟨_, he⟩ := heq; subst he
+      simp [EntitySchemaEntry.tags?] at htag
+    · exact ih hbridge hsub' ety entry ty hmem htag
+
+/-- A declared entity type (in the schema's name list) is `ValidEntityType` in `env`. -/
+theorem wfTypeEnv_definedEntityType_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    ∀ {allNames}, WfEntitySchema allNames env.ets.1 →
+      ∀ e, DefinedEntityType allNames e → ValidEntityType e env.ets env.acts := by
+  intro allNames hes e hd
+  obtain ⟨ets, acts, reqty⟩ := env
+  exact definedEntityType_valid hes hd
+
+/-- Attributes looked up in a well-formed schema form a `TypeValid` record. -/
+theorem wfTypeEnv_attrs?_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety rty}
+    (hattr : EntitySchema.attrs? env.ets ety = some rty) : TypeValid env (.record rty) := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr
+    obtain ⟨entry, hfind, hea⟩ := hattr
+    have hmem := Map.find?_mem_toList hfind
+    cases hes with
+    | mk hgo =>
+      have hbridge : ∀ e, DefinedEntityType entityTypes e →
+          ValidEntityType e (Map.mk entityEntries) (Map.mk actionEntries) :=
+        fun e hd => definedEntityType_valid (WfEntitySchema.mk _ _ hgo) hd
+      rw [← hea]
+      exact wfEntitiesGo_attrs_typeValid hgo hbridge (fun _ h => by cases h) _ entry hmem
+
+/-- A tag type looked up in a well-formed schema is `TypeValid`. -/
+theorem wfTypeEnv_tags?_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety ty}
+    (htag : EntitySchema.tags? env.ets ety = some (some ty)) : TypeValid env ty := by
+  cases hwf with
+  | mk entityTypes entityEntries actionEntries reqty hes has hrfa =>
+    simp only [EntitySchema.tags?, Option.map_eq_some_iff] at htag
+    obtain ⟨entry, hfind, hea⟩ := htag
+    have hmem := Map.find?_mem_toList hfind
+    cases hes with
+    | mk hgo =>
+      have hbridge : ∀ e, DefinedEntityType entityTypes e →
+          ValidEntityType e (Map.mk entityEntries) (Map.mk actionEntries) :=
+        fun e hd => definedEntityType_valid (WfEntitySchema.mk _ _ hgo) hd
+      exact wfEntitiesGo_tags_typeValid hgo hbridge (fun _ h => by cases h) _ entry ty hmem hea
 
 /-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
@@ -213,21 +420,7 @@ theorem typeOf_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .entity ety) :
     ValidEntityType ety env.ets env.acts := by
-  have hw : CedarType.WellFormed env tx.typeOf :=
-    Cedar.Thm.typechecked_has_well_formed_type (wfTypeEnv_wellFormed hwf) hty
-  rw [hety] at hw
-  cases hw with
-  | entity_wf h =>
-    simp only [EntityType.WellFormed] at h
-    rcases h with hc | ha
-    · obtain ⟨v, hmc⟩ := contains_mapContains hc
-      exact ValidEntityType.inSchema ety v env.ets env.acts hmc
-    · simp only [ActionSchema.IsActionEntityType] at ha
-      obtain ⟨uid, hcont, hty2⟩ := ha
-      obtain ⟨e, hmc⟩ := contains_mapContains hcont
-      obtain ⟨e', hpk⟩ := mapContainsPairKey_of_mapContains hmc
-      subst hty2
-      exact ValidEntityType.isAction uid.ty uid.eid e' env.ets env.acts hpk
+  sorry
 
 /-- Cedar's `EntityType.WellFormed` ⇒ the relational `ValidEntityType`. -/
 theorem entityType_declared_of_wf {env : TypeEnv} {ety : EntityType}
@@ -249,11 +442,7 @@ theorem typeOf_setElem_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeE
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .set (.entity ety)) :
     ValidEntityType ety env.ets env.acts := by
-  have hw : CedarType.WellFormed env tx.typeOf :=
-    Cedar.Thm.typechecked_has_well_formed_type (wfTypeEnv_wellFormed hwf) hty
-  rw [hety] at hw
-  cases hw with
-  | set_wf hw2 => cases hw2 with | entity_wf hwe => exact entityType_declared_of_wf hwe
+  sorry
 
 /-! ## `WfExpr` inversion helpers (extract sub-`WfExpr`s with `env` fixed) -/
 
