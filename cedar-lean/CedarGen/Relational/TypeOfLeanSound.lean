@@ -210,6 +210,20 @@ theorem capTagMem_iff {x e : Expr} {c : Capabilities} :
       · exact CapTagMem.here _ _ _
       · obtain ⟨x', k'⟩ := hd; exact CapTagMem.there _ _ _ _ _ (ih hmem)
 
+/-- `CapAttrMem` mirrors attribute-capability membership. -/
+theorem capAttrMem_iff {x : Expr} {a : Attr} {c : Capabilities} :
+    CapAttrMem x a c ↔ (x, Key.attr a) ∈ c := by
+  constructor
+  · intro h; induction h with
+    | here => simp
+    | there _ _ _ _ ih => exact List.mem_cons_of_mem _ ih
+  · intro h; induction c with
+    | nil => simp at h
+    | cons hd tl ih =>
+      rcases List.mem_cons.mp h with rfl | hmem
+      · exact CapAttrMem.here _ _ _
+      · obtain ⟨x', k'⟩ := hd; exact CapAttrMem.there _ _ _ _ _ (ih hmem)
+
 /-! ## Least-upper-bound soundness
 
 `Lub` mirrors `⊔`/`lub?`.  Mutual with `LubRecord`/`LubQualified`. -/
@@ -2368,6 +2382,110 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     refine ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
     simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₑ, actionUID?, entityUID?, hc1,
       hdesc, ok]
+  -- getAttr — record receiver: `typeOf_tyWf` gives the record type is key-distinct,
+  -- so `Map.find?` agrees with the structural `MapContains` witness.
+  | getAttrRecord x₁ a c env rty ty a1 a2 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have htw := typeOf_tyWf hwf h1; rw [ht1] at htw
+    have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+    cases a2 with
+    | required hmc =>
+      have hf := mapContains_find?_nodup hmc hnd
+      exact ⟨.getAttr t1 a ty, ∅, by
+        simp only [typeOf, h1, Except.bind_ok, typeOfGetAttr, ht1, getAttrInRecord, hf, ok],
+        rfl, fun _ => Iff.rfl⟩
+    | optional hcap hmc =>
+      simp only [id_eq] at hmc
+      have hf := mapContains_find?_nodup hmc hnd
+      have hcapc : (x₁, Key.attr a) ∈ c := capAttrMem_iff.mp hcap
+      exact ⟨.getAttr t1 a ty, ∅, by
+        simp only [typeOf, h1, Except.bind_ok, typeOfGetAttr, ht1, getAttrInRecord, hf,
+          if_pos hcapc, ok], rfl, fun _ => Iff.rfl⟩
+  -- getAttr — entity receiver: the record type comes from the (key-distinct) schema.
+  | getAttrEntity x₁ a c ets acts reqty ety ty rty a1 a2 a3 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hnd : (rty.toList.map Prod.fst).Nodup := by
+      cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+    cases a3 with
+    | required hmc =>
+      have hf := mapContains_find?_nodup hmc hnd
+      exact ⟨.getAttr t1 a ty, ∅, by
+        simp only [typeOf, h1, Except.bind_ok, typeOfGetAttr, ht1, hattr, getAttrInRecord, hf, ok],
+        rfl, fun _ => Iff.rfl⟩
+    | optional hcap hmc =>
+      simp only [id_eq] at hmc
+      have hf := mapContains_find?_nodup hmc hnd
+      have hcapc : (x₁, Key.attr a) ∈ c := capAttrMem_iff.mp hcap
+      exact ⟨.getAttr t1 a ty, ∅, by
+        simp only [typeOf, h1, Except.bind_ok, typeOfGetAttr, ht1, hattr, getAttrInRecord, hf,
+          if_pos hcapc, ok], rfl, fun _ => Iff.rfl⟩
+  -- hasAttr — record receiver (attribute found); `knownToExist = true`.
+  | hasAttrRecord x₁ a c env rty ty caps a1 a2 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have htw := typeOf_tyWf hwf h1; rw [ht1] at htw
+    have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+    cases a2 with
+    | found_in_caps _ _ _ =>
+      have hcapc : (x₁, Key.attr a) ∈ c := capAttrMem_iff.mp ‹CapAttrMem x₁ a c›
+      have hmc := ‹MapContains (id a) _ rty›
+      simp only [id_eq] at hmc
+      have hf := mapContains_find?_nodup hmc hnd
+      exact ⟨.hasAttr t1 a (.bool .tt), ∅, by
+        simp [typeOf, h1, typeOfHasAttr, ht1, hasAttrInRecord, hf, hcapc, ok], rfl, fun _ => Iff.rfl⟩
+    | found_required_known ty' hmc =>
+      have hf := mapContains_find?_nodup hmc hnd
+      exact ⟨.hasAttr t1 a (.bool .tt), ∅, by
+        simp [typeOf, h1, typeOfHasAttr, ht1, hasAttrInRecord, hf, Qualified.isRequired, ok],
+        rfl, fun _ => Iff.rfl⟩
+    | found_optional_known ty' hmc hcap =>
+      have hf := mapContains_find?_nodup hmc hnd
+      have hcapneg : ¬ ((x₁, Key.attr a) ∈ c) := fun hm => hcap (capAttrMem_iff.mpr hm)
+      exact ⟨.hasAttr t1 a (.bool .anyBool), Capabilities.singleton x₁ (.attr a), by
+        simp [typeOf, h1, typeOfHasAttr, ht1, hasAttrInRecord, hf, Qualified.isRequired, hcapneg,
+          ok], rfl, fun _ => Iff.rfl⟩
+  -- hasAttr — record receiver (attribute not found).
+  | hasAttrRecordNotFound x₁ a c env rty a1 a2 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have hf := mapNotContainsKey_find? a2
+    exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
+      simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hasAttrInRecord, hf, ok], rfl,
+      fun _ => Iff.rfl⟩
+  -- hasAttr — entity receiver (attribute found); `knownToExist = false`.
+  | hasAttrEntity x₁ a c ets acts reqty ety ty caps rty a1 a2 a3 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hnd : (rty.toList.map Prod.fst).Nodup := by
+      cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+    cases a3 with
+    | found_in_caps _ _ _ =>
+      have hcapc : (x₁, Key.attr a) ∈ c := capAttrMem_iff.mp ‹CapAttrMem x₁ a c›
+      have hmc := ‹MapContains (id a) _ rty›
+      simp only [id_eq] at hmc
+      have hf := mapContains_find?_nodup hmc hnd
+      exact ⟨.hasAttr t1 a (.bool .tt), ∅, by
+        simp [typeOf, h1, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, hcapc, ok],
+        rfl, fun _ => Iff.rfl⟩
+    | found_not_known qty hmc hcap =>
+      have hf := mapContains_find?_nodup hmc hnd
+      have hcapneg : ¬ ((x₁, Key.attr a) ∈ c) := fun hm => hcap (capAttrMem_iff.mpr hm)
+      exact ⟨.hasAttr t1 a (.bool .anyBool), Capabilities.singleton x₁ (.attr a), by
+        simp [typeOf, h1, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, hcapneg, ok],
+        rfl, fun _ => Iff.rfl⟩
+  -- hasAttr — entity receiver (attribute not found).
+  | hasAttrEntityNotFound x₁ a c ets acts reqty ety rty a1 a2 a3 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hf := mapNotContainsKey_find? a3
+    exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
+      simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, ok],
+      rfl, fun _ => Iff.rfl⟩
   | _ => (try rename_i hwf); sorry
 
 end CedarGen.Relational.Lean
