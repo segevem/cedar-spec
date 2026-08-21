@@ -697,40 +697,40 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   /- ### Unary: not -/
   | unaryAppNotTt :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .tt) [] →
+    HasType x₁ c env (.bool .tt) oc1 →
     HasType (.unaryApp .not x₁) c env (.bool .ff) []
   | unaryAppNotFf :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .ff) [] →
+    HasType x₁ c env (.bool .ff) oc2 →
     HasType (.unaryApp .not x₁) c env (.bool .tt) []
   | unaryAppNotAny :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .anyBool) [] →
+    HasType x₁ c env (.bool .anyBool) oc3 →
     HasType (.unaryApp .not x₁) c env (.bool .anyBool) []
 
   /- ### Unary: neg -/
   | unaryAppNeg :
     ∀ x₁ c env,
-    HasType x₁ c env .int [] →
+    HasType x₁ c env .int oc4 →
     HasType (.unaryApp .neg x₁) c env .int []
 
   /- ### Unary: isEmpty -/
   | unaryAppIsEmpty :
     ∀ x₁ c env elemTy,
-    HasType x₁ c env (.set elemTy) [] →
+    HasType x₁ c env (.set elemTy) oc5 →
     HasType (.unaryApp .isEmpty x₁) c env (.bool .anyBool) []
 
   /- ### Unary: like -/
   | unaryAppLike :
     ∀ pat x₁ c env,
-    HasType x₁ c env .string [] →
+    HasType x₁ c env .string oc6 →
     HasType (.unaryApp (.like pat) x₁) c env (.bool .anyBool) []
 
   /- ### Unary: is (true) -/
   | unaryAppIsTrue :
     ∀ ety x₁ c env,
     ValidEntityType ety env.ets env.acts →
-    HasType x₁ c env (.entity ety) [] →
+    HasType x₁ c env (.entity ety) oc7 →
     HasType (.unaryApp (.is ety) x₁) c env (.bool .tt) []
 
   /- ### Unary: is (false) -/
@@ -744,27 +744,27 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ∀ ety₁ ety₂ x₁ c env,
     ValidEntityType ety₂ env.ets env.acts →
     ValidDifferentEntityType ety₂ ety₁ env.ets env.acts →
-    HasType x₁ c env (.entity ety₂) [] →
+    HasType x₁ c env (.entity ety₂) oc8 →
     HasType (.unaryApp (.is ety₁) x₁) c env (.bool .ff) []
 
   /- ### Binary: eq on literals -/
   | binaryAppEqLitSame :
     ∀ p c env ty,
-    HasType (.lit p) c env ty [] →
+    HasType (.lit p) c env ty oc9 →
     HasType (.binaryApp .eq (.lit p) (.lit p)) c env (.bool .tt) []
   | binaryAppEqLitDiff :
     ∀ p₁ p₂ c env ty₁ ty₂,
     PrimNeq p₁ p₂ →
-    HasType (.lit p₁) c env ty₁ [] →
-    HasType (.lit p₂) c env ty₂ [] →
+    HasType (.lit p₁) c env ty₁ oc10 →
+    HasType (.lit p₂) c env ty₂ oc11 →
     HasType (.binaryApp .eq (.lit p₁) (.lit p₂)) c env (.bool .ff) []
 
   /- ### Binary: eq non-literal (lub exists) -/
   | binaryAppEqNonLitLub :
     ∀ x₁ x₂ c env t₁ t₂ lubTy,
     Lub t₁ t₂ lubTy →
-    HasType x₁ c env t₁ [] →
-    HasType x₂ c env t₂ [] →
+    HasType x₁ c env t₁ oc12 →
+    HasType x₂ c env t₂ oc13 →
     ¬ BothLit x₁ x₂ →
     HasType (.binaryApp .eq x₁ x₂) c env (.bool .anyBool) []
 
@@ -774,76 +774,76 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₁ env.ets env.acts →
     ValidEntityType ety₂ env.ets env.acts →
     ety₁ ≠ ety₂ →
-    HasType x₁ c env (.entity ety₁) [] →
-    HasType x₂ c env (.entity ety₂) [] →
+    HasType x₁ c env (.entity ety₁) oc14 →
+    HasType x₂ c env (.entity ety₂) oc15 →
     ¬ BothLit x₁ x₂ →
     HasType (.binaryApp .eq x₁ x₂) c env (.bool .ff) []
 
   /- ### Binary: arithmetic -/
   | binaryAppLessInt :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int [] →
-    HasType x₂ c env .int [] →
+    HasType x₁ c env .int oc16 →
+    HasType x₂ c env .int oc17 →
     HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessDatetime :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .datetime) [] →
-    HasType x₂ c env (.ext .datetime) [] →
+    HasType x₁ c env (.ext .datetime) oc18 →
+    HasType x₂ c env (.ext .datetime) oc19 →
     HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessDuration :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .duration) [] →
-    HasType x₂ c env (.ext .duration) [] →
+    HasType x₁ c env (.ext .duration) oc20 →
+    HasType x₂ c env (.ext .duration) oc21 →
     HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqInt :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int [] →
-    HasType x₂ c env .int [] →
+    HasType x₁ c env .int oc22 →
+    HasType x₂ c env .int oc23 →
     HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqDatetime :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .datetime) [] →
-    HasType x₂ c env (.ext .datetime) [] →
+    HasType x₁ c env (.ext .datetime) oc24 →
+    HasType x₂ c env (.ext .datetime) oc25 →
     HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqDuration :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .duration) [] →
-    HasType x₂ c env (.ext .duration) [] →
+    HasType x₁ c env (.ext .duration) oc26 →
+    HasType x₂ c env (.ext .duration) oc27 →
     HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppAdd :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int [] →
-    HasType x₂ c env .int [] →
+    HasType x₁ c env .int oc28 →
+    HasType x₂ c env .int oc29 →
     HasType (.binaryApp .add x₁ x₂) c env .int []
   | binaryAppSub :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int [] →
-    HasType x₂ c env .int [] →
+    HasType x₁ c env .int oc30 →
+    HasType x₂ c env .int oc31 →
     HasType (.binaryApp .sub x₁ x₂) c env .int []
   | binaryAppMul :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int [] →
-    HasType x₂ c env .int [] →
+    HasType x₁ c env .int oc32 →
+    HasType x₂ c env .int oc33 →
     HasType (.binaryApp .mul x₁ x₂) c env .int []
 
   /- ### Binary: set operations -/
   | binaryAppContains :
     ∀ x₁ x₂ c env t₂ elemTy,
     LubCompat t₂ elemTy →
-    HasType x₁ c env (.set elemTy) [] →
-    HasType x₂ c env t₂ [] →
+    HasType x₁ c env (.set elemTy) oc34 →
+    HasType x₂ c env t₂ oc35 →
     HasType (.binaryApp .contains x₁ x₂) c env (.bool .anyBool) []
   | binaryAppContainsAll :
     ∀ x₁ x₂ c env elemTy₁ elemTy₂,
     LubCompat elemTy₁ elemTy₂ →
-    HasType x₁ c env (.set elemTy₁) [] →
-    HasType x₂ c env (.set elemTy₂) [] →
+    HasType x₁ c env (.set elemTy₁) oc36 →
+    HasType x₂ c env (.set elemTy₂) oc37 →
     HasType (.binaryApp .containsAll x₁ x₂) c env (.bool .anyBool) []
   | binaryAppContainsAny :
     ∀ x₁ x₂ c env elemTy₁ elemTy₂,
     LubCompat elemTy₁ elemTy₂ →
-    HasType x₁ c env (.set elemTy₁) [] →
-    HasType x₂ c env (.set elemTy₂) [] →
+    HasType x₁ c env (.set elemTy₁) oc38 →
+    HasType x₂ c env (.set elemTy₂) oc39 →
     HasType (.binaryApp .containsAny x₁ x₂) c env (.bool .anyBool) []
 
   /- ### Binary: mem (generic — excludes action-literal cases) -/
@@ -858,30 +858,30 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₁ ets acts →
     DescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc40 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc41 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySame :
     ∀ x₁ x₂ c ets acts reqty ety,
     ValidEntityType ety ets acts →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc42 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety) oc43 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySet :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     ValidEntityType ety₁ ets acts →
     DescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc44 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc45 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySetSame :
     ∀ x₁ x₂ c ets acts reqty ety,
     ValidEntityType ety ets acts →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety)) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc46 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety)) oc47 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
 
   /- ### Binary: mem — false (not descendent, excludes action-literal cases) -/
@@ -891,8 +891,8 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₂ ets acts →
     NotDescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc48 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc49 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
   | binaryAppMemEntitySetFf :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
@@ -900,22 +900,22 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₂ ets acts →
     NotDescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc50 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc51 →
     HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Binary: mem — true (known action literal hierarchy) -/
   | binaryAppMemActionLitTt :
     ∀ uid₁ uid₂ c ets acts reqty,
     ActionDescendentOf acts uid₁ uid₂ →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) [] →
-    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) [] →
+    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc52 →
+    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc53 →
     HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .tt) []
   | binaryAppMemActionLitFf :
     ∀ uid₁ uid₂ c ets acts reqty,
     NotActionDescendentOf acts uid₁ uid₂ →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) [] →
-    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) [] →
+    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc54 →
+    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc55 →
     HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Binary: mem — action literal in set of entity literals (tt if any descendent) -/
@@ -923,16 +923,16 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ∀ uid₁ xs c ets acts reqty ety₂,
     IsActionLitMemSet (.lit (.entityUID uid₁)) (.set xs) acts →
     ActionInSet acts uid₁ xs →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) [] →
-    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) [] →
+    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc56 →
+    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc57 →
     HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .tt) []
   /- ### Binary: mem — action literal in set of entity literals (ff if no descendent) -/
   | binaryAppMemActionLitSetFf :
     ∀ uid₁ xs c ets acts reqty ety₂,
     IsActionLitMemSet (.lit (.entityUID uid₁)) (.set xs) acts →
     ¬ ActionInSet acts uid₁ xs →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) [] →
-    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) [] →
+    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc58 →
+    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc59 →
     HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### hasAttr — record (attribute found) -/
@@ -942,14 +942,14 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   -- entity attr rules below.
   | hasAttrRecord :
     ∀ x₁ a c env rty ty caps,
-    HasType x₁ c env (.record rty) [] →
+    HasType x₁ c env (.record rty) oc60 →
     HasAttrInRecord rty x₁ a c true ty caps →
     HasType (.hasAttr x₁ a) c env ty caps
 
   /- ### hasAttr — record (attribute not found) -/
   | hasAttrRecordNotFound :
     ∀ x₁ a c env rty,
-    HasType x₁ c env (.record (.mk rty)) [] →
+    HasType x₁ c env (.record (.mk rty)) oc61 →
     MapNotContainsKey a (.mk rty) →
     HasType (.hasAttr x₁ a) c env (.bool .ff) []
 
@@ -961,7 +961,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   | hasAttrEntity :
     ∀ x₁ a c ets acts reqty ety ty caps rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc62 →
     HasAttrInRecord rty x₁ a c false ty caps →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty caps
 
@@ -969,7 +969,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   | hasAttrEntityNotFound :
     ∀ x₁ a c ets acts reqty ety rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc63 →
     MapNotContainsKey a rty →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
@@ -985,7 +985,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   | hasAttrEnum :
     ∀ x₁ a c ets acts reqty ety eids,
     MapContainsEnum ety eids ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc64 →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### getAttr — record -/
@@ -994,7 +994,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   -- record types (which diverges). Same rationale as `getAttrEntity`.
   | getAttrRecord :
     ∀ x₁ a c env rty ty,
-    HasType x₁ c env (.record rty) [] →
+    HasType x₁ c env (.record rty) oc65 →
     GetAttrInRecord rty x₁ a c ty →
     HasType (.getAttr x₁ a) c env ty []
 
@@ -1006,7 +1006,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   | getAttrEntity :
     ∀ x₁ a c ets acts reqty ety ty rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc66 →
     GetAttrInRecord rty x₁ a c ty →
     HasType (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ ty []
 
@@ -1019,8 +1019,8 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ∀ x₁ x₂ c ets acts reqty ety ty,
     HasTagSchema ets ety ty →
     ¬ CapTagMem x₁ x₂ c →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ .string [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc67 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc68 →
     HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) [(x₁, .tag x₂)]
 
   /- ### hasTag — entity has tags, already in capabilities -/
@@ -1031,16 +1031,16 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     -- `CapTagMem` to produce *both* the entity and the key from `c`.
     CapTagMem x₁ x₂ c →
     HasTagSchema ets ety ty →
-    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string [] →
+    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc69 →
+    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string oc70 →
     HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .tt) []
 
   /- ### hasTag — entity has no tags -/
   | hasTagFf :
     ∀ x₁ x₂ c ets acts reqty ety,
     NoTags ets ety →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType x₂ c ⟨ets, acts, reqty⟩ .string [] →
+    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc71 →
+    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc72 →
     HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### getTag — entity with tags, capability present -/
@@ -1052,26 +1052,23 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     -- leaving the id-wrapped `x₂` with no producer — so getTag never generates.
     CapTagMem x₁ x₂ c →
     HasTagSchema ets ety ty →
-    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) [] →
-    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string [] →
+    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc73 →
+    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string oc74 →
     HasType (.binaryApp .getTag x₁ x₂) c ⟨ets, acts, reqty⟩ ty []
 
-  /- ### ite — condition true -/
+  /- ### ite — condition true (untaken branch `x₃` is arbitrary: `typeOf` ignores it) -/
   | iteTt :
-    ∀ x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ cout,
+    ∀ x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ cout,
     HasType x₁ c env (.bool .tt) c₁ →
     CapMerge c c₁ c_c₁ →
     HasType x₂ c_c₁ env t₂ c₂ →
-    HasType x₃ c env t₃ [] →
     CapMerge c₁ c₂ cout →
     HasType (.ite x₁ x₂ x₃) c env t₂ cout
 
-  /- ### ite — condition false -/
+  /- ### ite — condition false (untaken branch `x₂` is arbitrary: `typeOf` ignores it) -/
   | iteFf :
-    ∀ x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ c₃,
+    ∀ x₁ x₂ x₃ c env c₁ t₃ c₃,
     HasType x₁ c env (.bool .ff) c₁ →
-    CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env t₂ c₂ →
     HasType x₃ c env t₃ c₃ →
     HasType (.ite x₁ x₂ x₃) c env t₃ c₃
 
@@ -1181,7 +1178,7 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
   /- ### Set literal -/
   | set :
     ∀ x xs c env ty tyList lubTy,
-    HasType x c env ty [] →
+    HasType x c env ty oc75 →
     HasTypeList xs c env tyList →
     AllLub ty tyList lubTy →
     HasType (.set (x :: xs)) c env (.set lubTy) []
@@ -1206,7 +1203,7 @@ inductive HasTypeList : List Expr → Capabilities → TypeEnv → List CedarTyp
     HasTypeList [] c env []
   | cons :
     ∀ x xs c env ty tys,
-    HasType x c env ty [] →
+    HasType x c env ty oc76 →
     HasTypeList xs c env tys →
     HasTypeList (x :: xs) c env (ty :: tys)
 
@@ -1221,7 +1218,7 @@ inductive HasTypeRecord : Option Attr → List (Attr × Expr) → Capabilities �
   | cons :
     ∀ lb a x axs c env ty atyList,
     KeyAbove lb a →
-    HasType x c env ty [] →
+    HasType x c env ty oc77 →
     HasTypeRecord (some a) axs c env atyList →
     HasTypeRecord lb ((a, x) :: axs) c env ((a, .required ty) :: atyList)
 
@@ -1239,58 +1236,58 @@ inductive HasTypeExtCall : ExtFun → List Expr → Capabilities → TypeEnv →
   | duration : ∀ s c env, ValidDuration s → HasTypeExtCall .duration [.lit (.string s)] c env (.ext .duration)
   /- Methods: argument types stated directly as `HasType` premises. -/
   | lessThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) [] →
+    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc78 →
     HasTypeExtCall .lessThan [a, b] c env (.bool .anyBool)
   | lessThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) [] →
+    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc79 →
     HasTypeExtCall .lessThanOrEqual [a, b] c env (.bool .anyBool)
   | greaterThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) [] →
+    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc80 →
     HasTypeExtCall .greaterThan [a, b] c env (.bool .anyBool)
   | greaterThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) [] →
+    HasType a c env (.ext .decimal) [] → HasType b c env (.ext .decimal) oc81 →
     HasTypeExtCall .greaterThanOrEqual [a, b] c env (.bool .anyBool)
   | isIpv4 : ∀ a c env,
-    HasType a c env (.ext .ipAddr) [] →
+    HasType a c env (.ext .ipAddr) oc82 →
     HasTypeExtCall .isIpv4 [a] c env (.bool .anyBool)
   | isIpv6 : ∀ a c env,
-    HasType a c env (.ext .ipAddr) [] →
+    HasType a c env (.ext .ipAddr) oc83 →
     HasTypeExtCall .isIpv6 [a] c env (.bool .anyBool)
   | isLoopback : ∀ a c env,
-    HasType a c env (.ext .ipAddr) [] →
+    HasType a c env (.ext .ipAddr) oc84 →
     HasTypeExtCall .isLoopback [a] c env (.bool .anyBool)
   | isMulticast : ∀ a c env,
-    HasType a c env (.ext .ipAddr) [] →
+    HasType a c env (.ext .ipAddr) oc85 →
     HasTypeExtCall .isMulticast [a] c env (.bool .anyBool)
   | isInRange : ∀ a b c env,
-    HasType a c env (.ext .ipAddr) [] → HasType b c env (.ext .ipAddr) [] →
+    HasType a c env (.ext .ipAddr) [] → HasType b c env (.ext .ipAddr) oc86 →
     HasTypeExtCall .isInRange [a, b] c env (.bool .anyBool)
   | offset : ∀ a b c env,
-    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .duration) [] →
+    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .duration) oc87 →
     HasTypeExtCall .offset [a, b] c env (.ext .datetime)
   | durationSince : ∀ a b c env,
-    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .datetime) [] →
+    HasType a c env (.ext .datetime) [] → HasType b c env (.ext .datetime) oc88 →
     HasTypeExtCall .durationSince [a, b] c env (.ext .duration)
   | toDate : ∀ a c env,
-    HasType a c env (.ext .datetime) [] →
+    HasType a c env (.ext .datetime) oc89 →
     HasTypeExtCall .toDate [a] c env (.ext .datetime)
   | toTime : ∀ a c env,
-    HasType a c env (.ext .datetime) [] →
+    HasType a c env (.ext .datetime) oc90 →
     HasTypeExtCall .toTime [a] c env (.ext .duration)
   | toMilliseconds : ∀ a c env,
-    HasType a c env (.ext .duration) [] →
+    HasType a c env (.ext .duration) oc91 →
     HasTypeExtCall .toMilliseconds [a] c env .int
   | toSeconds : ∀ a c env,
-    HasType a c env (.ext .duration) [] →
+    HasType a c env (.ext .duration) oc92 →
     HasTypeExtCall .toSeconds [a] c env .int
   | toMinutes : ∀ a c env,
-    HasType a c env (.ext .duration) [] →
+    HasType a c env (.ext .duration) oc93 →
     HasTypeExtCall .toMinutes [a] c env .int
   | toHours : ∀ a c env,
-    HasType a c env (.ext .duration) [] →
+    HasType a c env (.ext .duration) oc94 →
     HasTypeExtCall .toHours [a] c env .int
   | toDays : ∀ a c env,
-    HasType a c env (.ext .duration) [] →
+    HasType a c env (.ext .duration) oc95 →
     HasTypeExtCall .toDays [a] c env .int
 
 end

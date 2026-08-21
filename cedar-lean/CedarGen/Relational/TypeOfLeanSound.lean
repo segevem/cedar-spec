@@ -2148,7 +2148,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
       by simp only [typeOf, h1, Except.bind_ok, typeOfAnd, ht1, h2', ht2, ok], rfl,
       (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
   -- ite → `typeOfIf` (threads `c ∪ c₁`; anyBool arm needs `lub_sound`)
-  | iteTt x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ cout a a1 a2 a3 a4 ih1 ih2 ih3 =>
+  | iteTt x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ cout a a1 a2 a3 ih1 ih2 =>
     rename_i hwf
     obtain ⟨t1, cc1', h1, ht1, hcc1⟩ := ih1 hwf
     obtain ⟨tt2, cc2', h2, ht2, hcc2⟩ := ih2 hwf
@@ -2157,11 +2157,11 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨o₂, h2', ho2⟩ := typeOf_capsEquiv hb h2
     exact ⟨.ite t1 tt2 tt2 tt2.typeOf, cc1' ∪ o₂,
       by simp only [typeOf, h1, Except.bind_ok, typeOfIf, ht1, h2', ok], ht2,
-      (capMerge_capsEquiv_union a4).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
-  | iteFf x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ c₃ a a1 a2 a3 ih1 ih2 ih3 =>
+      (capMerge_capsEquiv_union a3).trans (CapsEquiv.union hcc1 (hcc2.trans ho2))⟩
+  | iteFf x₁ x₂ x₃ c env c₁ t₃ c₃ a a1 ih1 ih2 =>
     rename_i hwf
     obtain ⟨t1, cc1', h1, ht1, _⟩ := ih1 hwf
-    obtain ⟨t3, c3', h3, ht3, hcc3⟩ := ih3 hwf
+    obtain ⟨t3, c3', h3, ht3, hcc3⟩ := ih2 hwf
     exact ⟨.ite t1 t3 t3 t3.typeOf, c3',
       by simp only [typeOf, h1, Except.bind_ok, typeOfIf, ht1, h3, ok], ht3, hcc3⟩
   | iteAnyBool x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ c₃ lubTy c₁₂ a a1 a2 a3 a4 a5 ih1 ih2 ih3 =>
