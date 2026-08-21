@@ -1800,6 +1800,45 @@ theorem actionInSet_any {acts : ActionSchema} {uid₁ : EntityUID} {xs : List Ex
         subst huids
         simp only [List.any_cons, ih hr, Bool.or_true]
 
+/-- Completeness of `ActionSchema.descendentOf` into `ActionDescendentOf` (given the
+    source action is present). Reverse of `actionDescendentOf_sound`. -/
+theorem descendentOf_actionDescendentOf {acts : ActionSchema} {uid₁ u : EntityUID} {entry}
+    (hmc : MapContains uid₁ entry acts) (hnd : (acts.toList.map Prod.fst).Nodup)
+    (h : acts.descendentOf uid₁ u = true) : ActionDescendentOf acts uid₁ u := by
+  simp only [ActionSchema.descendentOf] at h
+  split at h
+  · rename_i heq; simp only [beq_iff_eq] at heq; subst heq
+    exact ActionDescendentOf.refl _ _ _ hmc
+  · simp only [mapContains_find?_nodup hmc hnd] at h
+    exact ActionDescendentOf.ancestor _ _ _ _ hmc ((setContains_iff_contains).mpr h)
+
+/-- If some UID in `uids` (the literals of `xs`) is an action-descendent of `uid₁`,
+    then `ActionInSet` holds. Reverse of `actionInSet_any`. -/
+theorem actionInSet_of_mem {acts : ActionSchema} {uid₁ : EntityUID} {xs : List Expr}
+    {uids : List EntityUID} {u : EntityUID}
+    (huids : xs.mapM entityUID? = some uids) (hmem : u ∈ uids)
+    (hdesc : ActionDescendentOf acts uid₁ u) : ActionInSet acts uid₁ xs := by
+  induction xs generalizing uids with
+  | nil =>
+    simp only [List.mapM_nil, pure, Except.pure, Option.some.injEq] at huids; subst huids
+    simp at hmem
+  | cons hd tl ih =>
+    simp only [List.mapM_cons] at huids
+    cases hhd : entityUID? hd with
+    | none => rw [hhd] at huids; simp at huids
+    | some uhd =>
+      rw [hhd] at huids
+      cases htl : tl.mapM entityUID? with
+      | none => rw [htl] at huids; simp at huids
+      | some ruids =>
+        rw [htl] at huids
+        simp only [Option.bind_some_fun, Option.pure_def, Option.some.injEq] at huids
+        subst huids
+        simp only [List.mem_cons] at hmem
+        rcases hmem with rfl | hmem
+        · rw [entityUID?_some hhd]; exact ActionInSet.here _ _ _ _ hdesc
+        · exact ActionInSet.there _ _ _ _ (ih htl hmem)
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
@@ -2554,12 +2593,27 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₛ, actionUID?, entityUID?,
       entityUIDs?, hc1, huids, hany, ok]
   -- mem — action literal in a set of entity literals (ff: no descendent).
-  -- TODO: requires the completeness bridge `acts.descendentOf uid₁ u = true →
-  -- ActionDescendentOf acts uid₁ u` (reverse of `actionDescendentOf_sound`) to turn
-  -- `¬ ActionInSet` into `uids.any (acts.descendentOf uid₁ ·) = false`.
   | binaryAppMemActionLitSetFf uid₁ xs c ets acts reqty ety₂ a1 a2 a3 a4 ih1 ih2 =>
     rename_i hwf
-    sorry
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hnd := wfTypeEnv_acts_nodup hwf
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
+      cases a1 with | mk _ _ _ e hmc _ => exact ⟨e, hmc⟩
+    have hc1 : acts.contains uid₁ = true := by
+      simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
+    have hall : ∀ x ∈ xs, ∃ uid, x = .lit (.entityUID uid) := by
+      cases a1 with | mk _ _ _ _ _ hall => exact hall
+    obtain ⟨uids, huids⟩ := mapM_entityUID?_all_lits hall
+    have hany : uids.any (fun u => acts.descendentOf uid₁ u) = false := by
+      by_contra hne
+      simp only [Bool.not_eq_false, List.any_eq_true] at hne
+      obtain ⟨u, hu_mem, hdesc⟩ := hne
+      exact a2 (actionInSet_of_mem huids hu_mem
+        (descendentOf_actionDescendentOf hmc hnd hdesc))
+    refine ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₛ, actionUID?, entityUID?,
+      entityUIDs?, hc1, huids, hany, ok]
   -- record literal → `typeOfRecord`; sortedness comes from the `motive_3` invariant.
   | record axs c env atyList a1 ih3 =>
     rename_i hwf
