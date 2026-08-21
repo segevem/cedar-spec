@@ -36,32 +36,45 @@ open Cedar.Spec
 open Cedar.Data
 open Cedar.Validation
 
-/-- Structural well-formedness of an expression for completeness: every record
-    sub-literal has strictly-sorted (hence distinct) keys. `typeOf` accepts
-    unsorted record literals (it canonicalizes with `Map.make`) but `HasTypeRecord`
-    requires the source key list already sorted, so this restriction is exactly the
-    "record literals are canonical" assumption. -/
-inductive WfExpr : Expr → Prop where
-  | lit : ∀ p, WfExpr (.lit p)
-  | var : ∀ v, WfExpr (.var v)
-  | ite : ∀ a b c, WfExpr a → WfExpr b → WfExpr c → WfExpr (.ite a b c)
-  | and : ∀ a b, WfExpr a → WfExpr b → WfExpr (.and a b)
-  | or : ∀ a b, WfExpr a → WfExpr b → WfExpr (.or a b)
-  | unaryApp : ∀ op a, WfExpr a → WfExpr (.unaryApp op a)
-  | binaryApp : ∀ op a b, WfExpr a → WfExpr b → WfExpr (.binaryApp op a b)
-  | getAttr : ∀ a k, WfExpr a → WfExpr (.getAttr a k)
-  | hasAttr : ∀ a k, WfExpr a → WfExpr (.hasAttr a k)
-  | set : ∀ xs, (∀ e ∈ xs, WfExpr e) → WfExpr (.set xs)
-  | record : ∀ axs, (axs.map Prod.fst).SortedBy id → (∀ e ∈ axs.map Prod.snd, WfExpr e) →
-      WfExpr (.record axs)
-  | call : ∀ f xs, (∀ e ∈ xs, WfExpr e) → WfExpr (.call f xs)
+/-- Expression-level well-formedness for completeness (relative to `env`), capturing
+    the two places where the relational spec is deliberately narrower than *bare*
+    `typeOf` on an otherwise-accepted input:
+
+    * **Record literals must have strictly-sorted, distinct keys.** `typeOf`
+      canonicalizes them via `Map.make`, but `HasTypeRecord` bakes sortedness into
+      the source syntax. (The user-accepted "records are canonical" assumption.)
+    * **The tested type of an `is` must be declared.** `HasType` targets the real
+      validator `validate` (which runs `checkEntities` first, rejecting `x is T` for
+      undeclared `T`); bare `typeOf` skips that check. The tested type is a syntactic
+      annotation, so — unlike operand entity types, which are declared automatically
+      in a well-formed env — it must be required here.
+
+    Every other `ValidEntityType`/schema premise in `HasType` is *derivable* from a
+    successful `typeOf` on a `WfTypeEnv` (operand entity types are always declared),
+    so no further conditions are needed. -/
+inductive WfExpr : TypeEnv → Expr → Prop where
+  | lit : ∀ env p, WfExpr env (.lit p)
+  | var : ∀ env v, WfExpr env (.var v)
+  | ite : ∀ env a b c, WfExpr env a → WfExpr env b → WfExpr env c → WfExpr env (.ite a b c)
+  | and : ∀ env a b, WfExpr env a → WfExpr env b → WfExpr env (.and a b)
+  | or : ∀ env a b, WfExpr env a → WfExpr env b → WfExpr env (.or a b)
+  | unaryApp : ∀ env op a, (∀ ety, op = .is ety → ValidEntityType ety env.ets env.acts) →
+      WfExpr env a → WfExpr env (.unaryApp op a)
+  | binaryApp : ∀ env op a b, WfExpr env a → WfExpr env b → WfExpr env (.binaryApp op a b)
+  | getAttr : ∀ env a k, WfExpr env a → WfExpr env (.getAttr a k)
+  | hasAttr : ∀ env a k, WfExpr env a → WfExpr env (.hasAttr a k)
+  | set : ∀ env xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.set xs)
+  | record : ∀ env axs, (axs.map Prod.fst).SortedBy id → (∀ e ∈ axs.map Prod.snd, WfExpr env e) →
+      WfExpr env (.record axs)
+  | call : ∀ env f xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.call f xs)
 
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
-    environment, any successful `typeOf` run on a canonical-record expression is
-    witnessed by a `HasType` derivation with a capability-equivalent output. -/
+    environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
+    declared-`is`-type) expression is witnessed by a `HasType` derivation with a
+    capability-equivalent output. -/
 theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
-      WfExpr x → typeOf x c env = .ok (tx, c') →
+      WfExpr env x → typeOf x c env = .ok (tx, c') →
       ∃ cout, HasType x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
   sorry
 
