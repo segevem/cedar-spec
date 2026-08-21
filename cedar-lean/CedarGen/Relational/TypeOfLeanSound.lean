@@ -1751,6 +1751,55 @@ theorem typeOf_tyWf {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     | error e => rw [hm] at h; simp at h
     | ok tys => rw [hm] at h; simp only [Except.bind_ok] at h; exact typeOfCall_tyWf h
 
+/-- `KeyAbove` is preserved upward through `<` (the record-key threading step). -/
+theorem keyAbove_trans {lb : Option Attr} {a k : Attr}
+    (h : Schema.KeyAbove lb a) (hlt : a < k) : Schema.KeyAbove lb k := by
+  cases h with
+  | none _ => exact Schema.KeyAbove.none _
+  | some b _ hb => exact Schema.KeyAbove.some _ _ (StrictLT.transitive b a k hb hlt)
+
+/-- A list of entity-UID literals maps under `entityUID?` to `some` list. -/
+theorem mapM_entityUID?_all_lits {xs : List Expr}
+    (h : ∀ x ∈ xs, ∃ uid, x = .lit (.entityUID uid)) :
+    ∃ uids, xs.mapM entityUID? = some uids := by
+  induction xs with
+  | nil => exact ⟨[], rfl⟩
+  | cons hd tl ih =>
+    obtain ⟨uid, rfl⟩ := h hd (by simp)
+    obtain ⟨uids, huids⟩ := ih (fun x hx => h x (List.mem_cons_of_mem _ hx))
+    exact ⟨uid :: uids, by simp [List.mapM_cons, entityUID?, huids]⟩
+
+/-- `ActionInSet` (some element is an action descendent) implies the functional
+    `uids.any (acts.descendentOf uid₁ ·)` holds, given the elements are the UID
+    literals of `uids`. -/
+theorem actionInSet_any {acts : ActionSchema} {uid₁ : EntityUID} {xs : List Expr}
+    {uids : List EntityUID} (h : ActionInSet acts uid₁ xs)
+    (huids : xs.mapM entityUID? = some uids) (hnd : (acts.toList.map Prod.fst).Nodup) :
+    uids.any (fun u => acts.descendentOf uid₁ u) = true := by
+  induction h generalizing uids with
+  | here uid₂ rest hdesc =>
+    simp only [List.mapM_cons, entityUID?] at huids
+    cases hr : rest.mapM entityUID? with
+    | none => rw [hr] at huids; simp at huids
+    | some ruids =>
+      rw [hr] at huids
+      simp only [Option.bind_some_fun, Option.pure_def, Option.some.injEq] at huids
+      subst huids
+      simp only [List.any_cons, actionDescendentOf_sound hdesc hnd, Bool.true_or]
+  | there x rest hin ih =>
+    simp only [List.mapM_cons] at huids
+    cases hx : entityUID? x with
+    | none => rw [hx] at huids; simp at huids
+    | some ux =>
+      rw [hx] at huids
+      cases hr : rest.mapM entityUID? with
+      | none => rw [hr] at huids; simp at huids
+      | some ruids =>
+        rw [hr] at huids
+        simp only [Option.bind_some_fun, Option.pure_def, Option.some.injEq] at huids
+        subst huids
+        simp only [List.any_cons, ih hr, Bool.or_true]
+
 /-! ## Main soundness theorem
 
 Stated over the whole mutual family (`HasType` / `HasTypeList` / `HasTypeRecord`
@@ -1788,7 +1837,8 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     (motive_3 := fun lb axs c env atys _ =>
       Schema.WfTypeEnv env → ∃ txs,
         axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok txs ∧
-        txs.map (fun p => (p.1, Qualified.required p.2.typeOf)) = atys ∧ Map.make atys = Map.mk atys)
+        txs.map (fun p => (p.1, Qualified.required p.2.typeOf)) = atys ∧
+        atys.SortedBy Prod.fst ∧ ∀ k ∈ atys.map Prod.fst, Schema.KeyAbove lb k)
     (motive_4 := fun xfn args c env ty _ =>
       Schema.WfTypeEnv env → ∃ tx c', typeOf (.call xfn args) c env = .ok (tx, c') ∧
         tx.typeOf = ty ∧ CapsEquiv [] c') with
@@ -2486,6 +2536,51 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
       simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, ok],
       rfl, fun _ => Iff.rfl⟩
-  | _ => (try rename_i hwf); sorry
+  -- mem — action literal in a set of entity literals (tt: some descendent).
+  | binaryAppMemActionLitSetTt uid₁ xs c ets acts reqty ety₂ a1 a2 a3 a4 ih1 ih2 =>
+    rename_i hwf
+    obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
+    obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
+    have hnd := wfTypeEnv_acts_nodup hwf
+    obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
+      cases a1 with | mk _ _ _ e hmc _ => exact ⟨e, hmc⟩
+    have hc1 : acts.contains uid₁ = true := by
+      simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
+    have hall : ∀ x ∈ xs, ∃ uid, x = .lit (.entityUID uid) := by
+      cases a1 with | mk _ _ _ _ _ hall => exact hall
+    obtain ⟨uids, huids⟩ := mapM_entityUID?_all_lits hall
+    have hany := actionInSet_any a2 huids hnd
+    refine ⟨.binaryApp .mem t1 t2 (.bool .tt), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp [typeOf, h1, h2, typeOfBinaryApp, ht1, ht2, typeOfInₛ, actionUID?, entityUID?,
+      entityUIDs?, hc1, huids, hany, ok]
+  -- mem — action literal in a set of entity literals (ff: no descendent).
+  -- TODO: requires the completeness bridge `acts.descendentOf uid₁ u = true →
+  -- ActionDescendentOf acts uid₁ u` (reverse of `actionDescendentOf_sound`) to turn
+  -- `¬ ActionInSet` into `uids.any (acts.descendentOf uid₁ ·) = false`.
+  | binaryAppMemActionLitSetFf uid₁ xs c ets acts reqty ety₂ a1 a2 a3 a4 ih1 ih2 =>
+    rename_i hwf
+    sorry
+  -- record literal → `typeOfRecord`; sortedness comes from the `motive_3` invariant.
+  | record axs c env atyList a1 ih3 =>
+    rename_i hwf
+    obtain ⟨txs, hmapM, hmap, hsorted, _⟩ := ih3 hwf
+    have hmake : Map.make atyList = Map.mk atyList := Map.make_eq_mk.mp hsorted
+    refine ⟨.record txs (.record (Map.make (txs.map (fun p => (p.1, Qualified.required p.2.typeOf))))),
+      ∅, ?_, ?_, fun _ => Iff.rfl⟩
+    · simp only [typeOf,
+        List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c env).map (fun r => (p.1, r.1))),
+        hmapM, Except.bind_ok, ok]
+    · show CedarType.record (Map.make (txs.map (fun p => (p.1, Qualified.required p.2.typeOf))))
+          = CedarType.record (Map.mk atyList)
+      rw [hmap, hmake]
+  -- HasTypeRecord (motive_3): nil / cons — handled together (they share the `nil`/`cons`
+  -- recursor tags with `HasTypeList`, so cannot be named separately in `with`).
+  | _ =>
+    first
+    | -- HasTypeRecord.nil
+      (intro _; exact ⟨[], rfl, rfl, List.SortedBy.nil, by simp⟩)
+    | -- HasTypeRecord.cons: KeyAbove sortedness threading (see `cons_record_sound` below).
+      -- TODO: pending the exact `rename_i` binder count for the recursor's cons case.
+      sorry
 
 end CedarGen.Relational.Lean
