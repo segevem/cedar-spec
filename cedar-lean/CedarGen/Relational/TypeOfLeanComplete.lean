@@ -76,6 +76,19 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
       WfExpr env x → typeOf x c env = .ok (tx, c') →
       ∃ cout, HasType x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
-  sorry
+  intro x c
+  induction x, c using typeOf.induct with
+  | case1 c p => intro hwfx tx c' h; sorry
+  | case2 c v => intro hwfx tx c' h; sorry
+  | case3 c x₁ x₂ x₃ ih1 ih2 ih3 => intro hwfx tx c' h; sorry
+  | case4 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
+  | case5 c x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
+  | case6 c op₁ x₁ ih1 => intro hwfx tx c' h; sorry
+  | case7 c op₂ x₁ x₂ ih1 ih2 => intro hwfx tx c' h; sorry
+  | case8 c x₁ a ih1 => intro hwfx tx c' h; sorry
+  | case9 c x₁ a ih1 => intro hwfx tx c' h; sorry
+  | case10 c xs ih => intro hwfx tx c' h; sorry
+  | case11 c axs ih => intro hwfx tx c' h; sorry
+  | case12 c xfn xs ih => intro hwfx tx c' h; sorry
 
 end CedarGen.Relational.Lean
