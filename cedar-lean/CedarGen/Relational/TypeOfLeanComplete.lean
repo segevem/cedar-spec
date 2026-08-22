@@ -2097,7 +2097,9 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                 exact ⟨[], HasType.binaryAppMemActionLitFf uid₁ uid₂ c ets acts reqty
                   (notActionDescendentOf_of_false hnda hmcA hne (by simpa using hdesc))
                   (hty1 ▸ hHT1) (hty2 ▸ hHT2), fun _ => Iff.rfl⟩
-          · -- generic membership
+          · -- generic membership: split on `ets.find? ety₁` (the shape `descendentOf` reads),
+            -- not on the `ValidEntityType` witness — this covers action operands (`none`) and
+            -- `ets` operands (`some`) uniformly.
             rw [typeOfInₑ_fallback hal]
             have hv1 := typeOf_entityType_declared hwf h1 heq1
             by_cases hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true
@@ -2107,30 +2109,26 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
               · subst heqe
                 exact HasType.binaryAppMemEntitySame x₁ x₂ c ets acts reqty ety₁ hv1 hal
                   (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-              · have hv1c := hv1
-                cases hv1c with
-                | inSchema entry _ _ hmc =>
+              · cases hf : ets.find? ety₁ with
+                | none =>
+                  -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
+                  simp only [TypeEnv.descendentOf, if_neg heqe, hf,
+                    wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
+                  exact absurd hdesc (by decide)
+                | some entry =>
                   exact HasType.binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
-                    (descendentOf_of_true_inSchema hnd hmc hdesc) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                | isAction eid entry _ _ hpk =>
-                  -- `ety₁` is an action type; split on whether it is *also* an `ets` entry.
-                  cases hf : ets.find? ety₁ with
-                  | none =>
-                    -- unreachable: `descendentOf` falls through to `maybeDescendentOf`, which is `false`
-                    simp only [TypeEnv.descendentOf, if_neg heqe, hf,
-                      wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
-                    exact absurd hdesc (by decide)
-                  | some entry2 =>
-                    exact HasType.binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
-                      (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
-                      (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+                    (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
+                    (heq1 ▸ hHT1) (heq2 ▸ hHT2)
             · rw [if_neg (by simpa using hdesc)]
-              have hv2 := typeOf_entityType_declared hwf h2 heq2
               have hne : ety₁ ≠ ety₂ := fun he => by subst he; simp [TypeEnv.descendentOf] at hdesc
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
-              have hv1c := hv1
-              cases hv1c with
-              | inSchema entry _ _ hmc =>
+              cases hf : ets.find? ety₁ with
+              | none =>
+                exact HasType.binaryAppMemActionEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂
+                  (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+              | some entry =>
+                have hv2 := typeOf_entityType_declared hwf h2 heq2
+                have hmc := find?_mapContains hf
                 cases entry with
                 | standard s =>
                   obtain ⟨ancs, attrs, tags⟩ := s
@@ -2141,23 +2139,6 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                   exact HasType.binaryAppMemEntityEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
                     (NotDescendentOf.enum ets acts ety₁ ety₂ eids hne
                       (mapContainsEnum_of_mapContains hnd hmc)) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-              | isAction eid entry _ _ hpk =>
-                cases hf : ets.find? ety₁ with
-                | none =>
-                  exact HasType.binaryAppMemActionEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂
-                    (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                | some entry2 =>
-                  cases entry2 with
-                  | standard s =>
-                    obtain ⟨ancs, attrs, tags⟩ := s
-                    exact HasType.binaryAppMemEntityEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
-                      (notDescendentOf_of_false_standard hnd (find?_mapContains hf) hne
-                        (by simpa using hdesc)) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                  | enum eids =>
-                    exact HasType.binaryAppMemEntityEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
-                      (NotDescendentOf.enum ets acts ety₁ ety₂ eids hne
-                        (mapContainsEnum_of_mapContains hnd (find?_mapContains hf))) hal
-                      (heq1 ▸ hHT1) (heq2 ▸ hHT2)
         · -- mem, entity/set entity
           rename_i ety₁ ety₂ heq1 heq2
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
@@ -2189,7 +2170,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                 exact ⟨[], HasType.binaryAppMemActionLitSetFf uid₁ xs c ets acts reqty ety₂
                   (IsActionLitMemSet.mk uid₁ xs acts entry hmcA hall) hnais
                   (hty1 ▸ hHT1) (heq2 ▸ hHT2), fun _ => Iff.rfl⟩
-          · -- generic set membership
+          · -- generic set membership: mirror the entity/entity case — split on `ets.find? ety₁`
             rw [typeOfInₛ_fallback hal]
             have hv1 := typeOf_entityType_declared hwf h1 heq1
             by_cases hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true
@@ -2199,28 +2180,26 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
               · subst heqe
                 exact HasType.binaryAppMemEntitySetSame x₁ x₂ c ets acts reqty ety₁ hv1 hal
                   (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-              · have hv1c := hv1
-                cases hv1c with
-                | inSchema entry _ _ hmc =>
+              · cases hf : ets.find? ety₁ with
+                | none =>
+                  -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
+                  simp only [TypeEnv.descendentOf, if_neg heqe, hf,
+                    wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
+                  exact absurd hdesc (by decide)
+                | some entry =>
                   exact HasType.binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
-                    (descendentOf_of_true_inSchema hnd hmc hdesc) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                | isAction eid entry _ _ hpk =>
-                  cases hf : ets.find? ety₁ with
-                  | none =>
-                    simp only [TypeEnv.descendentOf, if_neg heqe, hf,
-                      wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
-                    exact absurd hdesc (by decide)
-                  | some entry2 =>
-                    exact HasType.binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
-                      (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
-                      (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+                    (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
+                    (heq1 ▸ hHT1) (heq2 ▸ hHT2)
             · rw [if_neg (by simpa using hdesc)]
-              have hv2 := typeOf_setElem_entityType_declared hwf h2 heq2
               have hne : ety₁ ≠ ety₂ := fun he => by subst he; simp [TypeEnv.descendentOf] at hdesc
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
-              have hv1c := hv1
-              cases hv1c with
-              | inSchema entry _ _ hmc =>
+              cases hf : ets.find? ety₁ with
+              | none =>
+                exact HasType.binaryAppMemActionSetFf x₁ x₂ c ets acts reqty ety₁ ety₂
+                  (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+              | some entry =>
+                have hv2 := typeOf_setElem_entityType_declared hwf h2 heq2
+                have hmc := find?_mapContains hf
                 cases entry with
                 | standard s =>
                   obtain ⟨ancs, attrs, tags⟩ := s
@@ -2231,23 +2210,6 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                   exact HasType.binaryAppMemEntitySetFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
                     (NotDescendentOf.enum ets acts ety₁ ety₂ eids hne
                       (mapContainsEnum_of_mapContains hnd hmc)) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-              | isAction eid entry _ _ hpk =>
-                cases hf : ets.find? ety₁ with
-                | none =>
-                  exact HasType.binaryAppMemActionSetFf x₁ x₂ c ets acts reqty ety₁ ety₂
-                    (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                | some entry2 =>
-                  cases entry2 with
-                  | standard s =>
-                    obtain ⟨ancs, attrs, tags⟩ := s
-                    exact HasType.binaryAppMemEntitySetFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
-                      (notDescendentOf_of_false_standard hnd (find?_mapContains hf) hne
-                        (by simpa using hdesc)) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-                  | enum eids =>
-                    exact HasType.binaryAppMemEntitySetFf x₁ x₂ c ets acts reqty ety₁ ety₂ hv1 hv2
-                      (NotDescendentOf.enum ets acts ety₁ ety₂ eids hne
-                        (mapContainsEnum_of_mapContains hnd (find?_mapContains hf))) hal
-                      (heq1 ▸ hHT1) (heq2 ▸ hHT2)
         · -- hasTag
           rename_i ety₁ heq1 heq2
           cases hht : typeOfHasTag ety₁ x₁ x₂ c ⟨ets, acts, reqty⟩ with
