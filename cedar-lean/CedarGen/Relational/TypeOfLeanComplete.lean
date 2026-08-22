@@ -2641,4 +2641,21 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
       obtain ⟨hExt, rfl⟩ := hasTypeExtCall_of_typeOfCall hlist h
       exact ⟨[], HasType.callExt xfn xs c env tx.typeOf hExt, fun _ => Iff.rfl⟩
 
+/-- **Characterization of well-typedness** (the capstone combining `hasType_sound` and
+    `typeOf_complete`). On a well-formed environment and a well-formed expression, the
+    relational spec derives type `ty` for `x` *iff* Cedar's functional `typeOf` succeeds
+    with a `TypedExpr` of that type. This is the headline equivalence: the Specimen-derived
+    generator's range coincides exactly with the validator's accepted, well-typed expressions
+    (capabilities elided here — they are matched up to `CapsEquiv` by the two source theorems). -/
+theorem hasType_iff_typeOf_ok {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+    {x : Expr} (hwfx : WfExpr env x) {c : Capabilities} {ty : CedarType} :
+    (∃ cout, HasType x c env ty cout) ↔ (∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty) := by
+  constructor
+  · rintro ⟨cout, hHT⟩
+    obtain ⟨tx, c', hok, hty, _⟩ := hasType_sound hwf hHT
+    exact ⟨tx, c', hok, hty⟩
+  · rintro ⟨tx, c', hok, hty⟩
+    obtain ⟨cout, hHT, _⟩ := typeOf_complete hwf hwfx hok
+    exact ⟨cout, hty ▸ hHT⟩
+
 end CedarGen.Relational.Lean
