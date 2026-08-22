@@ -314,6 +314,18 @@ theorem hasType_capsCongr {x c env ty cout} (h : HasType x c env ty cout) :
     obtain ⟨_, h2, _⟩ := ih2 he
     refine ⟨[], ?_, CapsEquiv.refl []⟩
     apply HasType.binaryAppMemActionLitSetFf <;> assumption
+  | binaryAppMemActionEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 ih1 ih2 =>
+    intro c'' he
+    obtain ⟨_, h1, _⟩ := ih1 he
+    obtain ⟨_, h2, _⟩ := ih2 he
+    refine ⟨[], ?_, CapsEquiv.refl []⟩
+    apply HasType.binaryAppMemActionEntityFf <;> assumption
+  | binaryAppMemActionSetFf x₁ x₂ c ets acts reqty ety₁ ety₂ a a1 a2 a3 a4 ih1 ih2 =>
+    intro c'' he
+    obtain ⟨_, h1, _⟩ := ih1 he
+    obtain ⟨_, h2, _⟩ := ih2 he
+    refine ⟨[], ?_, CapsEquiv.refl []⟩
+    apply HasType.binaryAppMemActionSetFf <;> assumption
   -- hasAttr / getAttr
   | hasAttrRecord x₁ a c env rty ty caps a1 a2 ih =>
     intro c'' he
@@ -340,6 +352,11 @@ theorem hasType_capsCongr {x c env ty cout} (h : HasType x c env ty cout) :
     obtain ⟨_, h1, _⟩ := ih he
     refine ⟨[], ?_, CapsEquiv.refl []⟩
     apply HasType.hasAttrEnum <;> assumption
+  | hasAttrActionFf x₁ attr c ets acts reqty ety eid entry hnc hpk hht ih =>
+    intro c'' he
+    obtain ⟨_, h1, _⟩ := ih he
+    refine ⟨[], ?_, CapsEquiv.refl []⟩
+    apply HasType.hasAttrActionFf <;> assumption
   | getAttrRecord x₁ a c env rty ty a1 a2 ih =>
     intro c'' he
     obtain ⟨_, h1, _⟩ := ih he
@@ -369,6 +386,12 @@ theorem hasType_capsCongr {x c env ty cout} (h : HasType x c env ty cout) :
     obtain ⟨_, h2, _⟩ := ih2 he
     refine ⟨[], ?_, CapsEquiv.refl []⟩
     apply HasType.hasTagFf <;> assumption
+  | hasTagActionFf x₁ x₂ c ets acts reqty ety eid entry a a1 a2 a3 ih1 ih2 =>
+    intro c'' he
+    obtain ⟨_, h1, _⟩ := ih1 he
+    obtain ⟨_, h2, _⟩ := ih2 he
+    refine ⟨[], ?_, CapsEquiv.refl []⟩
+    apply HasType.hasTagActionFf <;> assumption
   | getTag x₁ x₂ c ets acts reqty ety ty a a1 a2 a3 ih1 ih2 =>
     intro c'' he
     obtain ⟨_, h1, _⟩ := ih1 he
