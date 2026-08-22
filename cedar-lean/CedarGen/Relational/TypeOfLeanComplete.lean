@@ -1556,6 +1556,17 @@ theorem descendentOf_of_true_inSchema {ets : EntitySchema} {acts : ActionSchema}
         ((setContains_iff_contains).mpr h)
     | enum eids => simp [EntitySchemaEntry.ancestors, Set.contains, Set.empty, Set.elts] at h
 
+/-- An operand absent from `ets` (`find? = none`) with a distinct target cannot be a proper
+    `descendentOf`: the lookup falls through to `maybeDescendentOf`, which is `false` in a
+    well-formed env (all action UIDs/ancestors carry the reserved `Action` type). So a
+    `descendentOf = true` hypothesis is absurd — used to discharge the unreachable
+    "action operand, membership true" mem branches. -/
+theorem descendentOf_absurd_of_absent {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+    {ety₁ ety₂ : EntityType} (hne : ety₁ ≠ ety₂) (hf : env.ets.find? ety₁ = none)
+    (hdesc : TypeEnv.descendentOf env ety₁ ety₂ = true) : False := by
+  simp only [TypeEnv.descendentOf, if_neg hne, hf, wfTypeEnv_maybeDescendentOf_false hwf hne] at hdesc
+  exact absurd hdesc (by decide)
+
 /-- `TypeEnv.descendentOf = false` for a *standard* operand type ⇒ `NotDescendentOf`. -/
 theorem notDescendentOf_of_false_standard {ets : EntitySchema} {acts : ActionSchema}
     {reqty : RequestType} {ety₁ ety₂ : EntityType} {ancs : Set EntityType} {attrs : RecordType}
@@ -2112,9 +2123,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
               · cases hf : ets.find? ety₁ with
                 | none =>
                   -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
-                  simp only [TypeEnv.descendentOf, if_neg heqe, hf,
-                    wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
-                  exact absurd hdesc (by decide)
+                  exact (descendentOf_absurd_of_absent hwf heqe hf hdesc).elim
                 | some entry =>
                   exact HasType.binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
                     (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
@@ -2183,9 +2192,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
               · cases hf : ets.find? ety₁ with
                 | none =>
                   -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
-                  simp only [TypeEnv.descendentOf, if_neg heqe, hf,
-                    wfTypeEnv_maybeDescendentOf_false hwf heqe] at hdesc
-                  exact absurd hdesc (by decide)
+                  exact (descendentOf_absurd_of_absent hwf heqe hf hdesc).elim
                 | some entry =>
                   exact HasType.binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
                     (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
