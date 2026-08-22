@@ -146,7 +146,7 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
   | case1 b₁ b₂ =>
     intro t h; simp only [lub?, Option.some.injEq] at h; subst h
     by_cases hb : b₁ = b₂
-    · subst hb; simp only [lubBool, ite_self]; exact Lub.boolSame _
+    · subst hb; simp only [lubBool]; exact Lub.boolSame _
     · rw [show lubBool b₁ b₂ = .anyBool from by simp only [lubBool, if_neg hb]]
       exact Lub.boolDiff _ _ (boolTypeNeq_of_ne hb)
   | case2 s₁ s₂ ih =>
