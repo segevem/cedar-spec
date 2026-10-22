@@ -18,5 +18,5 @@
 import Cedar.Thm.Validation.Relational.Soundness
 import Cedar.Thm.Validation.Relational.CapsCongr
 import Cedar.Thm.Validation.Relational.Completeness
-
 import Cedar.Thm.Validation.Relational.WellFormed
+import Cedar.Thm.Validation.Relational.Policy
