@@ -16,6 +16,7 @@
 
 import Cedar.Validation.Relational.Typing
 import Cedar.Validation.Relational.Schema
+import Cedar.Validation.Relational.Assumptions
 import Cedar.Thm.Data.Control
 import Cedar.Thm.Data.Map
 import Cedar.Thm.Validation.Typechecker.LUB
@@ -1126,21 +1127,6 @@ theorem typeOfInₛ_fallback {ety₁ ety₂ : EntityType} {x₁ x₂ : Expr} {en
 `getAttr`/`hasAttr` cases need the receiver's record type distinct so `MapContains`
 agrees with `Map.find?`. -/
 
-mutual
-/-- A `CedarType` whose every record subtype has distinct (duplicate-free) keys. -/
-inductive TyWf : CedarType → Prop where
-  | bool : ∀ b, TyWf (.bool b)
-  | int : TyWf .int
-  | string : TyWf .string
-  | entity : ∀ e, TyWf (.entity e)
-  | ext : ∀ x, TyWf (.ext x)
-  | set : ∀ t, TyWf t → TyWf (.set t)
-  | record : ∀ (m : Map Attr QualifiedType), (m.toList.map Prod.fst).Nodup →
-      (∀ q ∈ m.toList.map Prod.snd, TyWfQ q) → TyWf (.record m)
-inductive TyWfQ : QualifiedType → Prop where
-  | required : ∀ t, TyWf t → TyWfQ (.required t)
-  | optional : ∀ t, TyWf t → TyWfQ (.optional t)
-end
 
 /-- `WfAttrs` (with its `KeyAbove` threading) ⇒ strictly-ascending, hence distinct, keys. -/
 theorem wfAttrs_keys {ets attrs} : ∀ {lb}, Schema.WfAttrs lb ets attrs →
@@ -1459,7 +1445,7 @@ theorem typeOfLit_tyWf {p env tx c'} (h : typeOfLit p env = .ok (tx, c')) : TyWf
   all_goals obtain ⟨rfl, _⟩ := h
   all_goals first | exact TyWf.bool _ | exact TyWf.int | exact TyWf.string | exact TyWf.entity _
 
-theorem typeOfVar_tyWf {v env tx c'} (hwf : Schema.WfTypeEnv env)
+theorem typeOfVar_tyWf {v env tx c'} (hwf : EnvAssumptions env)
     (h : typeOfVar v env = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfVar] at h
   split at h <;>
@@ -1469,7 +1455,7 @@ theorem typeOfVar_tyWf {v env tx c'} (hwf : Schema.WfTypeEnv env)
   · exact TyWf.entity _
   · exact TyWf.entity _
   · exact TyWf.entity _
-  · exact wfTypeEnv_context_tyWf hwf
+  · exact hwf.context_tyWf
 
 theorem typeOfUnaryApp_tyWf {op ty tx c'} (h : typeOfUnaryApp op ty = .ok (tx, c')) :
     TyWf tx.typeOf := by
@@ -1598,7 +1584,7 @@ theorem ifLubThenBool_bool {ty₁ ty₂ ty c'}
   · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; exact ⟨_, h.1.symm⟩
   · simp only [err, reduceCtorEq] at h
 
-theorem typeOfGetTag_tyWf {ety x t c env ty c'} (hwf : Schema.WfTypeEnv env)
+theorem typeOfGetTag_tyWf {ety x t c env ty c'} (hwf : EnvAssumptions env)
     (h : typeOfGetTag ety x t c env = .ok (ty, c')) : TyWf ty := by
   simp only [typeOfGetTag] at h
   split at h
@@ -1606,7 +1592,7 @@ theorem typeOfGetTag_tyWf {ety x t c env ty c'} (hwf : Schema.WfTypeEnv env)
   · rename_i tagty htags
     split at h
     · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
-      exact wfTypeEnv_tags?_tyWf hwf htags
+      exact hwf.tags_tyWf htags
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
@@ -1626,7 +1612,7 @@ theorem getAttrInRecord_tyWf {ty rty x a c aty c'}
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
-theorem typeOfGetAttr_tyWf {ty x a c env tx c'} (hwf : Schema.WfTypeEnv env)
+theorem typeOfGetAttr_tyWf {ty x a c env tx c'} (hwf : EnvAssumptions env)
     (hty : TyWf ty.typeOf) (h : typeOfGetAttr ty x a c env = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfGetAttr] at h
   split at h
@@ -1648,11 +1634,11 @@ theorem typeOfGetAttr_tyWf {ty x a c env tx c'} (hwf : Schema.WfTypeEnv env)
         obtain ⟨aty, ac⟩ := r; rw [hg] at h
         simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
         simp only [TypedExpr.typeOf]
-        exact getAttrInRecord_tyWf (wfTypeEnv_attrs?_tyWf hwf hattr) hg
+        exact getAttrInRecord_tyWf (hwf.attrs_tyWf hattr) hg
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
-theorem typeOfBinaryApp_tyWf {op ty₁ ty₂ x₁ x₂ c env tx c'} (hwf : Schema.WfTypeEnv env)
+theorem typeOfBinaryApp_tyWf {op ty₁ ty₂ x₁ x₂ c env tx c'} (hwf : EnvAssumptions env)
     (h : typeOfBinaryApp op ty₁ ty₂ x₁ x₂ c env = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfBinaryApp] at h
   split at h <;>
@@ -1792,7 +1778,7 @@ theorem mapM₂_record_forall_tyWf {axs : List (Attr × Expr)} {c : Capabilities
 /-- `typeOf` produces canonical (`TyWf`) types on a well-formed environment. This
     is the invariant that makes `Map.find?` on a record-typed receiver agree with
     the structural attribute witness in the `getAttr`/`hasAttr` soundness cases. -/
-theorem typeOf_tyWf {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+theorem typeOf_tyWf {env : TypeEnv} (hwf : EnvAssumptions env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
       typeOf x c env = .ok (tx, c') → TyWf tx.typeOf := by
   intro x c
@@ -2020,19 +2006,19 @@ Case plan (each maps to one `typeOf*` arm):
     motive (it is needed for the schema-lookup cases and `env` is fixed throughout). -/
 theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     {ty : CedarType} {cout : Capabilities}
-    (hwf : Schema.WfTypeEnv env)
+    (hwf : EnvAssumptions env)
     (h : HasType x c env ty cout) :
     ∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty ∧ CapsEquiv cout c' := by
   induction h using HasType.rec (motive_2 := fun xs c env tys _ =>
-      Schema.WfTypeEnv env → ∃ txs, xs.mapM (fun x => justType (typeOf x c env)) = .ok txs ∧
+      EnvAssumptions env → ∃ txs, xs.mapM (fun x => justType (typeOf x c env)) = .ok txs ∧
         txs.map TypedExpr.typeOf = tys)
     (motive_3 := fun lb axs c env atys _ =>
-      Schema.WfTypeEnv env → ∃ txs,
+      EnvAssumptions env → ∃ txs,
         axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok txs ∧
         txs.map (fun p => (p.1, Qualified.required p.2.typeOf)) = atys ∧
         atys.SortedBy Prod.fst ∧ ∀ k ∈ atys.map Prod.fst, KeyAbove lb k)
     (motive_4 := fun xfn args c env ty _ =>
-      Schema.WfTypeEnv env → ∃ tx c', typeOf (.call xfn args) c env = .ok (tx, c') ∧
+      EnvAssumptions env → ∃ tx c', typeOf (.call xfn args) c env = .ok (tx, c') ∧
         tx.typeOf = ty ∧ CapsEquiv [] c') with
   -- Literals → `typeOfLit`.
   | litBoolTrue c ets acts reqty =>
@@ -2134,7 +2120,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
   -- litEntity → `typeOfLit` entity-validity guard
   | litEntity ety eid c ets acts reqty a =>
     rename_i hwf
-    have hv := validEntityUID_lit a (wfTypeEnv_ets_nodup hwf) (wfTypeEnv_acts_nodup hwf)
+    have hv := validEntityUID_lit a (hwf.ets_keys_nodup) (hwf.acts_keys_nodup)
     exact ⟨.lit (.entityUID ⟨ety, eid⟩) (.entity ety), [],
       by simp [typeOf, typeOfLit, hv, ok], rfl, fun _ => Iff.rfl⟩
   -- unaryApp .is → `typeOfUnaryApp`
@@ -2171,7 +2157,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have htg := hasTagSchema_tags? a (wfTypeEnv_ets_nodup hwf)
+    have htg := hasTagSchema_tags? a (hwf.ets_keys_nodup)
     have hcap : ¬ ((x₁, Key.tag x₂) ∈ c) := fun hm => a1 (capTagMem_iff.mpr hm)
     exact ⟨.binaryApp .hasTag t1 t2 (.bool .anyBool), Capabilities.singleton x₁ (.tag x₂),
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
@@ -2181,7 +2167,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
     simp only [id_eq] at h1 h2
-    have htg := hasTagSchema_tags? a1 (wfTypeEnv_ets_nodup hwf)
+    have htg := hasTagSchema_tags? a1 (hwf.ets_keys_nodup)
     have hcap : (x₁, Key.tag x₂) ∈ c := capTagMem_iff.mp a
     exact ⟨.binaryApp .hasTag t1 t2 (.bool .tt), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
@@ -2190,7 +2176,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have htg := noTags_tags? a (wfTypeEnv_ets_nodup hwf)
+    have htg := noTags_tags? a (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .hasTag t1 t2 (.bool .ff), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfHasTag, htg,
         ok], rfl, fun _ => Iff.rfl⟩
@@ -2199,7 +2185,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
     simp only [id_eq] at h1 h2
-    have htg := hasTagSchema_tags? a1 (wfTypeEnv_ets_nodup hwf)
+    have htg := hasTagSchema_tags? a1 (hwf.ets_keys_nodup)
     have hcap : (x₁, Key.tag x₂) ∈ c := capTagMem_iff.mp a
     exact ⟨.binaryApp .getTag t1 t2 ty, ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2, typeOfGetTag, htg,
@@ -2357,7 +2343,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hd := descendentOf_sound (reqty := reqty) a1 (wfTypeEnv_ets_nodup hwf)
+    have hd := descendentOf_sound (reqty := reqty) a1 (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a2, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
@@ -2366,7 +2352,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
     have hd := descendentOf_sound (reqty := reqty) (DescendentOf.refl ets acts ety)
-      (wfTypeEnv_ets_nodup hwf)
+      (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a1, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
@@ -2374,7 +2360,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hd := descendentOf_sound (reqty := reqty) a1 (wfTypeEnv_ets_nodup hwf)
+    have hd := descendentOf_sound (reqty := reqty) a1 (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a2, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
@@ -2383,7 +2369,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
     have hd := descendentOf_sound (reqty := reqty) (DescendentOf.refl ets acts ety)
-      (wfTypeEnv_ets_nodup hwf)
+      (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .anyBool), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a1, hd, if_true, ok], rfl, fun _ => Iff.rfl⟩
@@ -2391,7 +2377,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hd := notDescendentOf_sound (reqty := reqty) a2 (wfTypeEnv_ets_nodup hwf)
+    have hd := notDescendentOf_sound (reqty := reqty) a2 (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₑ_fallback (env := ⟨ets, acts, reqty⟩) a3, hd, if_false, ok, Bool.false_eq_true], rfl, fun _ => Iff.rfl⟩
@@ -2399,7 +2385,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hd := notDescendentOf_sound (reqty := reqty) a2 (wfTypeEnv_ets_nodup hwf)
+    have hd := notDescendentOf_sound (reqty := reqty) a2 (hwf.ets_keys_nodup)
     exact ⟨.binaryApp .mem t1 t2 (.bool .ff), ∅,
       by simp only [typeOf, h1, h2, Except.bind_ok, typeOfBinaryApp, ht1, ht2,
         typeOfInₛ_fallback (env := ⟨ets, acts, reqty⟩) a3, hd, if_false, ok, Bool.false_eq_true], rfl, fun _ => Iff.rfl⟩
@@ -2606,7 +2592,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hnd := wfTypeEnv_acts_nodup hwf
+    have hnd := hwf.acts_keys_nodup
     obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by cases a <;> exact ⟨_, by assumption⟩
     have hc1 : acts.contains uid₁ = true := by simp [ActionSchema.contains, mapContains_find?_nodup hmc hnd]
     have hdesc := actionDescendentOf_sound a hnd
@@ -2617,7 +2603,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hnd := wfTypeEnv_acts_nodup hwf
+    have hnd := hwf.acts_keys_nodup
     obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
       cases a
       exact ⟨_, by assumption⟩
@@ -2650,9 +2636,9 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
   | getAttrEntity x₁ a c ets acts reqty ety ty rty a1 a2 a3 ih =>
     rename_i hwf
     obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
-    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hattr := mapContainsAttrs_attrs? a1 (hwf.ets_keys_nodup)
     have hnd : (rty.toList.map Prod.fst).Nodup := by
-      cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+      cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
     cases a3 with
     | required hmc =>
       have hf := mapContains_find?_nodup hmc hnd
@@ -2703,9 +2689,9 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
   | hasAttrEntity x₁ a c ets acts reqty ety ty caps rty a1 a2 a3 ih =>
     rename_i hwf
     obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
-    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hattr := mapContainsAttrs_attrs? a1 (hwf.ets_keys_nodup)
     have hnd : (rty.toList.map Prod.fst).Nodup := by
-      cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+      cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
     cases a3 with
     | found_in_caps _ _ _ =>
       have hcapc : (x₁, Key.attr a) ∈ c := capAttrMem_iff.mp ‹CapAttrMem x₁ a c›
@@ -2725,7 +2711,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
   | hasAttrEntityNotFound x₁ a c ets acts reqty ety rty a1 a2 a3 ih =>
     rename_i hwf
     obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
-    have hattr := mapContainsAttrs_attrs? a1 (wfTypeEnv_ets_nodup hwf)
+    have hattr := mapContainsAttrs_attrs? a1 (hwf.ets_keys_nodup)
     have hf := mapNotContainsKey_find? a3
     exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
       simp only [typeOf, h1, Except.bind_ok, typeOfHasAttr, ht1, hattr, hasAttrInRecord, hf, ok],
@@ -2735,7 +2721,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
   | hasAttrEnum x₁ a c ets acts reqty ety eids a1 a2 ih =>
     rename_i hwf
     obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
-    have hfind := mapContains_find?_nodup (mapContainsEnum_mc a1) (wfTypeEnv_ets_nodup hwf)
+    have hfind := mapContains_find?_nodup (mapContainsEnum_mc a1) (hwf.ets_keys_nodup)
     have hattr : EntitySchema.attrs? ets ety = some Map.empty := by
       simp only [EntitySchema.attrs?, hfind, Option.map_some, EntitySchemaEntry.attrs]
     exact ⟨.hasAttr t1 a (.bool .ff), ∅, by
@@ -2746,7 +2732,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hnd := wfTypeEnv_acts_nodup hwf
+    have hnd := hwf.acts_keys_nodup
     obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
       cases a1 with | mk _ _ _ e hmc _ => exact ⟨e, hmc⟩
     have hc1 : acts.contains uid₁ = true := by
@@ -2763,7 +2749,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     rename_i hwf
     obtain ⟨t1, c1, h1, ht1, _⟩ := ih1 hwf
     obtain ⟨t2, c2, h2, ht2, _⟩ := ih2 hwf
-    have hnd := wfTypeEnv_acts_nodup hwf
+    have hnd := hwf.acts_keys_nodup
     obtain ⟨entry, hmc⟩ : ∃ e, MapContains uid₁ e acts := by
       cases a1 with | mk _ _ _ e hmc _ => exact ⟨e, hmc⟩
     have hc1 : acts.contains uid₁ = true := by
@@ -2801,7 +2787,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨tx₂, c₂', hty2, htty2, _⟩ := ih2 hwf
     have hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
       simp only [TypeEnv.descendentOf, if_neg hne, mapNotContainsKey_find? hnc]
-      exact wfTypeEnv_maybeDescendentOf_false hwf hne
+      exact hwf.action_ancestry_same_type hne
     have hfb : typeOfInₑ ety₁ ety₂ x₁ x₂ ⟨ets, acts, reqty⟩ = .ff := by
       rw [typeOfInₑ_fallback hnal, hdesc]; rfl
     refine ⟨.binaryApp .mem tx₁ tx₂ (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩
@@ -2812,7 +2798,7 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     obtain ⟨tx₂, c₂', hty2, htty2, _⟩ := ih2 hwf
     have hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false := by
       simp only [TypeEnv.descendentOf, if_neg hne, mapNotContainsKey_find? hnc]
-      exact wfTypeEnv_maybeDescendentOf_false hwf hne
+      exact hwf.action_ancestry_same_type hne
     have hfb : typeOfInₛ ety₁ ety₂ x₁ x₂ ⟨ets, acts, reqty⟩ = .ff := by
       rw [typeOfInₛ_fallback hnal, hdesc]; rfl
     refine ⟨.binaryApp .mem tx₁ tx₂ (.bool .ff), ∅, ?_, rfl, fun _ => Iff.rfl⟩

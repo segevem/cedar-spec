@@ -216,20 +216,6 @@ the relational `WfTypeEnv` to Cedar's `TypeEnv.WellFormed`. -/
 open Schema (WfCedarType WfAttrs WfEntitiesGo WfEntitySchema WfActionsGo WfActionSchema
   RequestFromAction DefinedEntityType WfPrincipalTypes WfResourceTypes)
 
-/-- A `CedarType` is *valid* in `env` when every entity type occurring in it is
-    declared (`ValidEntityType`). This is the entity-declaredness fragment of Cedar's
-    `CedarType.WellFormed` — deliberately dropping the record-`Map` sortedness that Cedar
-    requires, since the relational `Schema.WfTypeEnv` builds maps in generation order, not
-    sorted. `typeOf` on a `WfTypeEnv` produces `TypeValid` types (`typeOf_type_valid`). -/
-inductive TypeValid (env : TypeEnv) : CedarType → Prop where
-  | bool : ∀ b, TypeValid env (.bool b)
-  | int : TypeValid env .int
-  | string : TypeValid env .string
-  | ext : ∀ x, TypeValid env (.ext x)
-  | entity : ∀ ety, ValidEntityType ety env.ets env.acts → TypeValid env (.entity ety)
-  | set : ∀ ty, TypeValid env ty → TypeValid env (.set ty)
-  | record : ∀ rts, (∀ p ∈ rts, TypeValid env p.2.getType) → TypeValid env (.record (Map.mk rts))
-
 /-- A valid entity UID's type is a declared entity type. -/
 theorem validEntityUID_validType {ety eid ets acts} (h : ValidEntityUID ety eid ets acts) :
     ValidEntityType ety ets acts := by
@@ -641,7 +627,7 @@ theorem typeOfHasTag_typeValid {env : TypeEnv} {ety x₁ x₂ c ty c'}
     · simp only [err, reduceCtorEq] at h
 
 /-- `typeOfGetTag` returns a `TypeValid` tag type (the schema tag type is declared). -/
-theorem typeOfGetTag_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety x₁ x₂ c ty c'}
+theorem typeOfGetTag_typeValid {env : TypeEnv} (hwf : EnvAssumptions env) {ety x₁ x₂ c ty c'}
     (h : typeOfGetTag ety x₁ x₂ c env = .ok (ty, c')) : TypeValid env ty := by
   simp only [typeOfGetTag] at h
   split at h
@@ -649,7 +635,7 @@ theorem typeOfGetTag_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety
   · rename_i tagTy htags
     split at h
     · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
-      exact wfTypeEnv_tags?_typeValid hwf htags
+      exact hwf.tags_typeValid htags
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
@@ -756,7 +742,7 @@ theorem mapM₂_all_typeValid {env : TypeEnv} {c : Capabilities} :
 /-- **Type validity of `typeOf`.** On a `WfTypeEnv`, every type `typeOf` produces has all its
     entity components declared. The relational analogue of Cedar's `typechecked_has_well_formed_type`,
     tracking only entity-declaredness (so it needs no map sortedness). -/
-theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
       typeOf x c env = .ok (tx, c') → TypeValid env tx.typeOf := by
   intro x c
@@ -775,7 +761,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         rename_i uid hcond
         refine TypeValid.entity _ (validEntityUID_validType (eid := uid.eid) ?_)
         rcases Bool.or_eq_true_iff.mp hcond with hv | hc
-        · exact validEntityUID_of_isValid (wfTypeEnv_ets_nodup hwf) hv
+        · exact validEntityUID_of_isValid (hwf.ets_keys_nodup) hv
         · simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
           obtain ⟨entry, hfind⟩ := hc
           obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
@@ -783,7 +769,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
       · simp only [err, reduceCtorEq] at h
   | case2 c v =>
     intro tx c' h
-    obtain ⟨hp, hr, ha, hctx⟩ := wfTypeEnv_reqty_valid hwf
+    obtain ⟨hp, hr, ha, hctx⟩ := hwf.reqty_valid
     simp only [typeOf, typeOfVar] at h
     split at h <;>
       (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h)
@@ -979,7 +965,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
           | ok r => obtain ⟨aty, ac⟩ := r; rw [hg] at h;
                     simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
                     simp only [TypedExpr.typeOf]
-                    exact getAttrInRecord_typeValid (wfTypeEnv_attrs?_typeValid hwf hattr) hg
+                    exact getAttrInRecord_typeValid (hwf.attrs_typeValid hattr) hg
         · simp only [err, reduceCtorEq] at h
       · simp only [err, reduceCtorEq] at h
   | case11 c xs ih =>
@@ -1051,7 +1037,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
 
 /-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
-theorem typeOf_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+theorem typeOf_entityType_declared {env : TypeEnv} (hwf : EnvAssumptions env)
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .entity ety) :
     ValidEntityType ety env.ets env.acts := by
@@ -1075,7 +1061,7 @@ theorem entityType_declared_of_wf {env : TypeEnv} {ety : EntityType}
 
 /-- The set-element analogue of `typeOf_entityType_declared`: a successful `typeOf`
     producing `.set (.entity ety)` has its element type `ety` declared. -/
-theorem typeOf_setElem_entityType_declared {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+theorem typeOf_setElem_entityType_declared {env : TypeEnv} (hwf : EnvAssumptions env)
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
     (hty : typeOf x c env = .ok (tx, c')) (hety : tx.typeOf = .set (.entity ety)) :
     ValidEntityType ety env.ets env.acts := by
@@ -1576,10 +1562,10 @@ theorem descendentOf_of_true_inSchema {ets : EntitySchema} {acts : ActionSchema}
     well-formed env (all action UIDs/ancestors carry the reserved `Action` type). So a
     `descendentOf = true` hypothesis is absurd — used to discharge the unreachable
     "action operand, membership true" mem branches. -/
-theorem descendentOf_absurd_of_absent {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+theorem descendentOf_absurd_of_absent {env : TypeEnv} (hwf : EnvAssumptions env)
     {ety₁ ety₂ : EntityType} (hne : ety₁ ≠ ety₂) (hf : env.ets.find? ety₁ = none)
     (hdesc : TypeEnv.descendentOf env ety₁ ety₂ = true) : False := by
-  simp only [TypeEnv.descendentOf, if_neg hne, hf, wfTypeEnv_maybeDescendentOf_false hwf hne] at hdesc
+  simp only [TypeEnv.descendentOf, if_neg hne, hf, hwf.action_ancestry_same_type hne] at hdesc
   exact absurd hdesc (by decide)
 
 /-- `TypeEnv.descendentOf = false` for a *standard* operand type ⇒ `NotDescendentOf`. -/
@@ -1710,7 +1696,7 @@ theorem capsEquiv_union_append {c cc₁ cout₁ : Capabilities} (hce₁ : CapsEq
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
     declared-`is`-type) expression is witnessed by a `HasType` derivation with a
     capability-equivalent output. -/
-theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
       WfExpr env x → typeOf x c env = .ok (tx, c') →
       ∃ cout, HasType x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
@@ -1735,7 +1721,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         rename_i uid hcond
         have hval : ValidEntityUID uid.ty uid.eid ets acts := by
           rcases Bool.or_eq_true_iff.mp hcond with hv | hc
-          · exact validEntityUID_of_isValid (wfTypeEnv_ets_nodup hwf) hv
+          · exact validEntityUID_of_isValid (hwf.ets_keys_nodup) hv
           · -- action UID: `acts.find? uid` is some entry ⇒ `MapContainsPairKey`
             simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
             obtain ⟨entry, hfind⟩ := hc
@@ -2100,8 +2086,8 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         · -- mem, entity/entity
           rename_i ety₁ ety₂ heq1 heq2
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-          have hnd := wfTypeEnv_ets_nodup hwf
-          have hnda := wfTypeEnv_acts_nodup hwf
+          have hnd := hwf.ets_keys_nodup
+          have hnda := hwf.acts_keys_nodup
           by_cases hal : IsActionLitMem x₁ x₂ acts
           · -- action-literal membership
             cases hal with
@@ -2166,8 +2152,8 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         · -- mem, entity/set entity
           rename_i ety₁ ety₂ heq1 heq2
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-          have hnd := wfTypeEnv_ets_nodup hwf
-          have hnda := wfTypeEnv_acts_nodup hwf
+          have hnd := hwf.ets_keys_nodup
+          have hnda := hwf.acts_keys_nodup
           by_cases hal : IsActionLitMemSet x₁ x₂ acts
           · -- action-literal set membership
             cases hal with
@@ -2260,7 +2246,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
                 simp only [ok, Except.ok.injEq, Prod.mk.injEq] at hht; obtain ⟨rfl, rfl⟩ := hht
                 exact ⟨[], HasType.hasTagFf x₁ x₂ c ets acts reqty ety₁
                   (NoTags.enum ets ety₁ eids
-                    (mapContainsEnum_of_mapContains (wfTypeEnv_ets_nodup hwf) hmc))
+                    (mapContainsEnum_of_mapContains (hwf.ets_keys_nodup) hmc))
                   (heq1 ▸ hHT1) (heq2 ▸ hHT2), fun _ => Iff.rfl⟩
             · -- tags? = some (some ty)
               rename_i ty htags
@@ -2448,7 +2434,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
         · -- attrs? ety = some rty
           rename_i rty hattr
           have hnd : (rty.toList.map Prod.fst).Nodup := by
-            cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+            cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
           have hattr2 := hattr
           simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr2
           obtain ⟨entry, hfind, hea⟩ := hattr2
@@ -2482,7 +2468,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
           | enum eids =>
             simp only [EntitySchemaEntry.attrs] at hea
             have hmce : MapContainsEnum ety eids ets :=
-              mapContainsEnum_of_mapContains (wfTypeEnv_ets_nodup hwf) hmc
+              mapContainsEnum_of_mapContains (hwf.ets_keys_nodup) hmc
             rw [show hasAttrInRecord rty x₁ a c false = ok (.bool .ff) from by
               rw [← hea]; simp only [hasAttrInRecord, show (Map.empty : RecordType).find? a = none from rfl]] at h
             simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
@@ -2549,7 +2535,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
             rw [hg] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
             obtain ⟨rfl, rfl⟩ := h
             have hnd : (rty.toList.map Prod.fst).Nodup := by
-              cases wfTypeEnv_attrs?_tyWf hwf hattr with | record _ hn _ => exact hn
+              cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
             simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr
             obtain ⟨entry, hfind, hea⟩ := hattr
             have hmc := find?_mapContains hfind
@@ -2660,13 +2646,25 @@ theorem typeOf_complete {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
       obtain ⟨hExt, rfl⟩ := hasTypeExtCall_of_typeOfCall hlist h
       exact ⟨[], HasType.callExt xfn xs c env tx.typeOf hExt, fun _ => Iff.rfl⟩
 
-/-- **Characterization of well-typedness** (the capstone combining `hasType_sound` and
-    `typeOf_complete`). On a well-formed environment and a well-formed expression, the
-    relational spec derives type `ty` for `x` *iff* Cedar's functional `typeOf` succeeds
-    with a `TypedExpr` of that type. This is the headline equivalence: the Specimen-derived
-    generator's range coincides exactly with the validator's accepted, well-typed expressions
-    (capabilities elided here — they are matched up to `CapsEquiv` by the two source theorems). -/
-theorem hasType_iff_typeOf_ok {env : TypeEnv} (hwf : Schema.WfTypeEnv env)
+/-- Every environment described by the relational schema spec (`Schema.WfTypeEnv`)
+    satisfies `EnvAssumptions`. -/
+theorem Schema.WfTypeEnv.envAssumptions {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
+    EnvAssumptions env where
+  ets_keys_nodup := wfTypeEnv_ets_nodup hwf
+  acts_keys_nodup := wfTypeEnv_acts_nodup hwf
+  action_ancestry_same_type := wfTypeEnv_maybeDescendentOf_false hwf
+  attrs_tyWf := wfTypeEnv_attrs?_tyWf hwf
+  tags_tyWf := wfTypeEnv_tags?_tyWf hwf
+  context_tyWf := wfTypeEnv_context_tyWf hwf
+  attrs_typeValid := wfTypeEnv_attrs?_typeValid hwf
+  tags_typeValid := wfTypeEnv_tags?_typeValid hwf
+  reqty_valid := wfTypeEnv_reqty_valid hwf
+
+/-- `HasType` characterizes the typechecker: on an environment satisfying `EnvAssumptions` and
+    an expression satisfying `WfExpr`, the relation derives type `ty` for `x` exactly when
+    `typeOf` succeeds with a typed expression of type `ty`. Output capabilities agree up to
+    `CapsEquiv` (see `hasType_sound` and `typeOf_complete`). -/
+theorem hasType_iff_typeOf_ok {env : TypeEnv} (hwf : EnvAssumptions env)
     {x : Expr} (hwfx : WfExpr env x) {c : Capabilities} {ty : CedarType} :
     (∃ cout, HasType x c env ty cout) ↔ (∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty) := by
   constructor
