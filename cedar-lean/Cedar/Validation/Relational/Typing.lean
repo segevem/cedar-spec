@@ -398,6 +398,94 @@ inductive KeyAbove : Option Attr → Attr → Prop where
    lexicographically greater than `b` (`b` is a strict prefix), so `b < a`
    holds for any nonempty suffix. Lets Specimen *generate* ascending record
    keys (synthesis mode), not just check them. -/
+/- ## Attribute steps on an already-typed receiver
+
+`typeOfHasAttr` and `typeOfGetAttr` take the receiver's type as an argument instead of typing
+the receiver themselves. The extended `has` chain needs them in that form: it types `x.a` from
+the type it already has for `x`, under the capabilities earned so far, and retyping `x` under
+those capabilities could give a different type. Each rule below is one branch of the function,
+and the receiver's type is an input. -/
+
+/-- A Boolean type other than `.ff`. -/
+inductive NotFf : BoolType → Prop where
+  | tt : NotFf .tt
+  | anyBool : NotFf .anyBool
+
+/-- `typeOfHasAttr`: `x has a`, for a receiver `x` of type `ty`, has type `.bool b` and earns
+    capabilities `ci`. -/
+inductive HasAttrOn : TypeEnv → CedarType → Expr → Attr → Capabilities → BoolType →
+    Capabilities → Prop where
+  | record : ∀ env rty x a c b ci,
+    HasAttrInRecord rty x a c true (.bool b) ci →
+    HasAttrOn env (.record rty) x a c b ci
+  | recordNotFound : ∀ env rts x a c,
+    MapNotContainsKey a (.mk rts) →
+    HasAttrOn env (.record (.mk rts)) x a c .ff []
+  | entity : ∀ ets acts reqty ety rty x a c b ci,
+    MapContainsAttrs ety rty ets →
+    HasAttrInRecord rty x a c false (.bool b) ci →
+    HasAttrOn ⟨ets, acts, reqty⟩ (.entity ety) x a c b ci
+  | entityNotFound : ∀ ets acts reqty ety rty x a c,
+    MapContainsAttrs ety rty ets →
+    MapNotContainsKey a rty →
+    HasAttrOn ⟨ets, acts, reqty⟩ (.entity ety) x a c .ff []
+  -- An enum entity type has no attributes (`attrs?` gives the empty record).
+  | enum : ∀ ets acts reqty ety eids x a c,
+    MapContainsEnum ety eids ets →
+    HasAttrOn ⟨ets, acts, reqty⟩ (.entity ety) x a c .ff []
+  -- Action entities have no attributes.
+  | action : ∀ ets acts reqty ety eid entry x a c,
+    MapNotContainsKey ety ets →
+    MapContainsPairKey ety eid entry acts →
+    HasAttrOn ⟨ets, acts, reqty⟩ (.entity ety) x a c .ff []
+
+/-- `typeOfGetAttr`: `x.a`, for a receiver `x` of type `ty`, has type `aty`. -/
+inductive GetAttrOn : TypeEnv → CedarType → Expr → Attr → Capabilities → CedarType → Prop where
+  | record : ∀ env rty x a c aty,
+    GetAttrInRecord rty x a c aty →
+    GetAttrOn env (.record rty) x a c aty
+  | entity : ∀ ets acts reqty ety rty x a c aty,
+    MapContainsAttrs ety rty ets →
+    GetAttrInRecord rty x a c aty →
+    GetAttrOn ⟨ets, acts, reqty⟩ (.entity ety) x a c aty
+
+/-- `typeOfExtHasAttr` on `a :: as`: `x has a.as`, for a receiver `x` of type `ty` and input
+    capabilities `c`, has type `.bool b` and earns capabilities `cout`. The chain reads as
+    `x has a && x.a has a₂ && …`: each later attribute is checked on `x.a` under the
+    capabilities `x has a` earned. An attribute that is statically absent ends the chain at
+    `.ff` without typing the rest. -/
+inductive ExtHasAttrChain : TypeEnv → CedarType → Expr → Attr → List Attr → Capabilities →
+    BoolType → Capabilities → Prop where
+  | last : ∀ env ty x a c b ci,
+    HasAttrOn env ty x a c b ci →
+    ExtHasAttrChain env ty x a [] c b ci
+  | absent : ∀ env ty x a a' as c ci,
+    HasAttrOn env ty x a c .ff ci →
+    ExtHasAttrChain env ty x a (a' :: as) c .ff ci
+  | restFf : ∀ env ty x a a' as c hb ci cc tyNext cr,
+    HasAttrOn env ty x a c hb ci →
+    NotFf hb →
+    CapMerge c ci cc →
+    GetAttrOn env ty x a cc tyNext →
+    ExtHasAttrChain env tyNext (.getAttr x a) a' as cc .ff cr →
+    ExtHasAttrChain env ty x a (a' :: as) c .ff []
+  | restTt : ∀ env ty x a a' as c hb ci cc tyNext cr cout,
+    HasAttrOn env ty x a c hb ci →
+    NotFf hb →
+    CapMerge c ci cc →
+    GetAttrOn env ty x a cc tyNext →
+    ExtHasAttrChain env tyNext (.getAttr x a) a' as cc .tt cr →
+    CapMerge ci cr cout →
+    ExtHasAttrChain env ty x a (a' :: as) c hb cout
+  | restAnyBool : ∀ env ty x a a' as c hb ci cc tyNext cr cout,
+    HasAttrOn env ty x a c hb ci →
+    NotFf hb →
+    CapMerge c ci cc →
+    GetAttrOn env ty x a cc tyNext →
+    ExtHasAttrChain env tyNext (.getAttr x a) a' as cc .anyBool cr →
+    CapMerge ci cr cout →
+    ExtHasAttrChain env ty x a (a' :: as) c .anyBool cout
+
 /- ## Main typing relation
 
 Signature: `HasType x c env ty cout`
@@ -770,6 +858,13 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     MapContainsPairKey ety eid entry acts →
     HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc109 →
     HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+
+  /- ### Extended has: `x₁ has a.as` -/
+  | extHasAttr :
+    ∀ x₁ a as c env ty₁ oc b cout,
+    HasType x₁ c env ty₁ oc →
+    ExtHasAttrChain env ty₁ x₁ a as c b cout →
+    HasType (.extHasAttr x₁ a as) c env (.bool b) cout
 
   /- ### getAttr — record -/
   -- `id rty`: produce `rty` from the record-type inference `HasType x₁ (.record

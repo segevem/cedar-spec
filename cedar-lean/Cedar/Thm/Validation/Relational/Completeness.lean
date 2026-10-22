@@ -65,6 +65,7 @@ inductive WfExpr : TypeEnv → Expr → Prop where
   | binaryApp : ∀ env op a b, WfExpr env a → WfExpr env b → WfExpr env (.binaryApp op a b)
   | getAttr : ∀ env a k, WfExpr env a → WfExpr env (.getAttr a k)
   | hasAttr : ∀ env a k, WfExpr env a → WfExpr env (.hasAttr a k)
+  | extHasAttr : ∀ env a k ks, WfExpr env a → WfExpr env (.extHasAttr a k ks)
   | set : ∀ env xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.set xs)
   | record : ∀ env axs, (axs.map Prod.fst).SortedBy id → (∀ e ∈ axs.map Prod.snd, WfExpr env e) →
       WfExpr env (.record axs)
@@ -1095,6 +1096,9 @@ theorem wfExpr_getAttr {env a k} (h : WfExpr env (.getAttr a k)) : WfExpr env a 
 theorem wfExpr_hasAttr {env a k} (h : WfExpr env (.hasAttr a k)) : WfExpr env a := by
   cases h; assumption
 
+theorem wfExpr_extHasAttr {env a k ks} (h : WfExpr env (.extHasAttr a k ks)) : WfExpr env a := by
+  cases h; assumption
+
 theorem wfExpr_set {env xs} (h : WfExpr env (.set xs)) : ∀ e ∈ xs, WfExpr env e := by
   cases h; assumption
 
@@ -1691,6 +1695,208 @@ theorem capsEquiv_union_append {c cc₁ cout₁ : Capabilities} (hce₁ : CapsEq
     CapsEquiv (c ∪ cc₁) (c ++ cout₁) :=
   (CapsEquiv.union (CapsEquiv.refl c) hce₁.symm).trans
     (capMerge_capsEquiv_union (capMerge_append' c cout₁)).symm
+
+/-! ## Completeness of the extended `has` chain -/
+
+/-- A successful `typeOfHasAttr` on a receiver of type `tx.typeOf` is a `HasAttrOn` step. -/
+theorem hasAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : TypedExpr}
+    {x : Expr} {a : Attr} {c : Capabilities} {tyHas : TypedExpr} {ci : Capabilities}
+    (htw : TyWf tx.typeOf) (h : typeOfHasAttr tx x a c env = .ok (tyHas, ci)) :
+    ∃ b, tyHas.typeOf = .bool b ∧ HasAttrOn env tx.typeOf x a c b ci := by
+  obtain ⟨ets, acts, reqty⟩ := env
+  simp only [typeOfHasAttr] at h
+  split at h
+  · rename_i rty heqty
+    rw [heqty] at htw ⊢
+    have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+    cases hfa : rty.find? a with
+    | some qty =>
+      cases hha : hasAttrInRecord rty x a c true with
+      | error e => rw [hha] at h; simp at h
+      | ok r =>
+        obtain ⟨ty', caps⟩ := r
+        rw [hha] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        obtain ⟨b, rfl⟩ := hasAttrInRecord_bool hha
+        exact ⟨b, rfl, HasAttrOn.record _ _ _ _ _ _ _ (hasAttrInRecord_found_of_ok hnd hfa hha)⟩
+    | none =>
+      rw [show hasAttrInRecord rty x a c true = ok (.bool .ff) from by
+        simp only [hasAttrInRecord, hfa]] at h
+      simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      obtain ⟨rtyList⟩ := rty
+      exact ⟨.ff, rfl, HasAttrOn.recordNotFound _ rtyList _ _ _ (mapNotContainsKey_of_find?_none hfa)⟩
+  · rename_i ety heqty
+    rw [heqty]
+    split at h
+    · rename_i rty hattr
+      have hnd : (rty.toList.map Prod.fst).Nodup := by
+        cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
+      have hattr2 := hattr
+      simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr2
+      obtain ⟨entry, hfind, hea⟩ := hattr2
+      have hmc := find?_mapContains hfind
+      cases entry with
+      | standard s =>
+        obtain ⟨ancs, attrs, tags⟩ := s
+        simp only [EntitySchemaEntry.attrs] at hea
+        have hmca : MapContainsAttrs ety rty ets := hea ▸ mapContainsAttrs_of_standard hmc
+        cases hfa : rty.find? a with
+        | some qty =>
+          cases hha : hasAttrInRecord rty x a c false with
+          | error e => rw [hha] at h; simp at h
+          | ok r =>
+            obtain ⟨ty', caps⟩ := r
+            rw [hha] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            obtain ⟨b, rfl⟩ := hasAttrInRecord_bool hha
+            exact ⟨b, rfl, HasAttrOn.entity _ _ _ _ _ _ _ _ _ _ hmca
+              (hasAttrInRecord_found_of_ok hnd hfa hha)⟩
+        | none =>
+          rw [show hasAttrInRecord rty x a c false = ok (.bool .ff) from by
+            simp only [hasAttrInRecord, hfa]] at h
+          simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, rfl⟩ := h
+          exact ⟨.ff, rfl, HasAttrOn.entityNotFound _ _ _ _ _ _ _ _ hmca
+            (mapNotContainsKey_of_find?_none hfa)⟩
+      | enum eids =>
+        simp only [EntitySchemaEntry.attrs] at hea
+        have hmce : MapContainsEnum ety eids ets :=
+          mapContainsEnum_of_mapContains hwf.ets_keys_nodup hmc
+        rw [show hasAttrInRecord rty x a c false = ok (.bool .ff) from by
+          rw [← hea]; simp only [hasAttrInRecord, show (Map.empty : RecordType).find? a = none from rfl]] at h
+        simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        exact ⟨.ff, rfl, HasAttrOn.enum _ _ _ _ _ _ _ _ hmce⟩
+    · rename_i hattrn
+      split at h
+      · rename_i hact
+        simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        have hfnone : ets.find? ety = none := by
+          simp only [EntitySchema.attrs?, Option.map_eq_none_iff] at hattrn; exact hattrn
+        obtain ⟨eid, entry, hpk⟩ := actionType?_mapContainsPairKey hact
+        exact ⟨.ff, rfl, HasAttrOn.action _ _ _ _ _ _ _ _ _ (mapNotContainsKey_of_find?_none hfnone) hpk⟩
+      · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+/-- A successful `typeOfGetAttr` on a receiver of type `tx.typeOf` is a `GetAttrOn` step. -/
+theorem getAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : TypedExpr}
+    {x : Expr} {a : Attr} {c : Capabilities} {tyG : TypedExpr} {cg : Capabilities}
+    (htw : TyWf tx.typeOf) (h : typeOfGetAttr tx x a c env = .ok (tyG, cg)) :
+    GetAttrOn env tx.typeOf x a c tyG.typeOf ∧ cg = ∅ := by
+  obtain ⟨ets, acts, reqty⟩ := env
+  simp only [typeOfGetAttr] at h
+  split at h
+  · rename_i rty heqty
+    rw [heqty] at htw ⊢
+    cases hg : getAttrInRecord tx.typeOf rty x a c with
+    | error e => rw [hg] at h; simp at h
+    | ok r =>
+      obtain ⟨aty, ac⟩ := r
+      rw [hg] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+      obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+      exact ⟨GetAttrOn.record _ _ _ _ _ _ hgar, rfl⟩
+  · rename_i ety heqty
+    rw [heqty]
+    split at h
+    · rename_i rty hattr
+      cases hg : getAttrInRecord tx.typeOf rty x a c with
+      | error e => rw [hg] at h; simp at h
+      | ok r =>
+        obtain ⟨aty, ac⟩ := r
+        rw [hg] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        have hnd : (rty.toList.map Prod.fst).Nodup := by
+          cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
+        simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at hattr
+        obtain ⟨entry, hfind, hea⟩ := hattr
+        have hmc := find?_mapContains hfind
+        cases entry with
+        | standard s =>
+          obtain ⟨ancs, attrs, tags⟩ := s
+          simp only [EntitySchemaEntry.attrs] at hea
+          obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+          exact ⟨GetAttrOn.entity _ _ _ _ _ _ _ _ _ (hea ▸ mapContainsAttrs_of_standard hmc) hgar, rfl⟩
+        | enum eids =>
+          simp only [EntitySchemaEntry.attrs] at hea
+          rw [← hea] at hg
+          simp only [getAttrInRecord, show (Map.empty : RecordType).find? a = none from rfl,
+            err, reduceCtorEq] at hg
+    · simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
+
+/-- A successful `typeOfExtHasAttr` on `a :: as` is witnessed by `ExtHasAttrChain`. -/
+theorem extHasAttrChain_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
+    ∀ (as : List Attr) {tx : TypedExpr} {x : Expr} {a : Attr} {c : Capabilities}
+      {b : BoolType} {c' : Capabilities},
+      TyWf tx.typeOf → typeOfExtHasAttr tx x (a :: as) c env = .ok (b, c') →
+      ∃ cout, ExtHasAttrChain env tx.typeOf x a as c b cout ∧ CapsEquiv cout c'
+  | [], tx, x, a, c, b, c', htw, h => by
+    simp only [typeOfExtHasAttr] at h
+    cases hha : typeOfHasAttr tx x a c env with
+    | error e => rw [hha] at h; simp at h
+    | ok r =>
+      obtain ⟨tyHas, ci⟩ := r
+      rw [hha] at h; simp only [Except.bind_ok] at h
+      obtain ⟨bh, hbh, hon⟩ := hasAttrOn_complete hwf htw hha
+      rw [hbh] at h; simp only [Except.ok.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨ci, ExtHasAttrChain.last _ _ _ _ _ _ _ hon, CapsEquiv.refl _⟩
+  | a' :: as, tx, x, a, c, b, c', htw, h => by
+    simp only [typeOfExtHasAttr] at h
+    cases hha : typeOfHasAttr tx x a c env with
+    | error e => rw [hha] at h; simp at h
+    | ok r =>
+      obtain ⟨tyHas, ci⟩ := r
+      rw [hha] at h; simp only [Except.bind_ok] at h
+      obtain ⟨bh, hbh, hon⟩ := hasAttrOn_complete hwf htw hha
+      rw [hbh] at h
+      -- The attribute is maybe present: type `x.a` and the rest of the chain under `c ∪ ci`,
+      -- then move both onto the relational witness `c ++ ci`.
+      have rest : NotFf bh → ∃ cout, ExtHasAttrChain env tx.typeOf x a (a' :: as) c b cout ∧
+          CapsEquiv cout c' := by
+        intro hnf
+        have hce : CapsEquiv (c ∪ ci) (c ++ ci) := capsEquiv_union_append (CapsEquiv.refl ci)
+        cases hnf <;> (
+          simp only at h
+          cases hg : typeOfGetAttr tx x a (c ∪ ci) env with
+          | error e => rw [hg] at h; simp at h
+          | ok r =>
+            obtain ⟨tyNext, cgn⟩ := r
+            rw [hg] at h; simp only [Except.bind_ok] at h
+            obtain ⟨hga, _⟩ := getAttrOn_complete hwf htw hg
+            have htwN := typeOfGetAttr_tyWf hwf htw hg
+            cases hr : typeOfExtHasAttr tyNext (x.getAttr a) (a' :: as) (c ∪ ci) env with
+            | error e => rw [hr] at h; simp at h
+            | ok r2 =>
+              obtain ⟨bty, cr⟩ := r2
+              rw [hr] at h; simp only [Except.bind_ok] at h
+              rw [typeOfExtHasAttr_capsEquiv hce] at hr
+              obtain ⟨coutR, hch, hceR⟩ := extHasAttrChain_complete hwf as htwN hr
+              have hgaC := getAttrOn_congr hga hce
+              cases bty with
+              | ff =>
+                simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+                exact ⟨[], ExtHasAttrChain.restFf _ _ _ _ _ _ _ _ _ _ _ _ hon (by constructor)
+                  (capMerge_append' c ci) hgaC hch, CapsEquiv.refl _⟩
+              | tt =>
+                simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+                exact ⟨ci ++ coutR, ExtHasAttrChain.restTt _ _ _ _ _ _ _ _ _ _ _ _ _ hon
+                  (by constructor) (capMerge_append' c ci) hgaC hch (capMerge_append' ci coutR),
+                  (capsEquiv_union_append hceR).symm⟩
+              | anyBool =>
+                simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+                exact ⟨ci ++ coutR, ExtHasAttrChain.restAnyBool _ _ _ _ _ _ _ _ _ _ _ _ _ hon
+                  (by constructor) (capMerge_append' c ci) hgaC hch (capMerge_append' ci coutR),
+                  (capsEquiv_union_append hceR).symm⟩)
+      cases bh with
+      | ff =>
+        simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        exact ⟨ci, ExtHasAttrChain.absent _ _ _ _ _ _ _ _ hon, CapsEquiv.refl _⟩
+      | tt => exact rest NotFf.tt
+      | anyBool => exact rest NotFf.anyBool
 
 /-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
     environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
@@ -2492,9 +2698,24 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
           · simp only [err, reduceCtorEq] at h
       · simp only [err, reduceCtorEq] at h
   | case9 c x₁ a as ih1 =>
-    -- `WfExpr` has no `extHasAttr` constructor: the relation does not yet model it.
-    intro _ _ hwfx _
-    nomatch hwfx
+    -- extHasAttr
+    intro tx c' hwfx h
+    have hw1 := wfExpr_extHasAttr hwfx
+    simp only [typeOf] at h
+    cases h1 : typeOf x₁ c env with
+    | error e => rw [h1] at h; simp at h
+    | ok r1 =>
+      obtain ⟨ty1, cc1⟩ := r1
+      rw [h1] at h; simp only [Except.bind_ok] at h
+      obtain ⟨cout1, hHT1, _⟩ := ih1 hw1 h1
+      cases hc : typeOfExtHasAttr ty1 x₁ (a :: as) c env with
+      | error e => rw [hc] at h; simp at h
+      | ok r2 =>
+        obtain ⟨bty, cc2⟩ := r2
+        rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        obtain ⟨cout, hch, hce⟩ := extHasAttrChain_complete hwf as (typeOf_tyWf hwf h1) hc
+        exact ⟨cout, HasType.extHasAttr _ _ _ _ _ _ _ _ _ hHT1 hch, hce⟩
   | case10 c x₁ a ih1 =>
     -- getAttr
     intro tx c' hwfx h

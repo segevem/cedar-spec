@@ -65,6 +65,66 @@ theorem getAttrInRecord_congr' {rty x a c ty c''}
   | required hmc => exact GetAttrInRecord.required _ _ _ _ _ hmc
   | optional hcap hmc => exact GetAttrInRecord.optional _ _ _ _ _ (capAttrMem_congr hcap he) hmc
 
+theorem hasAttrOn_congr {env ty x a c b ci c''}
+    (h : HasAttrOn env ty x a c b ci) (he : CapsEquiv c c'') : HasAttrOn env ty x a c'' b ci := by
+  cases h with
+  | record _ _ _ _ _ _ _ hin => exact HasAttrOn.record _ _ _ _ _ _ _ (hasAttrInRecord_congr hin he)
+  | recordNotFound _ _ _ _ _ hnk => exact HasAttrOn.recordNotFound _ _ _ _ _ hnk
+  | entity _ _ _ _ _ _ _ _ _ _ hma hin =>
+    exact HasAttrOn.entity _ _ _ _ _ _ _ _ _ _ hma (hasAttrInRecord_congr hin he)
+  | entityNotFound _ _ _ _ _ _ _ _ hma hnk => exact HasAttrOn.entityNotFound _ _ _ _ _ _ _ _ hma hnk
+  | enum _ _ _ _ _ _ _ _ hme => exact HasAttrOn.enum _ _ _ _ _ _ _ _ hme
+  | action _ _ _ _ _ _ _ _ _ hnc hpk => exact HasAttrOn.action _ _ _ _ _ _ _ _ _ hnc hpk
+
+theorem getAttrOn_congr {env ty x a c aty c''}
+    (h : GetAttrOn env ty x a c aty) (he : CapsEquiv c c'') : GetAttrOn env ty x a c'' aty := by
+  cases h with
+  | record _ _ _ _ _ _ hg => exact GetAttrOn.record _ _ _ _ _ _ (getAttrInRecord_congr' hg he)
+  | entity _ _ _ _ _ _ _ _ _ hma hg =>
+    exact GetAttrOn.entity _ _ _ _ _ _ _ _ _ hma (getAttrInRecord_congr' hg he)
+
+/-- `c ++ c'` witnesses a `CapMerge` whose output is equivalent to that of any other
+    `CapMerge c₀ c' m` with `c₀ ≈ c`. -/
+theorem capMerge_append_equiv {c₀ c c' m : Capabilities} (hm : CapMerge c₀ c' m)
+    (he : CapsEquiv c₀ c) : CapsEquiv m (c ++ c') :=
+  (capMerge_capsEquiv_union hm).trans ((CapsEquiv.union he (CapsEquiv.refl c')).trans
+    (capMerge_capsEquiv_union (capMerge_append' c c')).symm)
+
+theorem extHasAttrChain_congr {env ty x a as c b cout}
+    (h : ExtHasAttrChain env ty x a as c b cout) :
+    ∀ {c''}, CapsEquiv c c'' →
+      ∃ cout', ExtHasAttrChain env ty x a as c'' b cout' ∧ CapsEquiv cout cout' := by
+  induction h with
+  | last _ _ _ _ _ _ hha =>
+    intro c'' he
+    exact ⟨_, ExtHasAttrChain.last _ _ _ _ _ _ _ (hasAttrOn_congr hha he), CapsEquiv.refl _⟩
+  | absent _ _ _ _ _ _ _ hha =>
+    intro c'' he
+    exact ⟨_, ExtHasAttrChain.absent _ _ _ _ _ _ _ _ (hasAttrOn_congr hha he), CapsEquiv.refl _⟩
+  | restFf _ _ _ _ _ _ _ ci _ _ _ hha hnf hm hga _ ih =>
+    intro c'' he
+    have hcc := capMerge_append_equiv hm he
+    obtain ⟨_, hr, _⟩ := ih hcc
+    exact ⟨[], ExtHasAttrChain.restFf _ _ _ _ _ _ _ _ _ _ _ _ (hasAttrOn_congr hha he) hnf
+      (capMerge_append' c'' ci) (getAttrOn_congr hga hcc) hr, CapsEquiv.refl _⟩
+  | restTt _ _ _ _ _ _ _ ci _ _ _ _ hha hnf hm hga _ hm2 ih =>
+    intro c'' he
+    have hcc := capMerge_append_equiv hm he
+    obtain ⟨cr', hr, hce⟩ := ih hcc
+    refine ⟨ci ++ cr', ExtHasAttrChain.restTt _ _ _ _ _ _ _ _ _ _ _ _ _ (hasAttrOn_congr hha he)
+      hnf (capMerge_append' c'' ci) (getAttrOn_congr hga hcc) hr (capMerge_append' ci cr'), ?_⟩
+    exact (capMerge_capsEquiv_union hm2).trans ((CapsEquiv.union (CapsEquiv.refl ci) hce).trans
+      (capMerge_capsEquiv_union (capMerge_append' ci cr')).symm)
+  | restAnyBool _ _ _ _ _ _ _ ci _ _ _ _ hha hnf hm hga _ hm2 ih =>
+    intro c'' he
+    have hcc := capMerge_append_equiv hm he
+    obtain ⟨cr', hr, hce⟩ := ih hcc
+    refine ⟨ci ++ cr', ExtHasAttrChain.restAnyBool _ _ _ _ _ _ _ _ _ _ _ _ _
+      (hasAttrOn_congr hha he) hnf (capMerge_append' c'' ci) (getAttrOn_congr hga hcc) hr
+      (capMerge_append' ci cr'), ?_⟩
+    exact (capMerge_capsEquiv_union hm2).trans ((CapsEquiv.union (CapsEquiv.refl ci) hce).trans
+      (capMerge_capsEquiv_union (capMerge_append' ci cr')).symm)
+
 /-! ## Congruence theorem -/
 
 /-- Input-capability congruence: `HasType` consults its input capabilities only up
@@ -623,6 +683,11 @@ theorem hasType_capsCongr {x c env ty cout} (h : HasType x c env ty cout) :
     rename_i he
     obtain ⟨_, h1, _⟩ := ih_a he
     exact HasTypeExtCall.toDays _ _ _ h1
+  | extHasAttr x₁ a as c env ty₁ oc b cout a1 a2 ih =>
+    intro c'' he
+    obtain ⟨_, h1, _⟩ := ih he
+    obtain ⟨cout', h2, hce⟩ := extHasAttrChain_congr a2 he
+    exact ⟨cout', HasType.extHasAttr _ _ _ _ _ _ _ _ _ h1 h2, hce⟩
   -- HasTypeRecord (motive_3): nil / cons — share recursor tags with HasTypeList.
   | _ =>
     first

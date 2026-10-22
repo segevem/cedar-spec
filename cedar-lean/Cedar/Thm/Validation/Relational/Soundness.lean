@@ -1999,6 +1999,141 @@ Case plan (each maps to one `typeOf*` arm):
 * `set`/`record`/`callExt`                → `typeOfSet`/record arm/`typeOfCall` (needs list/record glue)
 -/
 
+/-! ## The extended `has` chain
+
+The chain's steps take the receiver's type as an input, so their soundness lemmas hold for any
+receiver `tx` of that type; `tx` is not retyped. -/
+
+/-- `HasAttrOn` agrees with `typeOfHasAttr`, capabilities included. -/
+theorem hasAttrOn_sound {env : TypeEnv} {ty : CedarType} {x : Expr} {a : Attr}
+    {c : Capabilities} {b : BoolType} {ci : Capabilities}
+    (hwf : EnvAssumptions env) (h : HasAttrOn env ty x a c b ci)
+    {tx : TypedExpr} (ht : tx.typeOf = ty) (htw : TyWf ty) :
+    typeOfHasAttr tx x a c env = .ok (.hasAttr tx a (.bool b), ci) := by
+  cases h with
+  | record _ rty _ _ _ _ _ hin =>
+    have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+    cases hin with
+    | found_in_caps _ qty hcap hmc =>
+      try simp only [id_eq] at hmc
+      simp [typeOfHasAttr, ht, hasAttrInRecord, mapContains_find?_nodup hmc hnd,
+        capAttrMem_iff.mp hcap, ok]
+    | found_required_known ty' hmc =>
+      simp [typeOfHasAttr, ht, hasAttrInRecord, mapContains_find?_nodup hmc hnd,
+        Qualified.isRequired, ok]
+    | found_optional_known ty' hmc hcap =>
+      have hcapneg : ¬ ((x, Key.attr a) ∈ c) := fun hm => hcap (capAttrMem_iff.mpr hm)
+      simp [typeOfHasAttr, ht, hasAttrInRecord, mapContains_find?_nodup hmc hnd,
+        Qualified.isRequired, hcapneg, ok, Capabilities.singleton]
+  | recordNotFound _ rts _ _ _ hnk =>
+    simp only [typeOfHasAttr, ht, hasAttrInRecord, mapNotContainsKey_find? hnk, ok]; rfl
+  | entity ets acts reqty ety rty _ _ _ _ _ hma hin =>
+    have hattr := mapContainsAttrs_attrs? hma hwf.ets_keys_nodup
+    have hnd : (rty.toList.map Prod.fst).Nodup := by
+      cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
+    cases hin with
+    | found_in_caps _ qty hcap hmc =>
+      try simp only [id_eq] at hmc
+      simp [typeOfHasAttr, ht, hattr, hasAttrInRecord, mapContains_find?_nodup hmc hnd,
+        capAttrMem_iff.mp hcap, ok]
+    | found_not_known qty hmc hcap =>
+      have hcapneg : ¬ ((x, Key.attr a) ∈ c) := fun hm => hcap (capAttrMem_iff.mpr hm)
+      simp [typeOfHasAttr, ht, hattr, hasAttrInRecord, mapContains_find?_nodup hmc hnd,
+        hcapneg, ok, Capabilities.singleton]
+  | entityNotFound ets acts reqty ety rty _ _ _ hma hnk =>
+    have hattr := mapContainsAttrs_attrs? hma hwf.ets_keys_nodup
+    simp only [typeOfHasAttr, ht, hattr, hasAttrInRecord, mapNotContainsKey_find? hnk, ok]; rfl
+  | enum ets acts reqty ety eids _ _ _ hme =>
+    have hfind := mapContains_find?_nodup (mapContainsEnum_mc hme) hwf.ets_keys_nodup
+    have hattr : EntitySchema.attrs? ets ety = some Map.empty := by
+      simp only [EntitySchema.attrs?, hfind, Option.map_some, EntitySchemaEntry.attrs]
+    simp only [typeOfHasAttr, ht, hattr, hasAttrInRecord,
+      show (Map.empty : RecordType).find? a = none from rfl, ok]; rfl
+  | action ets acts reqty ety eid entry _ _ _ hnc hpk =>
+    simp only [typeOfHasAttr, ht, EntitySchema.attrs?, mapNotContainsKey_find? hnc, Option.map,
+      mapContainsPairKey_actionType? hpk, if_true, ok]; rfl
+
+/-- `GetAttrOn` agrees with `typeOfGetAttr`. -/
+theorem getAttrOn_sound {env : TypeEnv} {ty : CedarType} {x : Expr} {a : Attr}
+    {c : Capabilities} {aty : CedarType}
+    (hwf : EnvAssumptions env) (h : GetAttrOn env ty x a c aty)
+    {tx : TypedExpr} (ht : tx.typeOf = ty) (htw : TyWf ty) :
+    typeOfGetAttr tx x a c env = .ok (.getAttr tx a aty, ∅) := by
+  cases h with
+  | record _ rty _ _ _ _ hg =>
+    have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
+    cases hg with
+    | required hmc =>
+      simp only [typeOfGetAttr, ht, getAttrInRecord, mapContains_find?_nodup hmc hnd,
+        Except.bind_ok, ok]
+    | optional hcap hmc =>
+      simp only [id_eq] at hmc
+      simp only [typeOfGetAttr, ht, getAttrInRecord, mapContains_find?_nodup hmc hnd,
+        if_pos (capAttrMem_iff.mp hcap), Except.bind_ok, ok]
+  | entity ets acts reqty ety rty _ _ _ _ hma hg =>
+    have hattr := mapContainsAttrs_attrs? hma hwf.ets_keys_nodup
+    have hnd : (rty.toList.map Prod.fst).Nodup := by
+      cases hwf.attrs_tyWf hattr with | record _ hn _ => exact hn
+    cases hg with
+    | required hmc =>
+      simp only [typeOfGetAttr, ht, hattr, getAttrInRecord, mapContains_find?_nodup hmc hnd,
+        Except.bind_ok, ok]
+    | optional hcap hmc =>
+      simp only [id_eq] at hmc
+      simp only [typeOfGetAttr, ht, hattr, getAttrInRecord, mapContains_find?_nodup hmc hnd,
+        if_pos (capAttrMem_iff.mp hcap), Except.bind_ok, ok]
+
+/-- `ExtHasAttrChain` agrees with `typeOfExtHasAttr`, capabilities up to `CapsEquiv`. -/
+theorem extHasAttrChain_sound {env : TypeEnv} (hwf : EnvAssumptions env)
+    {ty : CedarType} {x : Expr} {a : Attr} {as : List Attr} {c : Capabilities}
+    {b : BoolType} {cout : Capabilities} (h : ExtHasAttrChain env ty x a as c b cout) :
+    ∀ {tx : TypedExpr}, tx.typeOf = ty → TyWf ty →
+      ∃ c', typeOfExtHasAttr tx x (a :: as) c env = .ok (b, c') ∧ CapsEquiv cout c' := by
+  induction h with
+  | last _ _ _ _ _ _ hha =>
+    intro tx ht htw
+    exact ⟨_, by simp only [typeOfExtHasAttr, hasAttrOn_sound hwf hha ht htw, Except.bind_ok,
+      TypedExpr.typeOf], CapsEquiv.refl _⟩
+  | absent _ _ _ _ _ _ _ hha =>
+    intro tx ht htw
+    exact ⟨_, by simp only [typeOfExtHasAttr, hasAttrOn_sound hwf hha ht htw, Except.bind_ok,
+      TypedExpr.typeOf], CapsEquiv.refl _⟩
+  | restFf _ x a _ _ c _ ci cc tyNext _ hha hnf hm hga _ ih =>
+    intro tx ht htw
+    have hcc : CapsEquiv cc (c ∪ ci) := capMerge_capsEquiv_union hm
+    have hg := getAttrOn_sound hwf hga ht htw
+    rw [typeOfGetAttr_capsEquiv hcc] at hg
+    have htwN : TyWf tyNext := typeOfGetAttr_tyWf hwf (ht ▸ htw) hg
+    obtain ⟨_, hr, _⟩ := ih (tx := .getAttr tx a tyNext) rfl htwN
+    rw [typeOfExtHasAttr_capsEquiv hcc] at hr
+    refine ⟨∅, ?_, CapsEquiv.refl _⟩
+    cases hnf <;> simp only [typeOfExtHasAttr, hasAttrOn_sound hwf hha ht htw, Except.bind_ok,
+      TypedExpr.typeOf, hg, hr]
+  | restTt _ x a _ _ c _ ci cc tyNext cr _ hha hnf hm hga _ hm2 ih =>
+    intro tx ht htw
+    have hcc : CapsEquiv cc (c ∪ ci) := capMerge_capsEquiv_union hm
+    have hg := getAttrOn_sound hwf hga ht htw
+    rw [typeOfGetAttr_capsEquiv hcc] at hg
+    have htwN : TyWf tyNext := typeOfGetAttr_tyWf hwf (ht ▸ htw) hg
+    obtain ⟨cr', hr, hce⟩ := ih (tx := .getAttr tx a tyNext) rfl htwN
+    rw [typeOfExtHasAttr_capsEquiv hcc] at hr
+    refine ⟨ci ∪ cr', ?_,
+      (capMerge_capsEquiv_union hm2).trans (CapsEquiv.union (CapsEquiv.refl ci) hce)⟩
+    cases hnf <;> simp only [typeOfExtHasAttr, hasAttrOn_sound hwf hha ht htw, Except.bind_ok,
+      TypedExpr.typeOf, hg, hr]
+  | restAnyBool _ x a _ _ c _ ci cc tyNext cr _ hha hnf hm hga _ hm2 ih =>
+    intro tx ht htw
+    have hcc : CapsEquiv cc (c ∪ ci) := capMerge_capsEquiv_union hm
+    have hg := getAttrOn_sound hwf hga ht htw
+    rw [typeOfGetAttr_capsEquiv hcc] at hg
+    have htwN : TyWf tyNext := typeOfGetAttr_tyWf hwf (ht ▸ htw) hg
+    obtain ⟨cr', hr, hce⟩ := ih (tx := .getAttr tx a tyNext) rfl htwN
+    rw [typeOfExtHasAttr_capsEquiv hcc] at hr
+    refine ⟨ci ∪ cr', ?_,
+      (capMerge_capsEquiv_union hm2).trans (CapsEquiv.union (CapsEquiv.refl ci) hce)⟩
+    cases hnf <;> simp only [typeOfExtHasAttr, hasAttrOn_sound hwf hha ht htw, Except.bind_ok,
+      TypedExpr.typeOf, hg, hr]
+
 /-- Soundness of `HasType`: a derivation implies `typeOf` succeeds with the same
     type and capability-equivalent output. Proven by the mutual recursor
     `HasType.rec`, providing motives for `HasTypeList`/`HasTypeRecord`/`HasTypeExtCall`
@@ -2818,6 +2953,13 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     simp only [typeOf, hty1, Except.bind_ok, typeOfHasAttr, htty1, EntitySchema.attrs?,
       mapNotContainsKey_find? hnc, Option.map, mapContainsPairKey_actionType? hpk,
       if_true, ok]
+  | extHasAttr x₁ a as c env ty₁ oc b cout a1 a2 ih =>
+    rename_i hwf
+    obtain ⟨t1, c1', h1, ht1, _⟩ := ih hwf
+    have htw := typeOf_tyWf hwf h1; rw [ht1] at htw
+    obtain ⟨c', hc, hce⟩ := extHasAttrChain_sound hwf a2 ht1 htw
+    exact ⟨.extHasAttr t1 a as (.bool b), c', by
+      simp only [typeOf, h1, Except.bind_ok, hc, ok], rfl, hce⟩
   -- recursor tags with `HasTypeList`, so cannot be named separately in `with`).
   | _ =>
     first
