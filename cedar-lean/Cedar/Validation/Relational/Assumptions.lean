@@ -89,4 +89,11 @@ structure EnvAssumptions (env : TypeEnv) : Prop where
     ValidEntityType env.reqty.action.ty env.ets env.acts ∧
     TypeValid env (.record env.reqty.context)
 
+/-- Every ancestor of an action has the action's own entity type. Cedar's `TypeEnv.WellFormed`
+    does not require this, since an action may belong to an action of another entity type
+    (one in another namespace, say); on such schemas `HasType`'s rules for `in` on
+    action-typed operands disagree with `typeOf`. -/
+def ActionSchema.AncestorsSameType (acts : ActionSchema) : Prop :=
+  ∀ uid entry, acts.find? uid = some entry → ∀ anc ∈ entry.ancestors, anc.ty = uid.ty
+
 end Cedar.Validation.Relational
