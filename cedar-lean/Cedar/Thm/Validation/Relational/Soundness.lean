@@ -1508,6 +1508,14 @@ theorem typeOfConstructor_result {α} {mk : String → Option α} {xs ty rty c'}
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
+theorem IpAddrTypes.cons_all {tys : List CedarType} (h : IpAddrTypes tys) :
+    ∃ t ts, tys = t :: ts ∧ (t :: ts).all (· == .ext .ipAddr) = true := by
+  induction h with
+  | one => exact ⟨_, _, rfl, by simp⟩
+  | cons tys _ ih =>
+    obtain ⟨t, ts, rfl, hall⟩ := ih
+    exact ⟨_, _, rfl, by simp only [List.all_cons] at hall ⊢; simp [hall]⟩
+
 theorem typeOfCall_tyWf {xfn tys xs tx c'}
     (h : typeOfCall xfn tys xs = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfCall] at h
@@ -1525,6 +1533,13 @@ theorem typeOfCall_tyWf {xfn tys xs tx c'}
        simp only [TypedExpr.typeOf]
        first | exact TyWf.bool _ | exact TyWf.ext _ | exact TyWf.int)
     | (simp only [err, reduceCtorEq] at h)
+    | (simp only [typeOfIsInRange] at h
+       split at h
+       · split at h
+         · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, _⟩ := h
+           simp only [TypedExpr.typeOf]; exact TyWf.bool _
+         · simp only [err, reduceCtorEq] at h
+       · simp only [err, reduceCtorEq] at h)
 
 theorem typeOfAnd_tyWf {r₁ r₂ tx c'} (h : typeOfAnd r₁ r₂ = .ok (tx, c')) : TyWf tx.typeOf := by
   simp only [typeOfAnd] at h
@@ -2655,15 +2670,17 @@ theorem hasType_sound {x : Expr} {c : Capabilities} {env : TypeEnv}
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
       List.mapM_nil, hja, bind, Except.bind, pure, Except.pure, typeOfCall,
       List.map_cons, List.map_nil, htta, ok]
-  | isInRange a b c env ha hb ih_a ih_b =>
+  | isInRange a xs c env tys ha hip hxs ih_a ih_xs =>
     rename_i hwf
-    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf
+    obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf
+    obtain ⟨txs, hjxs, htxs⟩ := ih_xs hwf
     have hja : justType (typeOf a c env) = .ok ta := by rw [hta]; rfl
-    have hjb : justType (typeOf b c env) = .ok tb := by rw [htb]; rfl
-    refine ⟨.call .isInRange [ta, tb] (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    obtain ⟨t, ts, rfl, hall⟩ := hip.cons_all
+    refine ⟨.call .isInRange (ta :: txs) (.bool .anyBool), ∅, ?_, rfl, fun _ => Iff.rfl⟩
+    simp only [id] at htxs
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env)), List.mapM_cons,
-      List.mapM_nil, hja, hjb, bind, Except.bind, pure, Except.pure, typeOfCall,
-      List.map_cons, List.map_nil, htta, httb, ok]
+      hja, hjxs, bind, Except.bind, pure, Except.pure, typeOfCall, typeOfIsInRange,
+      List.map_cons, htta, htxs, hall, if_true, ok]
   | durationSince a b c env ha hb ih_a ih_b =>
     rename_i hwf
     obtain ⟨ta, ca, hta, htta, _⟩ := ih_a hwf; obtain ⟨tb, cb, htb, httb, _⟩ := ih_b hwf

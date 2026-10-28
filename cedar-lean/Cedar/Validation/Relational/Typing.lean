@@ -342,6 +342,11 @@ inductive NoTags : EntitySchema → EntityType → Prop where
     MapContainsEnum ety eids ets →
     NoTags ets ety
 
+/-- A nonempty list of `ipaddr` types. -/
+inductive IpAddrTypes : List CedarType → Prop where
+  | one : IpAddrTypes [.ext .ipAddr]
+  | cons : ∀ tys, IpAddrTypes tys → IpAddrTypes (.ext .ipAddr :: tys)
+
 /- ## Set element type accumulation -/
 
 inductive AllLub : CedarType → List CedarType → CedarType → Prop where
@@ -1148,9 +1153,11 @@ inductive HasTypeExtCall : ExtFun → List Expr → Capabilities → TypeEnv →
   | isMulticast : ∀ a c env,
     HasType a c env (.ext .ipAddr) oc85 →
     HasTypeExtCall .isMulticast [a] c env (.bool .anyBool)
-  | isInRange : ∀ a b c env,
-    HasType a c env (.ext .ipAddr) oc100 → HasType b c env (.ext .ipAddr) oc86 →
-    HasTypeExtCall .isInRange [a, b] c env (.bool .anyBool)
+  /- `isInRange` takes an address and one or more ranges. The range types are chosen
+     first (`IpAddrTypes`) and the ranges typed against them. -/
+  | isInRange : ∀ a xs c env tys,
+    HasType a c env (.ext .ipAddr) oc100 → IpAddrTypes tys → HasTypeList xs c env (id tys) →
+    HasTypeExtCall .isInRange (a :: xs) c env (.bool .anyBool)
   | offset : ∀ a b c env,
     HasType a c env (.ext .datetime) oc101 → HasType b c env (.ext .duration) oc87 →
     HasTypeExtCall .offset [a, b] c env (.ext .datetime)

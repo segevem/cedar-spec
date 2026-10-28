@@ -1035,6 +1035,13 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
                      simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h;
                      obtain ⟨rfl, rfl⟩ := h; exact typeOfConstructor_typeValid (TypeValid.ext _) hcon)
         | (simp only [err, reduceCtorEq] at h)
+        | (simp only [typeOfIsInRange] at h
+           split at h
+           · split at h
+             · simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+               exact TypeValid.bool _
+             · simp only [err, reduceCtorEq] at h
+           · simp only [err, reduceCtorEq] at h)
 
 /-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
@@ -1245,6 +1252,16 @@ theorem mapM_record_keys {axs : List (Attr × Expr)} {c : Capabilities} {env : T
           | ok v => rw [hx2] at hx; simp only [Except.map, Except.ok.injEq] at hx; subst hx; rfl
         simp only [List.map_cons, hfst, ih htl]
 
+theorem ipAddrTypes_of_all : ∀ {t : CedarType} {ts : List CedarType},
+    (t :: ts).all (· == .ext .ipAddr) = true → IpAddrTypes (t :: ts)
+  | t, [], h => by
+    simp only [List.all_cons, List.all_nil, Bool.and_true, beq_iff_eq] at h; subst h; exact .one
+  | t, t' :: ts, h => by
+    simp only [List.all_cons, Bool.and_eq_true, beq_iff_eq] at h
+    obtain ⟨rfl, h'⟩ := h
+    refine .cons _ (ipAddrTypes_of_all ?_)
+    simp only [List.all_cons, Bool.and_eq_true, beq_iff_eq]; exact h'
+
 /-- Reverse of the `call` typing: a successful `typeOfCall`, with the argument
     expressions typed by a `HasTypeList`, yields a `HasTypeExtCall` witness (and the
     call produces empty capabilities). -/
@@ -1364,14 +1381,19 @@ theorem hasTypeExtCall_of_typeOfCall {xfn : ExtFun} {xs : List Expr} {c : Capabi
                                      refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
                                      exact HasTypeExtCall.isMulticast a c env hHTa
   · -- .isInRange
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.isInRange a b c env hHTa hHTb
+    simp only [typeOfIsInRange] at h
+    split at h
+    · rename_i t ts heq
+      split at h
+      · rename_i hall
+        simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+        rw [heq] at hlist
+        cases hlist with
+        | cons a _ _ _ _ _ hHTa hrest =>
+          refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
+          exact HasTypeExtCall.isInRange a _ c env _ hHTa (ipAddrTypes_of_all hall) hrest
+      · simp only [err, reduceCtorEq] at h
+    · simp only [err, reduceCtorEq] at h
   · -- .offset
     rename_i heq
     simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h

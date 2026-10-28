@@ -640,11 +640,10 @@ theorem hasType_capsCongr {x c env ty cout} (h : HasType x c env ty cout) :
     rename_i he
     obtain ⟨_, h1, _⟩ := ih_a he
     exact HasTypeExtCall.isMulticast _ _ _ h1
-  | isInRange a b c env ha hb ih_a ih_b =>
+  | isInRange a xs c env tys ha hip hxs ih_a ih_xs =>
     rename_i he
     obtain ⟨_, h1, _⟩ := ih_a he
-    obtain ⟨_, h2, _⟩ := ih_b he
-    exact HasTypeExtCall.isInRange _ _ _ _ h1 h2
+    exact HasTypeExtCall.isInRange _ _ _ _ _ h1 hip (ih_xs he)
   | offset a b c env ha hb ih_a ih_b =>
     rename_i he
     obtain ⟨_, h1, _⟩ := ih_a he
