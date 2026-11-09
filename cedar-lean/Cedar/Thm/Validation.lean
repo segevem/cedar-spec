@@ -25,6 +25,7 @@ import Cedar.Thm.Validation.EnvironmentValidation
 import Cedar.Thm.Validation.Levels
 import Cedar.Thm.Validation.SubstituteAction
 import Cedar.Thm.Validation.Typechecker
+import Cedar.Thm.Validation.Relational
 import Cedar.Thm.Authorization
 
 /-!
