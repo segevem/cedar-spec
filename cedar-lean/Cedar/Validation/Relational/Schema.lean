@@ -21,12 +21,23 @@ public import Cedar.Validation
 
 @[expose] public section
 
-/-! # Relational specification of well-formed Cedar schemas
+/-! # A constructive description of well-formed type environments
 
-Follows the Specimen Cedar example pattern: all relations use structural
-list patterns (no ∈, contains, map, or record field access). Cedar wrapper
-types (Set, Map, TypeEnv) are constructed only in conclusions.
--/
+`WfTypeEnv env` describes type environments built in a single pass, so that a derived
+generator can produce them directly: entity types are declared one at a time, each standard
+entity type choosing its ancestors among the standard entity types declared before it, and
+attribute and tag types referring only to entity types declared so far (or to the type being
+declared); actions are then built the same way. Choosing the ancestors of a type together with
+their own ancestors makes the entity and action hierarchies transitively closed and acyclic
+by construction. Like `Typing.lean`, the relations use only structural list patterns (no `∈`,
+`find?` or field projections) and build `Map`, `Set` and `TypeEnv` values only in their
+conclusions.
+
+`WfTypeEnv` is not `TypeEnv.validateWellFormed`: it does not sort the entity and action maps or
+the sets in their entries, it allows empty enumerations and an entity type named `Action`,
+and it only produces actions of type `Action` with eids from a fixed pool. Every environment
+it describes satisfies `EnvAssumptions` (`Schema.WfTypeEnv.envAssumptions`), and
+`wfTypeEnv_validateWellFormed_iff` characterizes those that are well-formed. -/
 
 namespace Cedar.Validation.Relational.Schema
 
@@ -34,8 +45,9 @@ open Cedar.Spec
 open Cedar.Data
 open Cedar.Validation
 
-/-! ## Entity type membership (structural list traversal) -/
+/-! ## Entity type membership -/
 
+/-- The entity type occurs in the list. -/
 inductive DefinedEntityType : List EntityType → EntityType → Prop where
   | here : ∀ et rest, DefinedEntityType (et :: rest) et
   | there : ∀ et et' rest,
@@ -49,12 +61,7 @@ inductive DefinedEntityType : List EntityType → EntityType → Prop where
 −∞). Threaded through `WfAttrs` so each successive attribute key strictly
 exceeds the previous — making every well-formed attribute list strictly sorted
 by key, hence duplicate-free and already canonical (`Map.mk attrs = Map.make
-attrs`). This mirrors the same threading through `HasTypeRecord` (record
-literals) and matches what the schema generator produces after its
-`canonicalizeAttrs` post-processing. Without it, `WfAttrs` would admit
-duplicate-keyed attribute maps on which `Map.find?` (first match) disagrees
-with a structural `MapContains` witness, breaking the typechecker
-correspondence for `getAttr`/`hasAttr`. -/
+attrs`). -/
 inductive KeyAbove : Option Attr → Attr → Prop where
   | none : ∀ a, KeyAbove Option.none a
   | some : ∀ b a, b < a → KeyAbove (Option.some b) a
@@ -63,6 +70,8 @@ inductive KeyAbove : Option Attr → Attr → Prop where
 
 mutual
 
+/-- A type whose entity types occur in `ets`, whose Boolean types are `.anyBool` and whose
+    record types are strictly sorted by key. -/
 inductive WfCedarType : List EntityType → CedarType → Prop where
   | bool : ∀ ets, WfCedarType ets (.bool .anyBool)
   | int : ∀ ets, WfCedarType ets .int
@@ -97,7 +106,7 @@ inductive WfAttrs : Option Attr → List EntityType → List (Attr × QualifiedT
       WfAttrs lb ets ((attr, .optional ty) :: rest)
 
 end
--- __cedar is reserved name
+
 /-! ## Structural helper relations -/
 
 /-- `et` does not appear in the list. Used to forbid duplicate type names,
@@ -106,13 +115,14 @@ inductive NotInET : EntityType → List EntityType → Prop where
   | nil  : ∀ et, NotInET et []
   | cons : ∀ et x rest, et ≠ x → NotInET et rest → NotInET et (x :: rest)
 
-/-- List append as a relation, so conclusions stay `::`-only (Specimen-friendly). -/
+/-- List append, as a relation. -/
 inductive AppendET : List EntityType → List EntityType → List EntityType → Prop where
   | nil  : ∀ ys, AppendET [] ys ys
   | cons : ∀ x xs ys zs, AppendET xs ys zs → AppendET (x :: xs) ys (x :: zs)
 
 /-! ## Well-formed tags -/
 
+/-- No tags, or a tag type satisfying `WfCedarType`. -/
 inductive WfTags : List EntityType → Option CedarType → Prop where
   | none : ∀ ets, WfTags ets .none
   | some : ∀ ets ty,
@@ -126,9 +136,8 @@ its own **transitively-closed** ancestor list. A new entity chooses a subset of
 them as direct parents; picking parent `p` contributes `p` *and its entire
 closed ancestor set* `pset`. Because every entry in `built` already carries its
 closure (invariant maintained by `WfEntitiesGo`), the union is itself
-transitively closed — so `descendentOf`, which does a one-hop `contains`
-(`Types.lean`), is correct for multi-hop hierarchies without any separate
-`compute_tc` pass. The result is irreflexive and acyclic because parents are
+transitively closed — so `descendentOf`, which does a one-hop `contains`,
+is correct for multi-hop hierarchies. The result is irreflexive and acyclic because parents are
 drawn only from *earlier*-built entities (the new entity is not yet in `built`),
 and enums never enter `built`, so an enum can never be an ancestor. -/
 inductive PickClosedAncestors :
@@ -151,10 +160,9 @@ Builds the entity entries in one pass, threading:
 * `names` — all type names declared so far (standard + enum), used for attribute
             references and, via `NotInET`, to forbid duplicate type names.
 
-The full `names` list is produced as the OUTPUT (first index of `WfEntitySchema`)
-so downstream (`WfActionSchema`, `RequestFromAction`) sees every declared type.
-Attribute/tag types reference `et :: names` (self + types declared so far),
-mirroring the original spec's reference discipline (self-reference allowed). -/
+The full `names` list is an output (the first index of `WfEntitySchema`), so that
+`WfActionSchema` and `RequestFromAction` see every declared type. Attribute and tag types
+may refer to `et :: names`: the type being declared and the types declared before it. -/
 inductive WfEntitiesGo :
     List (EntityType × List EntityType) →   -- built (closed-ancestor payload)
     List EntityType →                       -- names so far
@@ -181,51 +189,46 @@ inductive WfEntitySchema : List EntityType → List (EntityType × EntitySchemaE
   | mk : ∀ allNames entries,
       WfEntitiesGo [] [] allNames entries →
       WfEntitySchema allNames entries
+
 /-! ## Well-formed principal/resource type lists -/
 
+/-- Every principal type occurs in `ets`. -/
 inductive WfPrincipalTypes : List EntityType → List EntityType → Prop where
   | nil : ∀ ets, WfPrincipalTypes ets []
   | cons : ∀ ets p rest,
       DefinedEntityType ets p →
       WfPrincipalTypes ets rest →
       WfPrincipalTypes ets (p :: rest)
--- principle type cannot be action, hopefully
+
+/-- Every resource type occurs in `ets`. -/
 inductive WfResourceTypes : List EntityType → List EntityType → Prop where
   | nil : ∀ ets, WfResourceTypes ets []
   | cons : ∀ ets r rest,
       DefinedEntityType ets r →
       WfResourceTypes ets rest →
       WfResourceTypes ets (r :: rest)
--- see above
+
 /-! ## Action hierarchy: transitively-closed ancestors -/
 
-/-- List append as a relation for action UIDs (the `EntityUID` analogue of `AppendET`), so
-    `PickClosedActionAncestors` conclusions stay `::`-only (Specimen-friendly). -/
+/-- List append for action UIDs, as a relation (the `EntityUID` analogue of `AppendET`). -/
 inductive AppendUID : List EntityUID → List EntityUID → List EntityUID → Prop where
   | nil  : ∀ ys, AppendUID [] ys ys
   | cons : ∀ x xs ys zs, AppendUID xs ys zs → AppendUID (x :: xs) ys (x :: zs)
 
-/-- Pick one element out of a list, returning the remainder. CONSTRUCTIVE selection: given the
-    pool it PRODUCES an element + leftover (unlike a `∉`/`NotIn` checker, which can only verify
-    a separately-generated element and thus forces generate-and-reject). Used to draw DISTINCT
-    action eids from a fixed pool in `WfActionSchema` — no duplicate UIDs, so `RequestFromAction`
-    (which walks the raw list) and `Map.mk actionEntries` can't pick different entries for the
-    same UID (the desync that made `reqty.context` ≠ `acts[reqty.action].context`). -/
+/-- `SelectRemove xs y ys`: `y` is an element of `xs` and `ys` is `xs` without it. Used to draw
+    distinct action eids from a fixed pool in `WfActionSchema`. -/
 inductive SelectRemove {α} : List α → α → List α → Prop where
   | here  : ∀ x xs,      SelectRemove (x :: xs) x xs
   | there : ∀ x xs y ys, SelectRemove xs y ys → SelectRemove (x :: xs) y (x :: ys)
--- Its MANUAL uniform generator lives in `SchemaTest.lean` (where `Specimen` is imported).
 
 /-- Transitively-closed action ancestors, by construction — the action analogue of
     `PickClosedAncestors`. `built` is the actions already constructed, each paired with its OWN
     transitively-closed ancestor list. A new action chooses a subset as direct parents; picking
     parent `p` contributes `p` *and its entire closed ancestor set* `pset`. Because every entry in
     `built` already carries its closure (invariant maintained by `WfActionsGo`), the union is
-    itself transitively closed — so the generated action hierarchy satisfies Cedar's
-    well-formedness and Lean's `validateWellFormed` transitivity check (which the SymCC compiler
-    runs via `CompiledPolicy.compile`; the definitional validator does not, so this was previously
-    unconstrained). Irreflexive and acyclic because parents are drawn only from *earlier*-built
-    actions (the new action is not yet in `built`). -/
+    itself transitively closed, as `ActionSchema.validateWellFormed` requires. Irreflexive and
+    acyclic because parents are drawn only from *earlier*-built actions (the new action is not
+    yet in `built`). -/
 inductive PickClosedActionAncestors :
     List (EntityUID × List EntityUID) → List EntityUID → Prop where
   | none : PickClosedActionAncestors [] []
@@ -239,28 +242,18 @@ inductive PickClosedActionAncestors :
 
 /-! ## Well-formed action schema entry -/
 
-/-- The reserved Cedar entity type for all action UIDs.
+/-- The entity type of the actions `WfActionSchema` builds.
 
-    Cedar mandates that every action entity has the reserved type `Action` (or a
-    namespaced `NS::Action`); this is not expressible any other way through
-    cedar-policy's schema APIs. The relational spec previously left the action
-    UID type unconstrained, so it generated schemas whose actions had arbitrary
-    types (e.g. `name::"doc1"`). Such schemas are only reachable via the
-    `TypeEnv`→protobuf path and are NOT valid Cedar, so `validation-drt` aborts:
-    cedar-policy rejects a policy referencing the action (`for policy `policy0`,
-    unrecognized entity type `name`; did you mean `c::c`?`) while the Lean
-    validator accepts it (it keys entity-literal validity on action-set
-    membership, `Typechecker.lean:64`, not on the type name being `Action`).
-
-    Pinning the type here keeps generated schemas in the well-formed Cedar space
-    where cedar-policy and the Lean validator agree. -/
+    Cedar schemas give every action the reserved type `Action` (or a namespaced
+    `NS::Action`). The Lean validator does not depend on this (it checks action literals
+    against the action schema, whatever their type), but the Rust implementation does, so
+    environments with actions of other types are not Cedar schemas. -/
 abbrev actionEntityType : EntityType := { id := "Action", path := [] }
 
 /-! ## Well-formed action schema -/
 
-/-- Fixed pool of candidate action eids, drawn WITHOUT replacement (via `SelectRemove`) so the
-    generated action UIDs are automatically DISTINCT — no duplicate UID can slip in, so
-    `Map.mk actionEntries` and `RequestFromAction` agree on every UID's entry. -/
+/-- The candidate action eids. `WfActionSchema` draws them without replacement (via
+    `SelectRemove`), so the actions it builds are distinct. -/
 def actionEidPool : List String :=
   ["a", "b", "c", "d", "e", "foo", "bar", "baz", "id", "name", "owner"]
 
@@ -268,11 +261,11 @@ def actionEidPool : List String :=
     * `built` — actions constructed so far, each paired with its transitively-closed ancestor
                 list (the candidate parents for `PickClosedActionAncestors`; the closure invariant
                 makes any chosen union itself closed);
-    * `avail` — the remaining eid pool, drawn WITHOUT replacement via `SelectRemove` so action
-                UIDs are distinct (no `RequestFromAction`/`Map.mk` desync).
+    * `avail` — the remaining eid pool, drawn without replacement via `SelectRemove` so action
+                UIDs are distinct.
     Each action picks its ancestors from *earlier*-built actions only, so the hierarchy is acyclic
-    and transitively closed by construction. Principal/resource/context are well-formed against
-    `ets` (mirrors the old `WfActionEntry`, now inlined so `built` can be threaded). -/
+    and transitively closed by construction. Principal, resource and context types are
+    well-formed against `ets`. -/
 inductive WfActionsGo :
     List EntityType →                       -- ets (principal/resource/context types)
     List (EntityUID × List EntityUID) →     -- built: actions so far, each with closed ancestors
@@ -280,8 +273,8 @@ inductive WfActionsGo :
     List (EntityUID × ActionSchemaEntry) → Prop where
   | nil : ∀ ets built avail, WfActionsGo ets built avail []
   | cons : ∀ ets built avail avail' eid ancestors principals resources context rest,
-      SelectRemove avail eid avail' →                        -- fresh eid (uniform, distinct)
-      PickClosedActionAncestors built ancestors →            -- transitively-closed parents
+      SelectRemove avail eid avail' →
+      PickClosedActionAncestors built ancestors →
       WfPrincipalTypes ets principals →
       WfResourceTypes ets resources →
       WfAttrs Option.none ets context →
@@ -291,9 +284,7 @@ inductive WfActionsGo :
           ActionSchemaEntry.mk (Set.mk principals) (Set.mk resources) (Set.mk ancestors) (Map.mk context)) :: rest)
 
 /-- Well-formed action schema: run the topological construction from empty accumulators, drawing
-    distinct eids from `actionEidPool`. Action ancestors are transitively closed + acyclic by
-    construction, so the generated hierarchy passes Lean's `validateWellFormed` transitivity check
-    (used by the SymCC compiler via `CompiledPolicy.compile`). -/
+    distinct eids from `actionEidPool`. -/
 inductive WfActionSchema : List EntityType → List (EntityUID × ActionSchemaEntry) → Prop where
   | mk : ∀ ets entries,
       WfActionsGo ets [] actionEidPool entries →
@@ -301,11 +292,10 @@ inductive WfActionSchema : List EntityType → List (EntityUID × ActionSchemaEn
 
 /-! ## Well-formed request type
 
-Pick principal from the action's principal list, resource from the action's
-resource list. Since WfPrincipalTypes/WfResourceTypes already guarantee those
-are defined entity types, we only need DefinedEntityType on the list itself.
--/
+The request type of some action: its principal and resource types are among the action's
+principal and resource types, and its context type is the action's context type. -/
 
+/-- A request type for one of the actions of the list. -/
 inductive RequestFromAction :
     List EntityType →
     List (EntityUID × ActionSchemaEntry) →
@@ -320,8 +310,10 @@ inductive RequestFromAction :
       RequestFromAction ets acts reqty →
       RequestFromAction ets (act :: acts) reqty
 
-/-! ## Top-level: well-formed TypeEnv -/
+/-! ## Type environments -/
 
+/-- A type environment built from an entity schema (`WfEntitySchema`), an action schema over
+    its entity types (`WfActionSchema`) and the request type of one of its actions. -/
 inductive WfTypeEnv : TypeEnv → Prop where
   | mk : ∀ entityTypes entityEntries actionEntries reqty,
       WfEntitySchema entityTypes entityEntries →

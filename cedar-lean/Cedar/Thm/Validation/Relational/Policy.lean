@@ -14,10 +14,9 @@
  limitations under the License.
 -/
 
-import Cedar.Validation.Relational.Policy
+import Cedar.Thm.Validation.EnvironmentValidation
 import Cedar.Thm.Validation.Relational.WellFormed
-import Cedar.Thm.Validation.SubstituteAction
-import Cedar.Thm.Data.List
+import Cedar.Validation.Relational.Policy
 
 /-! # `ValidPolicy` characterizes `validate`
 
@@ -211,7 +210,7 @@ end
 
 /-! ## Declared entities -/
 
-private theorem bind_unit_ok_iff {ε : Type} {x y : Except ε Unit} :
+theorem bind_unit_ok_iff {ε : Type} {x y : Except ε Unit} :
     (x >>= fun _ => y) = .ok () ↔ x = .ok () ∧ y = .ok () := by
   cases x <;> simp [bind, Except.bind]
 
@@ -252,17 +251,6 @@ theorem validEntityType_of_checkEntities {ets : EntitySchema} {acts : ActionSche
     exact .inSchema _ _ _ _ (find?_mapContains hf)
   · obtain ⟨eid, entry, hpk⟩ := actionType?_mapContainsPairKey ha
     exact .isAction _ _ _ _ _ hpk
-
-theorem validEntityUID_of_checkEntities {ets : EntitySchema} {acts : ActionSchema}
-    {uid : EntityUID} (hnd : (ets.toList.map Prod.fst).Nodup)
-    (h : (ets.isValidEntityUID uid || acts.contains uid) = true) :
-    ValidEntityUID uid.ty uid.eid ets acts := by
-  rcases Bool.or_eq_true_iff.mp h with hv | hc
-  · exact validEntityUID_of_isValid hnd hv
-  · simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
-    obtain ⟨entry, hfind⟩ := hc
-    obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
-    exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
 
 mutual
 theorem EntitiesDeclared.checkEntities_ok {ets : EntitySchema} {acts : ActionSchema} {x : Expr}
@@ -320,7 +308,7 @@ theorem entitiesDeclared_of_checkEntities {ets : EntitySchema} {acts : ActionSch
     simp only [checkEntities] at h
     split at h
     · rename_i hcond
-      exact .litEntity _ _ _ _ (validEntityUID_of_checkEntities (uid := ⟨ety, eid⟩) hnd hcond)
+      exact .litEntity _ _ _ _ (validEntityUID_of_checkEntities (uid := ⟨ety, eid⟩) hcond)
     · simp at h
   | .var _, _ => .var _ _ _
   | .ite a b c, h => by
@@ -397,53 +385,6 @@ end
 
 /-! ## Typing in each environment -/
 
-mutual
-/-- Replacing `action` by a literal keeps an expression well formed. -/
-theorem SubstAction.wfExpr {env : TypeEnv} {uid : EntityUID} {x x' : Expr} :
-    SubstAction uid x x' → WfExpr env x → WfExpr env x'
-  | .lit _ _, _ | .action _, _ => .lit _ _
-  | .principal _, _ | .resource _, _ | .context _, _ => .var _ _
-  | .ite _ _ _ _ _ _ _ ha hb hc, .ite _ _ _ _ wa wb wc =>
-    .ite _ _ _ _ (ha.wfExpr wa) (hb.wfExpr wb) (hc.wfExpr wc)
-  | .and _ _ _ _ _ ha hb, .and _ _ _ wa wb => .and _ _ _ (ha.wfExpr wa) (hb.wfExpr wb)
-  | .or _ _ _ _ _ ha hb, .or _ _ _ wa wb => .or _ _ _ (ha.wfExpr wa) (hb.wfExpr wb)
-  | .unaryApp _ _ _ _ ha, .unaryApp _ _ _ hop wa => .unaryApp _ _ _ hop (ha.wfExpr wa)
-  | .binaryApp _ _ _ _ _ _ ha hb, .binaryApp _ _ _ _ wa wb =>
-    .binaryApp _ _ _ _ (ha.wfExpr wa) (hb.wfExpr wb)
-  | .getAttr _ _ _ _ ha, .getAttr _ _ _ wa => .getAttr _ _ _ (ha.wfExpr wa)
-  | .hasAttr _ _ _ _ ha, .hasAttr _ _ _ wa => .hasAttr _ _ _ (ha.wfExpr wa)
-  | .extHasAttr _ _ _ _ _ ha, .extHasAttr _ _ _ _ wa => .extHasAttr _ _ _ _ (ha.wfExpr wa)
-  | .set _ _ _ hl, .set _ _ wl => .set _ _ (hl.wfExpr wl)
-  | .call _ _ _ _ hl, .call _ _ _ wl => .call _ _ _ (hl.wfExpr wl)
-  | .record _ _ _ hr, .record _ _ hsort wr => .record _ _ (hr.keys ▸ hsort) (hr.wfExpr wr)
-
-theorem SubstActionList.wfExpr {env : TypeEnv} {uid : EntityUID} {xs xs' : List Expr} :
-    SubstActionList uid xs xs' → (∀ e ∈ xs, WfExpr env e) → ∀ e ∈ xs', WfExpr env e
-  | .nil _, _ => by simp
-  | .cons _ _ _ _ _ hx hxs, w => by
-    intro e he
-    rcases List.mem_cons.mp he with he | he
-    · rw [he]; exact hx.wfExpr (w _ (List.mem_cons_self ..))
-    · exact hxs.wfExpr (fun e' h' => w e' (List.mem_cons_of_mem _ h')) e he
-
-theorem SubstActionRecord.wfExpr {env : TypeEnv} {uid : EntityUID} {axs axs' : List (Attr × Expr)} :
-    SubstActionRecord uid axs axs' → (∀ e ∈ axs.map Prod.snd, WfExpr env e) →
-      ∀ e ∈ axs'.map Prod.snd, WfExpr env e
-  | .nil _, _ => by simp
-  | .cons _ _ _ _ _ _ hx hxs, w => by
-    intro e he
-    simp only [List.map_cons, List.mem_cons] at he
-    rcases he with he | he
-    · rw [he]; exact hx.wfExpr (w _ (by simp))
-    · exact hxs.wfExpr (fun e' h' => w e' (by simp only [List.map_cons, List.mem_cons]; exact .inr h'))
-        e he
-
-theorem SubstActionRecord.keys {uid : EntityUID} {axs axs' : List (Attr × Expr)} :
-    SubstActionRecord uid axs axs' → axs'.map Prod.fst = axs.map Prod.fst
-  | .nil _ => rfl
-  | .cons _ _ _ _ _ _ _ hxs => by simp only [List.map_cons, hxs.keys]
-end
-
 theorem subty_bool_anyBool {ty : CedarType} : (ty ⊑ .bool .anyBool) = true ↔ ∃ b, ty = .bool b := by
   constructor
   · intro h
@@ -451,13 +392,14 @@ theorem subty_bool_anyBool {ty : CedarType} : (ty ⊑ .bool .anyBool) = true ↔
   · rintro ⟨b, rfl⟩
     cases b <;> simp [subty, lub?, lubBool]
 
-/-- `typecheckPolicy` gives type `.bool b` exactly when `HasType` derives it for the policy
-    expression with `action` replaced by the environment's action. -/
+/-- `typecheckPolicy` gives type `.bool b` exactly when `HasType false false` derives it for the
+    policy expression with `action` replaced by the environment's action. -/
 theorem typecheckPolicy_ok_iff {p : Policy} {env : TypeEnv} (hwf : EnvAssumptions env)
-    (hwfx : WfExpr env (substituteAction env.reqty.action p.toExpr)) {b : BoolType} :
+    {b : BoolType} :
     (∃ tx, typecheckPolicy p env = .ok tx ∧ tx.typeOf = .bool b) ↔
-      ∃ cout, HasType (substituteAction env.reqty.action p.toExpr) [] env (.bool b) cout := by
-  rw [hasType_iff_typeOf_ok hwf hwfx]
+      ∃ cout, HasType false false (substituteAction env.reqty.action p.toExpr) [] env (.bool b)
+        cout := by
+  rw [hasType_iff_typeOf_ok hwf]
   simp only [typecheckPolicy, List.empty_eq]
   cases hto : typeOf (substituteAction env.reqty.action p.toExpr) [] env with
   | error e => simp
@@ -501,13 +443,12 @@ theorem mapM_typecheckPolicy_bool {p : Policy} :
           · simp at htc
         · simp at htc
 
-/-- `TypedInEnvs` is `typecheckPolicy` succeeding in every environment. -/
+/-- `TypedInEnvs false false` is `typecheckPolicy` succeeding in every environment. -/
 theorem typedInEnvs_iff {p : Policy} :
-    ∀ {envs : List TypeEnv}, (∀ env ∈ envs, EnvAssumptions env) →
-      (∀ env ∈ envs, WfExpr env p.toExpr) → ∀ {bs : List BoolType},
-        TypedInEnvs envs p.toExpr bs ↔
-          ∃ txs, envs.mapM (typecheckPolicy p) = .ok txs ∧ txs.map TypedExpr.typeOf = bs.map .bool
-  | [], _, _, bs => by
+    ∀ {envs : List TypeEnv}, (∀ env ∈ envs, EnvAssumptions env) → ∀ {bs : List BoolType},
+      TypedInEnvs false false envs p.toExpr bs ↔
+        ∃ txs, envs.mapM (typecheckPolicy p) = .ok txs ∧ txs.map TypedExpr.typeOf = bs.map .bool
+  | [], _, bs => by
     constructor
     · intro h; cases h; exact ⟨[], rfl, rfl⟩
     · rintro ⟨txs, h, hbs⟩
@@ -515,19 +456,17 @@ theorem typedInEnvs_iff {p : Policy} :
       cases bs with
       | nil => exact .nil _
       | cons _ _ => simp at hbs
-  | env :: envs, hwf, hwfx, bs => by
+  | env :: envs, hwf, bs => by
     obtain ⟨ets, acts, ⟨pr, act, r, ctx⟩⟩ := env
     have hwf₀ := hwf _ (List.mem_cons_self ..)
-    have hwfx₀ := (substAction_substituteAction act p.toExpr).wfExpr (hwfx _ (List.mem_cons_self ..))
     have hwf' : ∀ e ∈ envs, EnvAssumptions e := fun e he => hwf e (List.mem_cons_of_mem _ he)
-    have hwfx' : ∀ e ∈ envs, WfExpr e p.toExpr := fun e he => hwfx e (List.mem_cons_of_mem _ he)
     constructor
     · intro h
       cases h with
       | cons _ _ _ _ _ _ _ x' b cout _ bs' hs hht hrest =>
-        obtain ⟨tx, htc, hty⟩ := (typecheckPolicy_ok_iff (b := b) hwf₀ hwfx₀).mpr
+        obtain ⟨tx, htc, hty⟩ := (typecheckPolicy_ok_iff (b := b) hwf₀).mpr
           ⟨cout, hs.eq_substituteAction ▸ hht⟩
-        obtain ⟨txs, hm, hbs⟩ := (typedInEnvs_iff (bs := bs') hwf' hwfx').mp hrest
+        obtain ⟨txs, hm, hbs⟩ := (typedInEnvs_iff (bs := bs') hwf').mp hrest
         exact ⟨tx :: txs, by simp [List.mapM_cons, htc, hm, bind, Except.bind, pure, Except.pure],
           by simp [hty, hbs]⟩
     · rintro ⟨txs, hm, hbs⟩
@@ -544,10 +483,10 @@ theorem typedInEnvs_iff {p : Policy} :
           | cons b bs' =>
             simp only [List.map_cons, List.cons.injEq] at hbs
             obtain ⟨hty, hbs'⟩ := hbs
-            obtain ⟨cout, hht⟩ := (typecheckPolicy_ok_iff (b := b) hwf₀ hwfx₀).mp
+            obtain ⟨cout, hht⟩ := (typecheckPolicy_ok_iff (b := b) hwf₀).mp
               ⟨tx, htc, hty⟩
             exact .cons _ _ _ _ _ _ _ _ _ _ _ _ (substAction_substituteAction act p.toExpr) hht
-              ((typedInEnvs_iff (bs := bs') hwf' hwfx').mpr ⟨txs', hrest, hbs'⟩)
+              ((typedInEnvs_iff (bs := bs') hwf').mpr ⟨txs', hrest, hbs'⟩)
 
 /-! ## Not statically false everywhere -/
 
@@ -589,13 +528,13 @@ theorem mem_environments {schema : Schema} {env : TypeEnv} (h : env ∈ schema.e
   obtain ⟨_, _, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
-theorem typedInEnvs_ne_nil {envs : List TypeEnv} {x : Expr} {bs : List BoolType}
-    (h : TypedInEnvs envs x bs) (hs : SomeNotFf bs) : ∃ env, env ∈ envs := by
+theorem typedInEnvs_ne_nil {decl syn : Bool} {envs : List TypeEnv} {x : Expr} {bs : List BoolType}
+    (h : TypedInEnvs decl syn envs x bs) (hs : SomeNotFf bs) : ∃ env, env ∈ envs := by
   cases h with
   | nil => cases hs
   | cons ets acts pr act r ctx => exact ⟨_, List.mem_cons_self ..⟩
 
-private theorem forM_singleton {ε α : Type} (f : α → Except ε Unit) (a : α) :
+theorem forM_singleton {ε α : Type} (f : α → Except ε Unit) (a : α) :
     [a].forM f = f a := by
   cases h : f a with
   | error e => simp [List.forM, h, bind, Except.bind]
@@ -617,20 +556,21 @@ theorem typecheckPolicyWithEnvironments_ok_iff {p : Policy} {schema : Schema} :
 /-- **Policy validation.** On a schema whose environments satisfy `EnvAssumptions`, `validate`
     accepts a policy exactly when `ValidPolicy` holds for it. -/
 theorem validate_singleton_iff {schema : Schema} {p : Policy}
-    (hwf : ∀ env ∈ schema.environments, EnvAssumptions env)
-    (hwfx : ∀ env ∈ schema.environments, WfExpr env p.toExpr) :
+    (hwf : ∀ env ∈ schema.environments, EnvAssumptions env) :
     validate [p] schema = .ok () ↔ ValidPolicy schema.ets schema.acts schema.environments p := by
   rw [validate, forM_singleton, typecheckPolicyWithEnvironments_ok_iff]
   constructor
   · rintro ⟨hce, txs, hm, hnf⟩
+    have hent : ∀ env ∈ schema.environments, EntitiesDeclared schema.ets schema.acts p.toExpr := by
+      intro env henv
+      have hnd := (hwf env henv).ets_keys_nodup
+      rw [(mem_environments henv).1] at hnd
+      exact entitiesDeclared_of_checkEntities (acts := schema.acts) hnd _ hce
     obtain ⟨bs, hbs⟩ := mapM_typecheckPolicy_bool hm
     have hsome := (allFalse_eq_false_iff hbs).mp hnf
-    have htyped := (typedInEnvs_iff hwf hwfx).mpr ⟨txs, hm, hbs⟩
+    have htyped := (typedInEnvs_iff hwf).mpr ⟨txs, hm, hbs⟩
     obtain ⟨env, henv⟩ := typedInEnvs_ne_nil htyped hsome
-    have hnd := (hwf env henv).ets_keys_nodup
-    rw [(mem_environments henv).1] at hnd
-    exact .mk _ _ _ _ _ bs (policyExpr_toExpr p)
-      (entitiesDeclared_of_checkEntities (acts := schema.acts) hnd _ hce) htyped hsome
+    exact .mk _ _ _ _ _ bs (policyExpr_toExpr p) (hent env henv) htyped hsome
   · intro h
     cases h with
     | mk x bs hpe hent htyped hsome =>
@@ -641,24 +581,331 @@ theorem validate_singleton_iff {schema : Schema} {p : Policy}
       have hndA := (hwf env henv).acts_keys_nodup
       rw [hets] at hndE
       rw [hacts] at hndA
-      obtain ⟨txs, hm, hbs⟩ := (typedInEnvs_iff hwf hwfx).mp htyped
+      obtain ⟨txs, hm, hbs⟩ := (typedInEnvs_iff hwf).mp htyped
       exact ⟨hent.checkEntities_ok hndE hndA, txs, hm, (allFalse_eq_false_iff hbs).mpr hsome⟩
 
-/-- `validate` accepts a set of policies exactly when it accepts each one. -/
+/-- **Validation.** On a schema whose environments satisfy `EnvAssumptions`, `validate` accepts
+    a set of policies exactly when `ValidPolicy` holds for each of them. -/
 theorem validate_iff {schema : Schema} {ps : Policies}
-    (hwf : ∀ env ∈ schema.environments, EnvAssumptions env)
-    (hwfx : ∀ p ∈ ps, ∀ env ∈ schema.environments, WfExpr env p.toExpr) :
+    (hwf : ∀ env ∈ schema.environments, EnvAssumptions env) :
     validate ps schema = .ok () ↔
       ∀ p ∈ ps, ValidPolicy schema.ets schema.acts schema.environments p := by
   have hone : ∀ p ∈ ps, (typecheckPolicyWithEnvironments typecheckPolicy p schema = .ok () ↔
       ValidPolicy schema.ets schema.acts schema.environments p) := by
     intro p hp
-    have := validate_singleton_iff (p := p) hwf (hwfx p hp)
+    have := validate_singleton_iff (p := p) hwf
     rwa [validate, forM_singleton] at this
   constructor
   · intro h p hp
     exact (hone p hp).mp (List.forM_ok_implies_all_ok _ _ h p hp)
   · intro h
     exact List.all_ok_implies_forM_ok _ _ (fun p hp => (hone p hp).mpr (h p hp))
+
+/-- `validate_iff` on a schema whose environments are well formed in Cedar's sense. -/
+theorem validate_iff_of_wellFormed {schema : Schema} {ps : Policies}
+    (hwf : ∀ env ∈ schema.environments, TypeEnv.WellFormed env) :
+    validate ps schema = .ok () ↔
+      ∀ p ∈ ps, ValidPolicy schema.ets schema.acts schema.environments p :=
+  validate_iff (fun env henv => TypeEnv.WellFormed.envAssumptions (hwf env henv))
+
+/-- The environments of a schema that passes Cedar's schema well-formedness check satisfy
+    `EnvAssumptions`. -/
+theorem envAssumptions_of_validateWellFormed {schema : Schema}
+    (hwf : schema.validateWellFormed = .ok ()) :
+    ∀ env ∈ schema.environments, EnvAssumptions env := fun env henv =>
+  TypeEnv.WellFormed.envAssumptions
+    (Cedar.Thm.env_validate_well_formed_is_sound (List.forM_ok_implies_all_ok _ _ hwf env henv))
+
+/-- `validate_iff` on a schema that passes Cedar's schema well-formedness check. -/
+theorem validate_iff_of_validateWellFormed {schema : Schema} {ps : Policies}
+    (hwf : schema.validateWellFormed = .ok ()) :
+    validate ps schema = .ok () ↔
+      ∀ p ∈ ps, ValidPolicy schema.ets schema.acts schema.environments p :=
+  validate_iff (envAssumptions_of_validateWellFormed hwf)
+
+/-! ## Strict typing gives a valid policy
+
+A policy typed by `HasType true syn` (in particular `HasType true true`) in every environment
+has declared entities (`HasType.entitiesDeclared`), so it needs no separate `EntitiesDeclared`
+premise to be valid. -/
+
+mutual
+/-- Replacing `action` by a literal does not make an undeclared entity declared. -/
+theorem SubstAction.entitiesDeclared {ets : EntitySchema} {acts : ActionSchema} {uid : EntityUID}
+    {x x' : Expr} : SubstAction uid x x' → EntitiesDeclared ets acts x' → EntitiesDeclared ets acts x
+  | .lit _ _, h | .principal _, h | .resource _, h | .context _, h => h
+  | .action _, _ => .var _ _ _
+  | .ite _ _ _ _ _ _ _ ha hb hc, .ite _ _ _ _ _ da db dc =>
+    .ite _ _ _ _ _ (ha.entitiesDeclared da) (hb.entitiesDeclared db) (hc.entitiesDeclared dc)
+  | .and _ _ _ _ _ ha hb, .and _ _ _ _ da db =>
+    .and _ _ _ _ (ha.entitiesDeclared da) (hb.entitiesDeclared db)
+  | .or _ _ _ _ _ ha hb, .or _ _ _ _ da db =>
+    .or _ _ _ _ (ha.entitiesDeclared da) (hb.entitiesDeclared db)
+  | .unaryApp _ _ _ _ ha, .is _ _ _ _ hv da => .is _ _ _ _ hv (ha.entitiesDeclared da)
+  | .unaryApp _ _ _ _ ha, .not _ _ _ da => .not _ _ _ (ha.entitiesDeclared da)
+  | .unaryApp _ _ _ _ ha, .neg _ _ _ da => .neg _ _ _ (ha.entitiesDeclared da)
+  | .unaryApp _ _ _ _ ha, .isEmpty _ _ _ da => .isEmpty _ _ _ (ha.entitiesDeclared da)
+  | .unaryApp _ _ _ _ ha, .like _ _ _ _ da => .like _ _ _ _ (ha.entitiesDeclared da)
+  | .binaryApp _ _ _ _ _ _ ha hb, .binaryApp _ _ _ _ _ da db =>
+    .binaryApp _ _ _ _ _ (ha.entitiesDeclared da) (hb.entitiesDeclared db)
+  | .getAttr _ _ _ _ ha, .getAttr _ _ _ _ da => .getAttr _ _ _ _ (ha.entitiesDeclared da)
+  | .hasAttr _ _ _ _ ha, .hasAttr _ _ _ _ da => .hasAttr _ _ _ _ (ha.entitiesDeclared da)
+  | .extHasAttr _ _ _ _ _ ha, .extHasAttr _ _ _ _ _ da =>
+    .extHasAttr _ _ _ _ _ (ha.entitiesDeclared da)
+  | .set _ _ _ hl, .set _ _ _ dl => .set _ _ _ (hl.entitiesDeclared dl)
+  | .record _ _ _ hr, .record _ _ _ dr => .record _ _ _ (hr.entitiesDeclared dr)
+  | .call _ _ _ _ hl, .call _ _ _ _ dl => .call _ _ _ _ (hl.entitiesDeclared dl)
+
+theorem SubstActionList.entitiesDeclared {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} {xs xs' : List Expr} :
+    SubstActionList uid xs xs' → EntitiesDeclaredList ets acts xs' →
+      EntitiesDeclaredList ets acts xs
+  | .nil _, _ => .nil _ _
+  | .cons _ _ _ _ _ hx hxs, .cons _ _ _ _ dx dxs =>
+    .cons _ _ _ _ (hx.entitiesDeclared dx) (hxs.entitiesDeclared dxs)
+
+theorem SubstActionRecord.entitiesDeclared {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} {axs axs' : List (Attr × Expr)} :
+    SubstActionRecord uid axs axs' → EntitiesDeclaredRecord ets acts axs' →
+      EntitiesDeclaredRecord ets acts axs
+  | .nil _, _ => .nil _ _
+  | .cons _ _ _ _ _ _ hx hxs, .cons _ _ _ _ _ dx dxs =>
+    .cons _ _ _ _ _ (hx.entitiesDeclared dx) (hxs.entitiesDeclared dxs)
+end
+
+/-- Typing in each environment holds with weaker flags (`HasType.mono`). -/
+theorem TypedInEnvs.weaken {decl syn : Bool} {envs : List TypeEnv} {x : Expr}
+    {bs : List BoolType} (h : TypedInEnvs decl syn envs x bs) : TypedInEnvs false false envs x bs := by
+  induction h with
+  | nil => exact .nil _
+  | cons _ _ _ _ _ _ _ _ _ _ _ _ hs hht _ ih => exact .cons _ _ _ _ _ _ _ _ _ _ _ _ hs hht.weaken ih
+
+/-- A policy typed with the `decl` flag set in each of `envs` declares its entities in each. -/
+theorem TypedInEnvs.entitiesDeclared {syn : Bool} {envs : List TypeEnv} {x : Expr}
+    {bs : List BoolType} (h : TypedInEnvs true syn envs x bs) :
+    ∀ env ∈ envs, EntitiesDeclared env.ets env.acts x := by
+  induction h with
+  | nil => intro _ h; nomatch h
+  | cons _ _ _ _ _ _ _ _ _ _ _ _ hs hht _ ih =>
+    intro env henv
+    rcases List.mem_cons.mp henv with rfl | henv
+    · exact hs.entitiesDeclared hht.entitiesDeclared
+    · exact ih env henv
+
+/-- **Strictly typed policies are valid.** A policy whose expression is typed by
+    `HasType true syn` (in particular `HasType true true`) in every environment of `envs`, all
+    sharing the schemas `ets` and `acts`, and is not `.ff` in all of them, satisfies
+    `ValidPolicy`. -/
+theorem TypedInEnvs.validPolicy {syn : Bool} {ets : EntitySchema} {acts : ActionSchema}
+    {envs : List TypeEnv} {p : Policy} {x : Expr} {bs : List BoolType} (hx : PolicyExpr p x)
+    (henvs : ∀ env ∈ envs, env.ets = ets ∧ env.acts = acts) (h : TypedInEnvs true syn envs x bs)
+    (hs : SomeNotFf bs) : ValidPolicy ets acts envs p := by
+  obtain ⟨env, henv⟩ := typedInEnvs_ne_nil h hs
+  have hd := h.entitiesDeclared env henv
+  rw [(henvs env henv).1, (henvs env henv).2] at hd
+  exact .mk _ _ _ _ x bs hx hd h.weaken hs
+
+/-- **Strictly typed policies pass `validate`.** On a schema whose environments satisfy
+    `EnvAssumptions`, `validate` accepts a policy whose expression is typed by `HasType true syn`
+    (in particular `HasType true true`) in every environment and is not `.ff` in all of them. -/
+theorem validate_singleton_of_typedInEnvs {syn : Bool} {schema : Schema} {p : Policy} {x : Expr}
+    {bs : List BoolType} (hwf : ∀ env ∈ schema.environments, EnvAssumptions env)
+    (hx : PolicyExpr p x) (h : TypedInEnvs true syn schema.environments x bs)
+    (hs : SomeNotFf bs) : validate [p] schema = .ok () :=
+  (validate_singleton_iff hwf).mpr (h.validPolicy hx (fun _ he => mem_environments he) hs)
+
+/-! ## Strict validation
+
+`ValidPolicyStrict` (typing by `HasType true true`) is `validate` together with `ParserImage`
+(`validate_and_parserImage_iff_strict`). Replacing `action` by an environment's action, which
+is declared in the schema, preserves both syntactic conditions, so a policy `validate` accepts
+that is in the parser's image can be strengthened in each environment (`HasType.strengthen`). -/
+
+mutual
+/-- Replacing `action` by a declared action keeps the entities of an expression declared. -/
+theorem SubstAction.entitiesDeclared_of_valid {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} {x x' : Expr} (hv : ValidEntityUID uid.ty uid.eid ets acts) :
+    SubstAction uid x x' → EntitiesDeclared ets acts x → EntitiesDeclared ets acts x'
+  | .lit _ _, h | .principal _, h | .resource _, h | .context _, h => h
+  | .action _, _ => .litEntity _ _ _ _ hv
+  | .ite _ _ _ _ _ _ _ ha hb hc, .ite _ _ _ _ _ da db dc =>
+    .ite _ _ _ _ _ (ha.entitiesDeclared_of_valid hv da) (hb.entitiesDeclared_of_valid hv db)
+      (hc.entitiesDeclared_of_valid hv dc)
+  | .and _ _ _ _ _ ha hb, .and _ _ _ _ da db =>
+    .and _ _ _ _ (ha.entitiesDeclared_of_valid hv da) (hb.entitiesDeclared_of_valid hv db)
+  | .or _ _ _ _ _ ha hb, .or _ _ _ _ da db =>
+    .or _ _ _ _ (ha.entitiesDeclared_of_valid hv da) (hb.entitiesDeclared_of_valid hv db)
+  | .unaryApp _ _ _ _ ha, .is _ _ _ _ hve da => .is _ _ _ _ hve (ha.entitiesDeclared_of_valid hv da)
+  | .unaryApp _ _ _ _ ha, .not _ _ _ da => .not _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .unaryApp _ _ _ _ ha, .neg _ _ _ da => .neg _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .unaryApp _ _ _ _ ha, .isEmpty _ _ _ da => .isEmpty _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .unaryApp _ _ _ _ ha, .like _ _ _ _ da => .like _ _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .binaryApp _ _ _ _ _ _ ha hb, .binaryApp _ _ _ _ _ da db =>
+    .binaryApp _ _ _ _ _ (ha.entitiesDeclared_of_valid hv da) (hb.entitiesDeclared_of_valid hv db)
+  | .getAttr _ _ _ _ ha, .getAttr _ _ _ _ da =>
+    .getAttr _ _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .hasAttr _ _ _ _ ha, .hasAttr _ _ _ _ da =>
+    .hasAttr _ _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .extHasAttr _ _ _ _ _ ha, .extHasAttr _ _ _ _ _ da =>
+    .extHasAttr _ _ _ _ _ (ha.entitiesDeclared_of_valid hv da)
+  | .set _ _ _ hl, .set _ _ _ dl => .set _ _ _ (hl.entitiesDeclared_of_valid hv dl)
+  | .record _ _ _ hr, .record _ _ _ dr => .record _ _ _ (hr.entitiesDeclared_of_valid hv dr)
+  | .call _ _ _ _ hl, .call _ _ _ _ dl => .call _ _ _ _ (hl.entitiesDeclared_of_valid hv dl)
+
+theorem SubstActionList.entitiesDeclared_of_valid {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} {xs xs' : List Expr} (hv : ValidEntityUID uid.ty uid.eid ets acts) :
+    SubstActionList uid xs xs' → EntitiesDeclaredList ets acts xs →
+      EntitiesDeclaredList ets acts xs'
+  | .nil _, _ => .nil _ _
+  | .cons _ _ _ _ _ hx hxs, .cons _ _ _ _ dx dxs =>
+    .cons _ _ _ _ (hx.entitiesDeclared_of_valid hv dx) (hxs.entitiesDeclared_of_valid hv dxs)
+
+theorem SubstActionRecord.entitiesDeclared_of_valid {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} {axs axs' : List (Attr × Expr)}
+    (hv : ValidEntityUID uid.ty uid.eid ets acts) :
+    SubstActionRecord uid axs axs' → EntitiesDeclaredRecord ets acts axs →
+      EntitiesDeclaredRecord ets acts axs'
+  | .nil _, _ => .nil _ _
+  | .cons _ _ _ _ _ _ hx hxs, .cons _ _ _ _ _ dx dxs =>
+    .cons _ _ _ _ _ (hx.entitiesDeclared_of_valid hv dx) (hxs.entitiesDeclared_of_valid hv dxs)
+end
+
+mutual
+/-- Replacing `action` by a literal does not change the keys of any record literal. -/
+theorem SubstAction.parserImage_iff {uid : EntityUID} {x x' : Expr} :
+    SubstAction uid x x' → (ParserImage x ↔ ParserImage x')
+  | .lit _ _ | .principal _ | .resource _ | .context _ => .rfl
+  | .action _ => ⟨fun _ => .lit _, fun _ => .var _⟩
+  | .ite _ _ _ _ _ _ _ ha hb hc =>
+    have ha := ha.parserImage_iff
+    have hb := hb.parserImage_iff
+    have hc := hc.parserImage_iff
+    ⟨fun | .ite _ _ _ h₁ h₂ h₃ => .ite _ _ _ (ha.mp h₁) (hb.mp h₂) (hc.mp h₃),
+     fun | .ite _ _ _ h₁ h₂ h₃ => .ite _ _ _ (ha.mpr h₁) (hb.mpr h₂) (hc.mpr h₃)⟩
+  | .and _ _ _ _ _ ha hb =>
+    have ha := ha.parserImage_iff
+    have hb := hb.parserImage_iff
+    ⟨fun | .and _ _ h₁ h₂ => .and _ _ (ha.mp h₁) (hb.mp h₂),
+     fun | .and _ _ h₁ h₂ => .and _ _ (ha.mpr h₁) (hb.mpr h₂)⟩
+  | .or _ _ _ _ _ ha hb =>
+    have ha := ha.parserImage_iff
+    have hb := hb.parserImage_iff
+    ⟨fun | .or _ _ h₁ h₂ => .or _ _ (ha.mp h₁) (hb.mp h₂),
+     fun | .or _ _ h₁ h₂ => .or _ _ (ha.mpr h₁) (hb.mpr h₂)⟩
+  | .unaryApp _ _ _ _ ha =>
+    have ha := ha.parserImage_iff
+    ⟨fun | .unaryApp _ _ h => .unaryApp _ _ (ha.mp h),
+     fun | .unaryApp _ _ h => .unaryApp _ _ (ha.mpr h)⟩
+  | .binaryApp _ _ _ _ _ _ ha hb =>
+    have ha := ha.parserImage_iff
+    have hb := hb.parserImage_iff
+    ⟨fun | .binaryApp _ _ _ h₁ h₂ => .binaryApp _ _ _ (ha.mp h₁) (hb.mp h₂),
+     fun | .binaryApp _ _ _ h₁ h₂ => .binaryApp _ _ _ (ha.mpr h₁) (hb.mpr h₂)⟩
+  | .getAttr _ _ _ _ ha =>
+    have ha := ha.parserImage_iff
+    ⟨fun | .getAttr _ _ h => .getAttr _ _ (ha.mp h),
+     fun | .getAttr _ _ h => .getAttr _ _ (ha.mpr h)⟩
+  | .hasAttr _ _ _ _ ha =>
+    have ha := ha.parserImage_iff
+    ⟨fun | .hasAttr _ _ h => .hasAttr _ _ (ha.mp h),
+     fun | .hasAttr _ _ h => .hasAttr _ _ (ha.mpr h)⟩
+  | .extHasAttr _ _ _ _ _ ha =>
+    have ha := ha.parserImage_iff
+    ⟨fun | .extHasAttr _ _ _ hp h => .extHasAttr _ _ _ hp (ha.mp h),
+     fun | .extHasAttr _ _ _ hp h => .extHasAttr _ _ _ hp (ha.mpr h)⟩
+  | .set _ _ _ hl =>
+    have hl := hl.parserImage_iff
+    ⟨fun | .set _ h => .set _ (hl.mp h), fun | .set _ h => .set _ (hl.mpr h)⟩
+  | .record _ _ _ hr =>
+    have ⟨hk, hv⟩ := hr.parserImage_iff
+    ⟨fun | .record _ hn h => .record _ (hk ▸ hn) (hv.mp h),
+     fun | .record _ hn h => .record _ (hk ▸ hn) (hv.mpr h)⟩
+  | .call _ _ _ _ hl =>
+    have hl := hl.parserImage_iff
+    ⟨fun | .call _ _ h => .call _ _ (hl.mp h), fun | .call _ _ h => .call _ _ (hl.mpr h)⟩
+
+theorem SubstActionList.parserImage_iff {uid : EntityUID} {xs xs' : List Expr} :
+    SubstActionList uid xs xs' →
+      ((∀ x ∈ xs, ParserImage x) ↔ ∀ x ∈ xs', ParserImage x)
+  | .nil _ => .rfl
+  | .cons _ _ _ _ _ hx hxs => by
+    rw [List.forall_mem_cons, List.forall_mem_cons, hx.parserImage_iff,
+      hxs.parserImage_iff]
+
+theorem SubstActionRecord.parserImage_iff {uid : EntityUID}
+    {axs axs' : List (Attr × Expr)} :
+    SubstActionRecord uid axs axs' → axs.map Prod.fst = axs'.map Prod.fst ∧
+      ((∀ x ∈ axs.map Prod.snd, ParserImage x) ↔
+        ∀ x ∈ axs'.map Prod.snd, ParserImage x)
+  | .nil _ => ⟨rfl, .rfl⟩
+  | .cons _ _ _ _ _ _ hx hxs =>
+    have ⟨hk, hv⟩ := hxs.parserImage_iff
+    ⟨by simp only [List.map_cons, hk], by
+      simp only [List.map_cons, List.forall_mem_cons, hx.parserImage_iff, hv]⟩
+end
+
+/-- The action of a schema environment is declared in the schema. -/
+theorem validEntityUID_action_of_mem_environments {schema : Schema} {env : TypeEnv}
+    (h : env ∈ schema.environments) :
+    ValidEntityUID env.reqty.action.ty env.reqty.action.eid schema.ets schema.acts := by
+  obtain ⟨_, _, entry, hmem, _⟩ := Thm.mem_environments h
+  obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (mem_toList_mapContains hmem)
+  exact .action _ _ _ _ _ hpk
+
+/-- **Strengthening the typing in each environment.** A policy expression typed by
+    `HasType false false` in each of `envs`, with declared entities and in the parser's image, and
+    each environment's action declared, is typed by `HasType true true` in each. -/
+theorem TypedInEnvs.strengthen {envs : List TypeEnv} {x : Expr} {bs : List BoolType}
+    (h : TypedInEnvs false false envs x bs)
+    (hd : ∀ env ∈ envs, EntitiesDeclared env.ets env.acts x ∧
+      ValidEntityUID env.reqty.action.ty env.reqty.action.eid env.ets env.acts)
+    (hk : ParserImage x) : TypedInEnvs true true envs x bs := by
+  induction h with
+  | nil => exact .nil _
+  | cons _ _ _ _ _ _ _ _ _ _ _ _ hs hht _ ih =>
+    have ⟨hdx, hv⟩ := hd _ List.mem_cons_self
+    exact .cons _ _ _ _ _ _ _ _ _ _ _ _ hs
+      (hht.strengthen (hs.entitiesDeclared_of_valid hv hdx) (hs.parserImage_iff.mp hk))
+      (ih (fun env henv => hd env (List.mem_cons_of_mem _ henv)) hk)
+
+/-- A policy typed with the `syn` flag set in some environment is in the parser's image. -/
+theorem TypedInEnvs.parserImage {decl : Bool} {envs : List TypeEnv} {x : Expr}
+    {bs : List BoolType} (h : TypedInEnvs decl true envs x bs) (hs : SomeNotFf bs) :
+    ParserImage x := by
+  cases h with
+  | nil => cases hs
+  | cons _ _ _ _ _ _ _ _ _ _ _ _ hsub hht _ =>
+    exact hsub.parserImage_iff.mpr hht.parserImage
+
+/-- **Strict policy validation.** On a schema whose environments satisfy `EnvAssumptions`, the
+    policies that `validate` accepts and that are in the image of the parser (`ParserImage`, as
+    every parsed policy is) are exactly those satisfying `ValidPolicyStrict`, i.e. typed by
+    `HasType true true` in every environment. -/
+theorem validate_and_parserImage_iff_strict {schema : Schema} {p : Policy}
+    (hwf : ∀ env ∈ schema.environments, EnvAssumptions env) :
+    (validate [p] schema = .ok () ∧ ParserImage p.toExpr) ↔
+      ValidPolicyStrict schema.ets schema.acts schema.environments p := by
+  constructor
+  · rintro ⟨hv, hk⟩
+    cases (validate_singleton_iff hwf).mp hv with
+    | mk x bs hpe hent htyped hsome =>
+      rw [← hpe.eq_toExpr] at hk
+      refine .mk _ _ _ _ x bs hpe hent (htyped.strengthen (fun env henv => ?_) hk) hsome
+      obtain ⟨hets, hacts⟩ := mem_environments henv
+      rw [hets, hacts]
+      exact ⟨hent, validEntityUID_action_of_mem_environments henv⟩
+  · intro h
+    cases h with
+    | mk x bs hpe _ htyped hsome =>
+      exact ⟨validate_singleton_of_typedInEnvs hwf hpe htyped hsome,
+        hpe.eq_toExpr ▸ htyped.parserImage hsome⟩
+
+/-- `validate_and_parserImage_iff_strict` on a schema that passes Cedar's schema well-formedness
+    check. -/
+theorem validate_and_parserImage_iff_strict_of_validateWellFormed {schema : Schema} {p : Policy}
+    (hwf : schema.validateWellFormed = .ok ()) :
+    (validate [p] schema = .ok () ∧ ParserImage p.toExpr) ↔
+      ValidPolicyStrict schema.ets schema.acts schema.environments p :=
+  validate_and_parserImage_iff_strict (envAssumptions_of_validateWellFormed hwf)
 
 end Cedar.Validation.Relational

@@ -19,9 +19,7 @@ import Cedar.Thm.Validation.Typechecker.WF
 
 /-! # Cedar's well-formed type environments satisfy `EnvAssumptions`
 
-`TypeEnv.WellFormed` gives every property in `EnvAssumptions` except one: it allows an
-action to belong to an action of a different entity type, which
-`ActionSchema.AncestorsSameType` rules out. -/
+`TypeEnv.WellFormed` gives every property in `EnvAssumptions`. -/
 
 namespace Cedar.Validation.Relational
 
@@ -120,21 +118,11 @@ private theorem reqty_entry {env : TypeEnv} (hwf : TypeEnv.WellFormed env) :
   · exact Set.contains_prop_bool_equiv.mpr hp
   · exact Set.contains_prop_bool_equiv.mpr hr
 
-/-- Cedar's well-formed type environments satisfy `EnvAssumptions`, provided no action belongs
-    to an action of a different entity type. -/
-theorem TypeEnv.WellFormed.envAssumptions {env : TypeEnv} (hwf : TypeEnv.WellFormed env)
-    (hacts : ActionSchema.AncestorsSameType env.acts) : EnvAssumptions env where
+/-- Cedar's well-formed type environments satisfy `EnvAssumptions`. -/
+theorem TypeEnv.WellFormed.envAssumptions {env : TypeEnv} (hwf : TypeEnv.WellFormed env) :
+    EnvAssumptions env where
   ets_keys_nodup := map_wf_keys_nodup hwf.1.1
   acts_keys_nodup := map_wf_keys_nodup hwf.2.1.1
-  action_ancestry_same_type := by
-    intro ety₁ ety₂ hne
-    simp only [ActionSchema.maybeDescendentOf, List.any_eq_false, Bool.and_eq_true,
-      decide_eq_true_eq, not_and]
-    intro ⟨uid, entry⟩ hmem huid hany
-    obtain ⟨anc, hanc, hty⟩ := Set.any_eq_true.mp hany
-    have hsame := hacts uid entry (Map.mem_toList_find? hwf.2.1.1 hmem) anc hanc
-    simp only [beq_iff_eq] at hty
-    exact hne (huid ▸ hsame ▸ hty)
   attrs_tyWf := by
     intro ety rty h
     simp only [EntitySchema.attrs?, Option.map_eq_some_iff] at h

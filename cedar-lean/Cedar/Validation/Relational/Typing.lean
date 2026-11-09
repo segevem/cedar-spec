@@ -21,20 +21,35 @@ public import Cedar.Validation
 
 @[expose] public section
 
-/- # Lean (minimal) relational specification of the Cedar typing judgement
+/-! # Relational specification of the Cedar typing judgement
 
-This variant strips out TypedExpr, Option wrappers, and TypeResult.
-The signature is just: `HasType : Expr → Capabilities → TypeEnv → CedarType → Capabilities → Prop`
+`HasType decl syn x c env ty cout` holds when, under the capabilities `c` and in the type
+environment `env`, the expression `x` has type `ty` and earns the capabilities `cout`. It is
+a declarative counterpart of the typechecker `typeOf` (`Cedar/Validation/Typechecker.lean`)
+that models only its success path: there is no `TypedExpr` output and no error case.
+`hasType_iff_typeOf_ok` (`Cedar/Thm/Validation/Relational/Completeness.lean`) shows that
+`HasType false false` and `typeOf` agree on every environment satisfying `EnvAssumptions`
+(`Assumptions.lean`), with the output capabilities equal up to reordering and duplicates.
 
-- No TypedExpr output (generator produces only Expr)
-- No Option wrapping (all outputs are concrete)
-- No TypeResult (only models the success path)
-- Inlined dispatch tables (no intermediate auxiliary generation)
-- Capabilities still relational (CapMerge/CapSubset)
+The flags `decl` and `syn` (see *Strictness flags*) strengthen the relation with the two
+syntactic conditions that a validated, parsed policy meets beyond `typeOf`: its entities are
+declared (`EntitiesDeclared`), and it is in the image of the parser (`ParserImage`: distinct
+record keys, identifier extended-`has` paths). `HasType true true` implies both (`HasType.strict_syntax`), so a
+generator derived from it produces only such expressions, and every derivation also holds
+with weaker flags (`HasType.mono`).
 
-This should be the closest to what makes Specimen's monolithic HasType fast:
-minimal output parameters, hardcoded types per constructor.
--/
+Each rule of `HasType` corresponds to one branch of `typeOf` and its helpers, and fixes the
+Boolean type of the result where `typeOf` computes it (e.g. separate rules for `&&` with a
+`.tt`, `.ff` or `.anyBool` left operand).
+
+The relations are written so that they can also drive derived (type-directed) input
+generators: maps, sets and environments are traversed structurally through their
+underlying lists instead of through `find?`/`contains`, schema lookups that project one
+field of an entry get their own relation (`MapContainsAttrs`, `MapContainsTagType`, ...),
+and a few premises carry a redundant `id` (`id x` is `x`) or a premise that is implied by
+the others (e.g. `ValidEntityType` on operand types) so that a generator knows which premise
+produces a value and which one only checks it. None of this affects the meaning of the
+relations. -/
 
 namespace Cedar.Validation.Relational
 
@@ -42,8 +57,9 @@ open Cedar.Spec
 open Cedar.Data
 open Cedar.Validation
 
-/- ## Structural helpers -/
+/-! ## Structural helpers -/
 
+/-- Two distinct Boolean types. -/
 inductive BoolTypeNeq : BoolType → BoolType → Prop where
   | tt_ff : BoolTypeNeq .tt .ff
   | tt_any : BoolTypeNeq .tt .anyBool
@@ -52,6 +68,7 @@ inductive BoolTypeNeq : BoolType → BoolType → Prop where
   | any_tt : BoolTypeNeq .anyBool .tt
   | any_ff : BoolTypeNeq .anyBool .ff
 
+/-- Two distinct primitive values. -/
 inductive PrimNeq : Prim → Prim → Prop where
   | bool_int : ∀ b i, PrimNeq (.bool b) (.int i)
   | bool_string : ∀ b s, PrimNeq (.bool b) (.string s)
@@ -72,6 +89,7 @@ inductive PrimNeq : Prim → Prim → Prop where
 
 mutual
 
+/-- `Lub ty₁ ty₂ ty` holds when `ty₁ ⊔ ty₂ = some ty` (`lub?`). -/
 inductive Lub : CedarType → CedarType → CedarType → Prop where
   | boolSame : ∀ b, Lub (.bool b) (.bool b) (.bool b)
   | boolDiff : ∀ b₁ b₂, BoolTypeNeq b₁ b₂ → Lub (.bool b₁) (.bool b₂) (.bool .anyBool)
@@ -82,10 +100,13 @@ inductive Lub : CedarType → CedarType → CedarType → Prop where
   | set : ∀ s₁ s₂ s, Lub s₁ s₂ s → Lub (.set s₁) (.set s₂) (.set s)
   | record : ∀ r₁ r₂ r, LubRecord r₁ r₂ r → Lub (.record (.mk r₁)) (.record (.mk r₂)) (.record (.mk r))
 
+/-- `lubQualifiedType`: the least upper bound of two qualified types. -/
 inductive LubQualified : QualifiedType → QualifiedType → QualifiedType → Prop where
   | optional : ∀ t₁ t₂ t, Lub t₁ t₂ t → LubQualified (.optional t₁) (.optional t₂) (.optional t)
   | required : ∀ t₁ t₂ t, Lub t₁ t₂ t → LubQualified (.required t₁) (.required t₂) (.required t)
 
+/-- `lubRecordType`: the pointwise least upper bound of two record types with the same keys
+    in the same order. -/
 inductive LubRecord : List (Attr × QualifiedType) → List (Attr × QualifiedType) → List (Attr × QualifiedType) → Prop where
   | nil : LubRecord [] [] []
   | cons : ∀ k v₁ v₂ v r₁ r₂ r, LubQualified v₁ v₂ v → LubRecord r₁ r₂ r → LubRecord ((k, v₁) :: r₁) ((k, v₂) :: r₂) ((k, v) :: r)
@@ -93,8 +114,8 @@ inductive LubRecord : List (Attr × QualifiedType) → List (Attr × QualifiedTy
 end
 
 mutual
-/-- Two types are lub-compatible (a lub exists). Only produces the pair, not the result. -/
 
+/-- Two types have a least upper bound (`(ty₁ ⊔ ty₂).isSome`), without naming it. -/
 inductive LubCompat : CedarType → CedarType → Prop where
   | bool : ∀ b₁ b₂, LubCompat (.bool b₁) (.bool b₂)
   | int : LubCompat .int .int
@@ -104,6 +125,7 @@ inductive LubCompat : CedarType → CedarType → Prop where
   | set : ∀ s₁ s₂, LubCompat s₁ s₂ → LubCompat (.set s₁) (.set s₂)
   | record : ∀ r₁ r₂, LubCompatRecord r₁ r₂ → LubCompat (.record (.mk r₁)) (.record (.mk r₂))
 
+/-- The record case of `LubCompat`. -/
 inductive LubCompatRecord : List (Attr × QualifiedType) → List (Attr × QualifiedType) → Prop where
   | nil : LubCompatRecord [] []
   | consReq : ∀ k t₁ t₂ r₁ r₂, LubCompat t₁ t₂ → LubCompatRecord r₁ r₂ →
@@ -112,31 +134,41 @@ inductive LubCompatRecord : List (Attr × QualifiedType) → List (Attr × Quali
       LubCompatRecord ((k, .optional t₁) :: r₁) ((k, .optional t₂) :: r₂)
 end
 
-/- ## Map/Set membership -/
+/-! ## Map and set membership -/
 
+/-- `k` is bound to `v` somewhere in the map (not necessarily by its first binding). -/
 inductive MapContains {α β : Type} : α → β → Map α β → Prop where
   | here : ∀ k v rest, MapContains k v (.mk ((k, v) :: rest))
   | there : ∀ k v k' v' rest, MapContains k v (.mk rest) → MapContains k v (.mk ((k', v') :: rest))
 
+/-- `k` is not a key of the map. -/
 inductive MapNotContainsKey {α β : Type} [DecidableEq α] : α → Map α β → Prop where
   | empty : ∀ k, MapNotContainsKey k (.mk [])
   | skip : ∀ k k' v' rest, k ≠ k' → MapNotContainsKey k (.mk rest) → MapNotContainsKey k (.mk ((k', v') :: rest))
 
+/-- `x` is an element of the set. -/
 inductive SetContains {α : Type} : α → Set α → Prop where
   | here : ∀ x rest, SetContains x (.mk (x :: rest))
   | there : ∀ x y rest, SetContains x (.mk rest) → SetContains x (.mk (y :: rest))
 
+/-- The map has a binding `⟨a, b⟩ ↦ va` for an entity UID with type `a` and eid `b`. -/
 inductive MapContainsPairKey {v} : EntityType → String → v → Map EntityUID v → Prop where
   | here : MapContainsPairKey a b va (Map.mk ((⟨a,b⟩, va) :: m))
   | nextA : a ≠ a' → MapContainsPairKey a b va (Map.mk m) → MapContainsPairKey a b va (Map.mk ((⟨a',b'⟩, v') :: m))
   | nextB : b ≠ b' → MapContainsPairKey a b va (Map.mk m) → MapContainsPairKey a b va (Map.mk ((⟨a',b'⟩, v') :: m))
 
-/- ## Entity UID validity -/
+/-! ## Entity UID validity -/
 
+/-- `⟨ety, eid⟩` is a valid entity UID (`EntitySchema.isValidEntityUID` or
+    `ActionSchema.contains`): `ety` is a standard entity type, an enumerated entity type with
+    `eid` among its members, or `⟨ety, eid⟩` is an action. -/
 inductive ValidEntityUID : EntityType → String → EntitySchema → ActionSchema → Prop where
-  | standard : ∀ ety eid entry ets acts, MapContains ety (EntitySchemaEntry.standard entry) ets → ValidEntityUID ety eid ets acts
-  | enum : ∀ ety eid eids ets acts, MapContains ety (EntitySchemaEntry.enum eids) ets → SetContains eid eids → ValidEntityUID ety eid ets acts
-  | action : ∀ ety eid ets acts entry, MapContainsPairKey ety eid entry acts → ValidEntityUID ety eid ets acts
+  | standard : ∀ ety eid entry ets acts, MapContains ety (EntitySchemaEntry.standard entry) ets →
+      ValidEntityUID ety eid ets acts
+  | enum : ∀ ety eid eids ets acts, MapContains ety (EntitySchemaEntry.enum eids) ets →
+      SetContains eid eids → ValidEntityUID ety eid ets acts
+  | action : ∀ ety eid ets acts entry, MapContainsPairKey ety eid entry acts →
+      ValidEntityUID ety eid ets acts
 
 /-- `ety` is a *declared* entity type: a key of the entity schema `ets` (standard
 or enum — no inhabitant required) or the type of some action in `acts`. This is
@@ -146,97 +178,81 @@ branches of hasAttr/getAttr/tag typing). Unlike `ValidEntityUID` it does *not*
 require the type to be inhabited, so empty enum types are included — matching
 `typeOf`, which never requires an entity type to have members.
 
-In a well-formed environment, every operand of entity type necessarily has a
-declared type (by soundness of `HasType` wrt `typeOf`: the only producers of
-`.entity ety` are entity literals — guarded by `ValidEntityUID` — variables whose
-request types are declared, and attribute accesses whose types come from the
-schema). So adding this as a premise to entity-operand rules rejects nothing that
-`typeOf` accepts; it only gives Specimen a *finite* producer for the operand's
-entity type instead of enumerating `EntityType = Name` unboundedly. -/
+In an environment satisfying `EnvAssumptions`, every expression of entity type has a
+declared type: the only sources of `.entity ety` are entity literals (guarded by
+`ValidEntityUID`), variables (whose request types are declared) and attribute and tag
+accesses (whose types come from the schema). So this premise on entity-typed operands
+rejects nothing that `typeOf` accepts. -/
 inductive ValidEntityType : EntityType → EntitySchema → ActionSchema → Prop where
   | inSchema : ∀ ety entry ets acts, MapContains ety entry ets → ValidEntityType ety ets acts
   | isAction : ∀ ety eid entry ets acts, MapContainsPairKey ety eid entry acts → ValidEntityType ety ets acts
 
-/-- Constructively produce a *valid* entity type (declared in `ets`, or an action type in
-    `acts`) that is DISTINCT from a given `other`. `checkEntities` requires the tested type
-    of `x is ety` to be declared, and the `.ff` case of `is` additionally requires it to
-    differ from the operand's type. Folding both requirements into one relation lets Specimen
-    PRODUCE the tested type by walking the schema (binding `ety` via `MapContains`, then
-    discarding only the lone `= other` candidate) instead of drawing a type from the unbounded
-    `EntityType` space and rejecting when it is undeclared or equal to `other`. The producer
-    (`MapContains`/`MapContainsPairKey`) comes first so `ety` is bound before the `≠` guard. -/
-inductive ValidDifferentEntityType : EntityType → EntityType → EntitySchema → ActionSchema → Prop where
-  | inSchema : ∀ other ety entry ets acts,
-      MapContains ety entry ets → ety ≠ other →
-      ValidDifferentEntityType other ety ets acts
-  | isAction : ∀ other ety eid entry ets acts,
-      MapContainsPairKey ety eid entry acts → ety ≠ other →
-      ValidDifferentEntityType other ety ets acts
+/-! ## Capabilities -/
 
-/- ## Capability relations -/
-
+/-- `(x, k) ∈ c`. -/
 inductive CapMem : Expr → Key → Capabilities → Prop where
   | here : ∀ x k rest, CapMem x k ((x, k) :: rest)
   | there : ∀ x k x' k' rest, CapMem x k rest → CapMem x k ((x', k') :: rest)
 
-/-- Specialized membership for tag capabilities: lifts the tag-key expression to
-a top-level argument so Specimen can *produce* `(x, e)` by walking `c` rather than
-inverting `.tag e` inside a `Key`. See pitfall #7 (compound constructor args). -/
+/-- `(x, .tag e) ∈ c`: the tag `e` of `x` is known to exist. -/
 inductive CapTagMem : Expr → Expr → Capabilities → Prop where
   | here : ∀ x e rest, CapTagMem x e ((x, .tag e) :: rest)
   | there : ∀ x e x' k' rest, CapTagMem x e rest → CapTagMem x e ((x', k') :: rest)
 
-/-- Specialized membership for attribute capabilities: lifts the attr name to a
-top-level argument so Specimen can *produce* `a` by walking `c` (given the base
-`x`) rather than checking `(x, .attr a) ∈ c` after `a` was drawn from the record
-type. Attribute analogue of `CapTagMem`. -/
+/-- `(x, .attr a) ∈ c`: the attribute `a` of `x` is known to exist. -/
 inductive CapAttrMem : Expr → Attr → Capabilities → Prop where
   | here : ∀ x a rest, CapAttrMem x a ((x, .attr a) :: rest)
   | there : ∀ x a x' k' rest, CapAttrMem x a rest → CapAttrMem x a ((x', k') :: rest)
 
+/-- `CapMerge c₁ c₂ c`: `c` interleaves `c₁` and `c₂`, possibly sharing equal heads. Every
+    such `c` has the same elements as `c₁ ∪ c₂`, which is all `typeOf` relies on. -/
 inductive CapMerge : Capabilities → Capabilities → Capabilities → Prop where
   | nil : CapMerge [] [] []
   | left : ∀ x k c₁ c₂ c, CapMerge c₁ c₂ c → CapMerge ((x, k) :: c₁) c₂ ((x, k) :: c)
   | right : ∀ x k c₁ c₂ c, CapMerge c₁ c₂ c → CapMerge c₁ ((x, k) :: c₂) ((x, k) :: c)
   | both : ∀ x k c₁ c₂ c, CapMerge c₁ c₂ c → CapMerge ((x, k) :: c₁) ((x, k) :: c₂) ((x, k) :: c)
 
+/-- Every capability of the first list is in the second. -/
 inductive CapSubset : Capabilities → Capabilities → Prop where
   | nil : CapSubset [] c
   | cons : ∀ x k rest c, CapMem x k c → CapSubset rest c → CapSubset ((x, k) :: rest) c
 
+/-- The capabilities of `c₁` that are also in `c₂` (`c₁ ∩ c₂`). -/
 def capIntersect (c₁ c₂ : Capabilities) : Capabilities :=
   c₁.filter (fun (x, k) => c₂.any (fun (x', k') => x' == x && k' == k))
 
-/- ## Attribute access helpers -/
+/-! ## Attribute access helpers -/
 
-inductive HasAttrInRecord : RecordType → Expr → Attr → Capabilities → Bool → CedarType → Capabilities → Prop where
-  -- `CapAttrMem` produces `a` from `c` (given `x`); `id a` forces `MapContains`
-  -- to check-only so it can't re-produce `a` from `rty`. See getTag/CapTagMem.
-  | found_in_caps : ∀ rty x a c knownToExist qty, CapAttrMem x a c → MapContains (id a) qty rty → HasAttrInRecord rty x a c knownToExist (.bool .tt) []
-  | found_required_known : ∀ rty x a c ty, MapContains a (.required ty) rty → HasAttrInRecord rty x a c true (.bool .tt) []
-  -- `¬ CapAttrMem`: the functional checker returns `.tt` when `(x, .attr a) ∈ c`
-  -- (see `hasAttrInRecord`), so the anyBool branch fires only when the cap is
-  -- *absent*. Without this guard these overlap with `found_in_caps` and the
-  -- generator types `hasAttr` as anyBool where the functional checker says tt.
-  | found_not_known : ∀ rty x a c qty, MapContains a qty rty → ¬ CapAttrMem x a c → HasAttrInRecord rty x a c false (.bool .anyBool) [(x, .attr a)]
-  | found_optional_known : ∀ rty x a c ty, MapContains a (.optional ty) rty → ¬ CapAttrMem x a c → HasAttrInRecord rty x a c true (.bool .anyBool) [(x, .attr a)]
+/-- `hasAttrInRecord rty x a c knownToExist`: the type and earned capabilities of `x has a`
+    for a receiver `x` of record type `rty`, when `a` is declared in `rty`. `knownToExist` is
+    `true` for records and `false` for entities (an entity need not exist, so neither need
+    its required attributes). The test is `.tt` if the capability `(x, .attr a)` is available or `a` is known
+    to exist, and otherwise `.anyBool`, earning that capability. -/
+inductive HasAttrInRecord : RecordType → Expr → Attr → Capabilities → Bool → CedarType →
+    Capabilities → Prop where
+  | found_in_caps : ∀ rty x a c knownToExist qty, CapAttrMem x a c → MapContains (id a) qty rty →
+      HasAttrInRecord rty x a c knownToExist (.bool .tt) []
+  | found_required_known : ∀ rty x a c ty, MapContains a (.required ty) rty →
+      HasAttrInRecord rty x a c true (.bool .tt) []
+  | found_not_known : ∀ rty x a c qty, MapContains a qty rty → ¬ CapAttrMem x a c →
+      HasAttrInRecord rty x a c false (.bool .anyBool) [(x, .attr a)]
+  | found_optional_known : ∀ rty x a c ty, MapContains a (.optional ty) rty → ¬ CapAttrMem x a c →
+      HasAttrInRecord rty x a c true (.bool .anyBool) [(x, .attr a)]
 
--- The receiver type is intentionally omitted: the functional `getAttrInRecord`
--- carries it only to build the `.attrNotFound ty a` error message, which this
--- relation (having no error case) never uses. Keeping it as a phantom first
--- argument made the derived checker enumerate it over *all* of `CedarType` (an
--- infinite recursive domain) before discarding it — the source of a divergent
--- generation. Dropping it removes that enumeration at the root.
+/-- `getAttrInRecord ty rty x a c`: `x.a` has type `aty` for a receiver `x` of record type
+    `rty`, when `a` is required or the capability `(x, .attr a)` is available. Unlike the
+    function, the relation does not take the receiver's type `ty`, which `getAttrInRecord`
+    uses only in its error message. -/
 inductive GetAttrInRecord : RecordType → Expr → Attr → Capabilities → CedarType → Prop where
   | required : ∀ rty x a c aty, MapContains a (.required aty) rty → GetAttrInRecord rty x a c aty
   | optional : ∀ rty x a c aty, CapAttrMem x a c → MapContains (id a) (.optional aty) rty → GetAttrInRecord rty x a c aty
 
-/- ## Specialized map lookups for standard schema entries
+/-! ## Entity schema lookups
 
-These avoid mixing bound/fresh variables inside a compound constructor argument
-to MapContains, which Specimen cannot schedule. Each extracts one field as a
-top-level output while hiding the others as universally quantified wildcards. -/
+Each relation below is `MapContains` on the entity schema, specialized to one field of the
+entry (or to one kind of entry). -/
 
+/-- The standard entity type `ety` has ancestor types `ancs`. -/
 inductive MapContainsAncestors : EntityType → Set EntityType → EntitySchema → Prop where
   | here : ∀ ety ancs attrs tags rest,
     MapContainsAncestors ety ancs (.mk ((ety, .standard ⟨ancs, attrs, tags⟩) :: rest))
@@ -244,6 +260,7 @@ inductive MapContainsAncestors : EntityType → Set EntityType → EntitySchema 
     MapContainsAncestors ety ancs (.mk rest) →
     MapContainsAncestors ety ancs (.mk ((k', v') :: rest))
 
+/-- The standard entity type `ety` has attributes `attrs` (`EntitySchema.attrs?`). -/
 inductive MapContainsAttrs : EntityType → RecordType → EntitySchema → Prop where
   | here : ∀ ety ancs attrs tags rest,
     MapContainsAttrs ety attrs (.mk ((ety, .standard ⟨ancs, attrs, tags⟩) :: rest))
@@ -251,6 +268,7 @@ inductive MapContainsAttrs : EntityType → RecordType → EntitySchema → Prop
     MapContainsAttrs ety attrs (.mk rest) →
     MapContainsAttrs ety attrs (.mk ((k', v') :: rest))
 
+/-- The standard entity type `ety` has tags of type `ty` (`EntitySchema.tags?`). -/
 inductive MapContainsTagType : EntityType → CedarType → EntitySchema → Prop where
   | here : ∀ ety ty ancs attrs rest,
     MapContainsTagType ety ty (.mk ((ety, .standard ⟨ancs, attrs, .some ty⟩) :: rest))
@@ -258,6 +276,7 @@ inductive MapContainsTagType : EntityType → CedarType → EntitySchema → Pro
     MapContainsTagType ety ty (.mk rest) →
     MapContainsTagType ety ty (.mk ((k', v') :: rest))
 
+/-- The standard entity type `ety` has no tags. -/
 inductive MapContainsNoTags : EntityType → EntitySchema → Prop where
   | here : ∀ ety ancs attrs rest,
     MapContainsNoTags ety (.mk ((ety, .standard ⟨ancs, attrs, .none⟩) :: rest))
@@ -265,6 +284,7 @@ inductive MapContainsNoTags : EntityType → EntitySchema → Prop where
     MapContainsNoTags ety (.mk rest) →
     MapContainsNoTags ety (.mk ((k', v') :: rest))
 
+/-- `ety` is an enumerated entity type with members `eids`, by its first binding. -/
 inductive MapContainsEnum : EntityType → Set String → EntitySchema → Prop where
   | here : ∀ ety eids rest,
     MapContainsEnum ety eids (.mk ((ety, .enum eids) :: rest))
@@ -273,15 +293,33 @@ inductive MapContainsEnum : EntityType → Set String → EntitySchema → Prop 
     MapContainsEnum ety eids (.mk rest) →
     MapContainsEnum ety eids (.mk ((k', v') :: rest))
 
-/- ## Entity ancestry -/
+/-! ## Entity ancestry -/
 
+/-- Some action of entity type `ety₁` has an ancestor of entity type `ety₂`. Mirrors
+    `ActionSchema.maybeDescendentOf`, which `TypeEnv.descendentOf` consults for an entity
+    type that the entity schema does not declare (an action type). -/
+inductive MaybeActionDescendentOf : ActionSchema → EntityType → EntityType → Prop where
+  | mk : ∀ acts uid entry anc,
+    MapContains uid entry acts →
+    SetContains anc entry.ancestors →
+    MaybeActionDescendentOf acts uid.ty anc.ty
+
+/-- `TypeEnv.descendentOf`: an entity of type `ety₁` may be a member of one of type `ety₂`. -/
 inductive DescendentOf : EntitySchema → ActionSchema → EntityType → EntityType → Prop where
   | refl : ∀ ets acts ety, DescendentOf ets acts ety ety
   | ancestor : ∀ ets acts ety₁ ety₂ ancs,
     MapContainsAncestors ety₁ ancs ets →
     SetContains ety₂ ancs →
     DescendentOf ets acts ety₁ ety₂
+  -- An action type (not in `ets`) descends from `ety₂` when some action of that type has
+  -- an ancestor of type `ety₂`.
+  | action : ∀ ets acts ety₁ ety₂,
+    MapNotContainsKey ety₁ ets →
+    MaybeActionDescendentOf acts ety₁ ety₂ →
+    DescendentOf ets acts ety₁ ety₂
 
+/-- `TypeEnv.descendentOf` is false: `ety₁` is a declared (standard or enumerated) entity type
+    other than `ety₂` that does not list `ety₂` among its ancestor types. -/
 inductive NotDescendentOf : EntitySchema → ActionSchema → EntityType → EntityType → Prop where
   | diff : ∀ ets acts ety₁ ety₂ ancs,
     ety₁ ≠ ety₂ →
@@ -294,14 +332,14 @@ inductive NotDescendentOf : EntitySchema → ActionSchema → EntityType → Ent
     MapContainsEnum ety₁ eids ets →
     NotDescendentOf ets acts ety₁ ety₂
 
-/- ## Action hierarchy (for precise mem typing) -/
+/-! ## Action hierarchy
 
+`typeOf` types `x₁ in x₂` precisely (`.tt`/`.ff`) when `x₁` is an action literal and `x₂` an
+entity literal or a set of entity literals, using the action hierarchy. -/
+
+/-- `ActionSchema.descendentOf uid₁ uid₂` for an action `uid₁`: `uid₁` is `uid₂` or lists it
+    among its ancestors. -/
 inductive ActionDescendentOf : ActionSchema → EntityUID → EntityUID → Prop where
-  -- `refl` must require `uid` to be an *action* (a key in `acts`). Functional
-  -- `typeOfInₑ` only takes the action-hierarchy path (→ `.tt`) when `actionUID? x₁`
-  -- succeeds; a reflexive `e in e` for a non-action entity is generic → `.anyBool`.
-  -- Without this guard, `binaryAppMemActionLitTt` types e.g. `foo::bob in foo::bob`
-  -- (foo a normal entity) as `.tt`, which the functional validator rejects.
   | refl : ∀ acts uid entry, MapContains uid entry acts → ActionDescendentOf acts uid uid
   | ancestor : ∀ acts uid₁ uid₂ entry,
     MapContains uid₁ entry acts →
@@ -319,6 +357,7 @@ inductive ActionInSet : ActionSchema → EntityUID → List Expr → Prop where
       ActionInSet acts uid₁ rest →
       ActionInSet acts uid₁ (x :: rest)
 
+/-- `ActionSchema.descendentOf uid₁ uid₂` is false for an action `uid₁`. -/
 inductive NotActionDescendentOf : ActionSchema → EntityUID → EntityUID → Prop where
   | diff : ∀ acts uid₁ uid₂ entry,
     uid₁ ≠ uid₂ →
@@ -326,13 +365,15 @@ inductive NotActionDescendentOf : ActionSchema → EntityUID → EntityUID → P
     Not (SetContains uid₂ entry.ancestors) →
     NotActionDescendentOf acts uid₁ uid₂
 
-/- ## Tag schema access -/
+/-! ## Tags -/
 
+/-- Entities of type `ety` have tags of type `ty`. -/
 inductive HasTagSchema : EntitySchema → EntityType → CedarType → Prop where
   | mk : ∀ ets ety ty,
     MapContainsTagType ety ty ets →
     HasTagSchema ets ety ty
 
+/-- Entities of the declared entity type `ety` have no tags. -/
 inductive NoTags : EntitySchema → EntityType → Prop where
   | none : ∀ ets ety,
     MapContainsNoTags ety ets →
@@ -347,63 +388,90 @@ inductive IpAddrTypes : List CedarType → Prop where
   | one : IpAddrTypes [.ext .ipAddr]
   | cons : ∀ tys, IpAddrTypes tys → IpAddrTypes (.ext .ipAddr :: tys)
 
-/- ## Set element type accumulation -/
+/-! ## Set literals -/
 
+/-- `AllLub acc tys ty`: folding `⊔` over `tys` starting from `acc` gives `ty`
+    (`tys.foldlM lub? acc = some ty`). -/
 inductive AllLub : CedarType → List CedarType → CedarType → Prop where
   | nil : ∀ ty, AllLub ty [] ty
   | cons : ∀ acc hd tl lubTy result, Lub acc hd lubTy → AllLub lubTy tl result → AllLub acc (hd :: tl) result
 
-/- ## Extension function call typing -/
+/-! ## Extension function calls -/
 
+/-- The string parses as a decimal. -/
 inductive ValidDecimal : String → Prop where
   | mk : ∀ s d, Cedar.Spec.Ext.Decimal.decimal s = some d → ValidDecimal s
 
+/-- The string parses as an IP address or range. -/
 inductive ValidIP : String → Prop where
   | mk : ∀ s ip, Cedar.Spec.Ext.IPAddr.ip s = some ip → ValidIP s
 
+/-- The string parses as a datetime. -/
 inductive ValidDatetime : String → Prop where
   | mk : ∀ s dt, Cedar.Spec.Ext.Datetime.parse s = some dt → ValidDatetime s
 
+/-- The string parses as a duration. -/
 inductive ValidDuration : String → Prop where
   | mk : ∀ s dur, Cedar.Spec.Ext.Datetime.Duration.parse s = some dur → ValidDuration s
 
-/- ## Predicates -/
+/-! ## Literal operands -/
 
+/-- Both expressions are literals. `typeOf` decides `==` on two literals exactly. -/
 inductive BothLit : Expr → Expr → Prop where
   | mk : ∀ p₁ p₂, BothLit (.lit p₁) (.lit p₂)
 
-/-- x₁ is an action-schema literal AND x₂ is an entity literal.
-    When both hold, the functional uses action-hierarchy logic for `mem`. -/
+/-- `x₁` is an action literal and `x₂` an entity literal: `typeOf` types `x₁ in x₂` using the
+    action hierarchy. -/
 inductive IsActionLitMem : Expr → Expr → ActionSchema → Prop where
   | mk : ∀ uid₁ uid₂ acts entry,
     MapContains uid₁ entry acts →
     IsActionLitMem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂)) acts
 
-/-- x₁ is an action-schema literal AND x₂ is a set of entity-UID literals.
-    When both hold, the functional uses action-hierarchy logic for set `mem`. -/
+/-- `x₁` is an action literal and `x₂` a set of entity literals: `typeOf` types `x₁ in x₂`
+    using the action hierarchy. -/
 inductive IsActionLitMemSet : Expr → Expr → ActionSchema → Prop where
   | mk : ∀ uid₁ xs acts entry,
     MapContains uid₁ entry acts →
     (∀ x, x ∈ xs → ∃ uid, x = .lit (.entityUID uid)) →
     IsActionLitMemSet (.lit (.entityUID uid₁)) (.set xs) acts
 
-/- ## Record-key ordering bound
+/-! ## Record literals: key order
 
-`KeyAbove lb a` holds when `a` strictly exceeds the lower bound `lb`
-(`none` acts as −∞). Threaded through `HasTypeRecord` so each successive
-record key strictly exceeds the previous one, making the accumulated
-attribute list strictly sorted by key — i.e. sorted *and* duplicate-free,
-hence already canonical: `.mk atyList = Map.make atyList`. The comparison is
-`<` on `Attr = String` (lexicographic by codepoint, `String.strictLT`). -/
+`typeOf` types a record literal's attributes in source order and canonicalizes the resulting
+attribute list with `Map.make`, i.e. `List.canonicalize Prod.fst`: an insertion sort by key.
+`SortsTo axs axs'` relates a record literal's attributes to the same list sorted by key, by
+insertion sort with *strict* `<`, so it holds only when the keys of `axs` are distinct.
+`HasTypeRecord` then types `axs'`, threading `KeyAbove` so that its attribute types come out
+strictly sorted, i.e. already canonical. -/
+
+/-- `KeyAbove lb a` holds when `a` strictly exceeds the lower bound `lb` (`none` acts as −∞).
+    The comparison is `<` on `Attr = String` (lexicographic by codepoint). -/
 inductive KeyAbove : Option Attr → Attr → Prop where
   | none : ∀ a, KeyAbove none a
   | some : ∀ b a, b < a → KeyAbove (some b) a
 
-/- Producer for a key strictly above `b`: a proper extension `b ++ suffix` is
-   lexicographically greater than `b` (`b` is a strict prefix), so `b < a`
-   holds for any nonempty suffix. Lets Specimen *generate* ascending record
-   keys (synthesis mode), not just check them. -/
-/- ## Attribute steps on an already-typed receiver
+/-- `InsertSortedField ax axs axs'`: inserting `ax` into `axs` by key gives `axs'`. Mirrors
+    `List.insertCanonical Prod.fst`, except that there is no rule for a key already in `axs`. -/
+inductive InsertSortedField : (Attr × Expr) → List (Attr × Expr) → List (Attr × Expr) → Prop where
+  | nil : ∀ a x, InsertSortedField (a, x) [] [(a, x)]
+  | here : ∀ a x a' x' axs,
+    a < a' →
+    InsertSortedField (a, x) ((a', x') :: axs) ((a, x) :: (a', x') :: axs)
+  | there : ∀ a x a' x' axs axs',
+    a' < a →
+    InsertSortedField (a, x) axs axs' →
+    InsertSortedField (a, x) ((a', x') :: axs) ((a', x') :: axs')
+
+/-- `SortsTo axs axs'`: `axs'` is `axs` sorted by key, by insertion sort with strict `<`
+    (mirroring `List.canonicalize Prod.fst`), so the keys of `axs` are distinct. -/
+inductive SortsTo : List (Attr × Expr) → List (Attr × Expr) → Prop where
+  | nil : SortsTo [] []
+  | cons : ∀ ax axs axs' axs'',
+    SortsTo axs axs' →
+    InsertSortedField ax axs' axs'' →
+    SortsTo (ax :: axs) axs''
+
+/-! ## Attribute steps on an already-typed receiver
 
 `typeOfHasAttr` and `typeOfGetAttr` take the receiver's type as an argument instead of typing
 the receiver themselves. The extended `has` chain needs them in that form: it types `x.a` from
@@ -491,124 +559,265 @@ inductive ExtHasAttrChain : TypeEnv → CedarType → Expr → Attr → List Att
     CapMerge ci cr cout →
     ExtHasAttrChain env ty x a (a' :: as) c .anyBool cout
 
-/- ## Main typing relation
+/-! ## Syntactic conditions on expressions
 
-Signature: `HasType x c env ty cout`
-- x : Expr (output — the generated expression)
-- c : Capabilities (input — available capabilities)
-- env : TypeEnv (input — the typing environment)
-- ty : CedarType (input — the target type)
-- cout : Capabilities (output — capabilities produced)
--/
+`validate` checks that every entity a policy names is declared (`checkEntities`) before it
+typechecks, and every policy the parser builds has record literals with distinct keys and
+extended-`has` paths written with identifiers. Neither is part of `typeOf`; the `HasType` flags (below) select whether a derivation also guarantees
+them. -/
+
+/-! ### Declared entities (`checkEntities`) -/
+
+mutual
+/-- `checkEntities` succeeds: every entity literal is valid and every `is` type declared. -/
+inductive EntitiesDeclared : EntitySchema → ActionSchema → Expr → Prop where
+  | litBool : ∀ ets acts b, EntitiesDeclared ets acts (.lit (.bool b))
+  | litInt : ∀ ets acts i, EntitiesDeclared ets acts (.lit (.int i))
+  | litString : ∀ ets acts s, EntitiesDeclared ets acts (.lit (.string s))
+  | litEntity : ∀ ets acts ety eid, ValidEntityUID ety eid ets acts →
+      EntitiesDeclared ets acts (.lit (.entityUID ⟨ety, eid⟩))
+  | var : ∀ ets acts v, EntitiesDeclared ets acts (.var v)
+  | ite : ∀ ets acts a b c, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
+      EntitiesDeclared ets acts c → EntitiesDeclared ets acts (.ite a b c)
+  | and : ∀ ets acts a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
+      EntitiesDeclared ets acts (.and a b)
+  | or : ∀ ets acts a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
+      EntitiesDeclared ets acts (.or a b)
+  | is : ∀ ets acts ety a, ValidEntityType ety ets acts → EntitiesDeclared ets acts a →
+      EntitiesDeclared ets acts (.unaryApp (.is ety) a)
+  | not : ∀ ets acts a, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.unaryApp .not a)
+  | neg : ∀ ets acts a, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.unaryApp .neg a)
+  | isEmpty : ∀ ets acts a, EntitiesDeclared ets acts a →
+      EntitiesDeclared ets acts (.unaryApp .isEmpty a)
+  | like : ∀ ets acts p a, EntitiesDeclared ets acts a →
+      EntitiesDeclared ets acts (.unaryApp (.like p) a)
+  | binaryApp : ∀ ets acts op a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
+      EntitiesDeclared ets acts (.binaryApp op a b)
+  | getAttr : ∀ ets acts a k, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.getAttr a k)
+  | hasAttr : ∀ ets acts a k, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.hasAttr a k)
+  | extHasAttr : ∀ ets acts a k ks, EntitiesDeclared ets acts a →
+      EntitiesDeclared ets acts (.extHasAttr a k ks)
+  | set : ∀ ets acts xs, EntitiesDeclaredList ets acts xs → EntitiesDeclared ets acts (.set xs)
+  | record : ∀ ets acts axs, EntitiesDeclaredRecord ets acts axs →
+      EntitiesDeclared ets acts (.record axs)
+  | call : ∀ ets acts f xs, EntitiesDeclaredList ets acts xs →
+      EntitiesDeclared ets acts (.call f xs)
+
+/-- `EntitiesDeclared` for each expression of a list. -/
+inductive EntitiesDeclaredList : EntitySchema → ActionSchema → List Expr → Prop where
+  | nil : ∀ ets acts, EntitiesDeclaredList ets acts []
+  | cons : ∀ ets acts x xs, EntitiesDeclared ets acts x → EntitiesDeclaredList ets acts xs →
+      EntitiesDeclaredList ets acts (x :: xs)
+
+/-- `EntitiesDeclared` for each field of a record literal. -/
+inductive EntitiesDeclaredRecord : EntitySchema → ActionSchema → List (Attr × Expr) → Prop where
+  | nil : ∀ ets acts, EntitiesDeclaredRecord ets acts []
+  | cons : ∀ ets acts a x axs, EntitiesDeclared ets acts x → EntitiesDeclaredRecord ets acts axs →
+      EntitiesDeclaredRecord ets acts ((a, x) :: axs)
+end
+
+/-! ### The image of the parser -/
+
+/-- Cedar's reserved identifiers, and the reserved name component `__cedar`. -/
+def reservedIdents : List String :=
+  ["true", "false", "if", "then", "else", "in", "is", "like", "has", "__cedar"]
+
+/-- A Cedar identifier, `[_a-zA-Z][_a-zA-Z0-9]*`, not reserved (Rust's `is_normalized_ident`). -/
+def isCedarIdent (s : String) : Bool :=
+  match s.toList with
+  | [] => false
+  | c :: cs => (c.isAlpha || c == '_') && cs.all (fun c => c.isAlphanum || c == '_') &&
+      !(reservedIdents.contains s)
+
+/-- The attributes of an extended `has`, `x has a.as`, as the parser can write them: a single
+    attribute is any string (`x has "a b"`), but every attribute of a longer path is an
+    identifier. Rust rejects an `ExtHasAttr` with a non-identifier attribute
+    (`Expr::try_validate`, `cedar-policy-core/src/ast/expr.rs`) and builds a single attribute as
+    a plain `HasAttr`. -/
+def extHasAttrsParsed (a : Attr) (as : List Attr) : Bool :=
+  as.isEmpty || (a :: as).all isCedarIdent
+
+/-- The expression is one the parser can produce, in two respects `validate` does not check:
+    every record literal has distinct keys (`typeOf` keeps the first of duplicate keys, but the
+    Rust AST constructor rejects a duplicate key, `DuplicateKeyError`), and every extended `has`
+    path is written with identifiers (`extHasAttrsParsed`). -/
+inductive ParserImage : Expr → Prop where
+  | lit : ∀ p, ParserImage (.lit p)
+  | var : ∀ v, ParserImage (.var v)
+  | ite : ∀ a b c, ParserImage a → ParserImage b → ParserImage c →
+      ParserImage (.ite a b c)
+  | and : ∀ a b, ParserImage a → ParserImage b → ParserImage (.and a b)
+  | or : ∀ a b, ParserImage a → ParserImage b → ParserImage (.or a b)
+  | unaryApp : ∀ op a, ParserImage a → ParserImage (.unaryApp op a)
+  | binaryApp : ∀ op a b, ParserImage a → ParserImage b →
+      ParserImage (.binaryApp op a b)
+  | getAttr : ∀ a k, ParserImage a → ParserImage (.getAttr a k)
+  | hasAttr : ∀ a k, ParserImage a → ParserImage (.hasAttr a k)
+  | extHasAttr : ∀ a k ks, extHasAttrsParsed k ks = true → ParserImage a →
+      ParserImage (.extHasAttr a k ks)
+  | set : ∀ xs, (∀ x ∈ xs, ParserImage x) → ParserImage (.set xs)
+  | record : ∀ axs, (axs.map Prod.fst).Nodup → (∀ x ∈ axs.map Prod.snd, ParserImage x) →
+      ParserImage (.record axs)
+  | call : ∀ f xs, (∀ x ∈ xs, ParserImage x) → ParserImage (.call f xs)
+
+/-! ## Strictness flags
+
+`HasType` takes two Boolean flags. With both `false` it is exactly `typeOf`; each flag set to
+`true` adds one condition that `validate` (or the parser) imposes on top of `typeOf`, so that a
+derivation with both flags set describes a policy expression that also passes those checks.
+
+* `decl`: entities are declared (`checkEntities`). The tested type of `is` must be declared,
+  and every operand that `typeOf` skips (the right operand of a short-circuited `&&`/`||`, the
+  untaken branch of an `if`) must satisfy `EntitiesDeclared`. Typed entity literals are already
+  valid by `typeOf`.
+* `syn`: the expression is in the image of the parser (`ParserImage`): record literals have
+  distinct keys and extended `has` paths are identifiers, including inside skipped operands.
+
+Each flag is specialised only in the small relations below, indexed by it: the `strict`/`yes`
+rules hold at either value of the flag and the `lax`/`no` rules only at `false`. -/
+
+/-- The target type `T` of an `is` test, when the `decl` flag is `b`. With `b = true` it must
+    be a declared entity type (`checkEntities`); with `b = false` it is arbitrary (`typeOf`
+    does not check it). -/
+inductive IsTargetOf : Bool → TypeEnv → EntityType → Prop where
+  | strict : ∀ b env T, ValidEntityType T env.ets env.acts → IsTargetOf b env T
+  | lax : ∀ env T, IsTargetOf false env T
+
+/-- `EntitiesDeclared ets acts x` when the `decl` flag is `b = true`; nothing when `b = false`. -/
+inductive DeclIf : Bool → EntitySchema → ActionSchema → Expr → Prop where
+  | yes : ∀ b ets acts x, EntitiesDeclared ets acts x → DeclIf b ets acts x
+  | no : ∀ ets acts x, DeclIf false ets acts x
+
+/-- `ParserImage x` when the `syn` flag is `b = true`; nothing when `b = false`. -/
+inductive ParserImageIf : Bool → Expr → Prop where
+  | yes : ∀ b x, ParserImage x → ParserImageIf b x
+  | no : ∀ x, ParserImageIf false x
+
+/-- The attributes of an extended `has` are `extHasAttrsParsed` when the `syn` flag is
+    `b = true`; arbitrary when `b = false`. -/
+inductive ExtHasIf : Bool → Attr → List Attr → Prop where
+  | yes : ∀ b a as, extHasAttrsParsed a as = true → ExtHasIf b a as
+  | no : ∀ a as, ExtHasIf false a as
+
+/-- An operand that `typeOf` skips (short-circuited, or the untaken branch of an `if`), so it
+    need not be well typed. It must still meet the syntactic conditions the flags `decl` and
+    `syn` select. -/
+inductive DeadOperand (decl syn : Bool) : TypeEnv → Expr → Prop where
+  | mk : ∀ env x, DeclIf decl env.ets env.acts x → ParserImageIf syn x → DeadOperand decl syn env x
+
+/-! ## The typing relation -/
 
 mutual
 
-inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabilities → Prop where
+/-- `HasType decl syn x c env ty cout`: under the capabilities `c`, the expression `x` has type
+    `ty` in `env` and earns the capabilities `cout` (`typeOf x c env = .ok (tx, cout')` with
+    `tx.typeOf = ty` and `cout'` equivalent to `cout`). The output capabilities of
+    subexpressions that `typeOf` discards are left unconstrained. The flags `decl` and `syn`
+    (see *Strictness flags*) add the conditions of `checkEntities` and of the parser that
+    `typeOf` does not check; `HasType false false` is exactly `typeOf`. -/
+inductive HasType (decl syn : Bool) : Expr → Capabilities → TypeEnv → CedarType → Capabilities → Prop where
   /- ### Literals -/
   | litBoolTrue :
     ∀ c ets acts reqty,
-    HasType (.lit (.bool true)) c ⟨ets, acts, reqty⟩ (.bool .tt) []
+    HasType decl syn (.lit (.bool true)) c ⟨ets, acts, reqty⟩ (.bool .tt) []
   | litBoolFalse :
     ∀ c ets acts reqty,
-    HasType (.lit (.bool false)) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn (.lit (.bool false)) c ⟨ets, acts, reqty⟩ (.bool .ff) []
   | litInt :
     ∀ i c ets acts reqty,
-    HasType (.lit (.int i)) c ⟨ets, acts, reqty⟩ .int []
+    HasType decl syn (.lit (.int i)) c ⟨ets, acts, reqty⟩ .int []
   | litString :
     ∀ s c ets acts reqty,
-    HasType (.lit (.string s)) c ⟨ets, acts, reqty⟩ .string []
+    HasType decl syn (.lit (.string s)) c ⟨ets, acts, reqty⟩ .string []
   | litEntity :
     ∀ ety eid c ets acts reqty,
     ValidEntityUID ety eid ets acts →
-    HasType (.lit (.entityUID ⟨ety, eid⟩)) c ⟨ets, acts, reqty⟩ (.entity ety) []
+    HasType decl syn (.lit (.entityUID ⟨ety, eid⟩)) c ⟨ets, acts, reqty⟩ (.entity ety) []
 
   /- ### Variables -/
   | varPrincipal :
     ∀ c ets acts princ action resource ctx,
-    HasType (.var .principal) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.entity princ) []
+    HasType decl syn (.var .principal) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.entity princ) []
   | varAction :
     ∀ c ets acts princ actionTy actionEid resource ctx,
-    HasType (.var .action) c ⟨ets, acts, ⟨princ, ⟨actionTy, actionEid⟩, resource, ctx⟩⟩ (.entity actionTy) []
+    HasType decl syn (.var .action) c ⟨ets, acts, ⟨princ, ⟨actionTy, actionEid⟩, resource, ctx⟩⟩ (.entity actionTy) []
   | varResource :
     ∀ c ets acts princ action resource ctx,
-    HasType (.var .resource) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.entity resource) []
+    HasType decl syn (.var .resource) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.entity resource) []
   | varContext :
     ∀ c ets acts princ action resource ctx,
-    HasType (.var .context) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.record ctx) []
+    HasType decl syn (.var .context) c ⟨ets, acts, ⟨princ, action, resource, ctx⟩⟩ (.record ctx) []
 
   /- ### Unary: not -/
   | unaryAppNotTt :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .tt) oc1 →
-    HasType (.unaryApp .not x₁) c env (.bool .ff) []
+    HasType decl syn x₁ c env (.bool .tt) oc1 →
+    HasType decl syn (.unaryApp .not x₁) c env (.bool .ff) []
   | unaryAppNotFf :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .ff) oc2 →
-    HasType (.unaryApp .not x₁) c env (.bool .tt) []
+    HasType decl syn x₁ c env (.bool .ff) oc2 →
+    HasType decl syn (.unaryApp .not x₁) c env (.bool .tt) []
   | unaryAppNotAny :
     ∀ x₁ c env,
-    HasType x₁ c env (.bool .anyBool) oc3 →
-    HasType (.unaryApp .not x₁) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.bool .anyBool) oc3 →
+    HasType decl syn (.unaryApp .not x₁) c env (.bool .anyBool) []
 
   /- ### Unary: neg -/
   | unaryAppNeg :
     ∀ x₁ c env,
-    HasType x₁ c env .int oc4 →
-    HasType (.unaryApp .neg x₁) c env .int []
+    HasType decl syn x₁ c env .int oc4 →
+    HasType decl syn (.unaryApp .neg x₁) c env .int []
 
   /- ### Unary: isEmpty -/
   | unaryAppIsEmpty :
     ∀ x₁ c env elemTy,
-    HasType x₁ c env (.set elemTy) oc5 →
-    HasType (.unaryApp .isEmpty x₁) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.set elemTy) oc5 →
+    HasType decl syn (.unaryApp .isEmpty x₁) c env (.bool .anyBool) []
 
   /- ### Unary: like -/
   | unaryAppLike :
     ∀ pat x₁ c env,
-    HasType x₁ c env .string oc6 →
-    HasType (.unaryApp (.like pat) x₁) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env .string oc6 →
+    HasType decl syn (.unaryApp (.like pat) x₁) c env (.bool .anyBool) []
 
   /- ### Unary: is (true) -/
   | unaryAppIsTrue :
     ∀ ety x₁ c env,
-    ValidEntityType ety env.ets env.acts →
-    HasType x₁ c env (.entity ety) oc7 →
-    HasType (.unaryApp (.is ety) x₁) c env (.bool .tt) []
+    IsTargetOf decl env ety →
+    HasType decl syn x₁ c env (.entity ety) oc7 →
+    HasType decl syn (.unaryApp (.is ety) x₁) c env (.bool .tt) []
 
   /- ### Unary: is (false) -/
-  -- Both the *tested* type `ety₁` and the *operand* type `ety₂` must be declared:
-  -- although `typeOf` alone never requires `ety₁` to be in the schema, the real
-  -- `validate` runs `checkEntities` first, which rejects `x is ety₁` for an
-  -- undeclared `ety₁` (`unrecognized entity type`). `ValidDifferentEntityType`
-  -- produces `ety₁` declared *and* `≠ ety₂` (the `.ff` case needs the mismatch),
-  -- so we never emit `is <undeclared>`. `ety₂` is pinned by `ValidEntityType`.
+  -- `typeOf` does not require the tested type `ety₁` to be declared, but `validate` runs
+  -- `checkEntities` first, which rejects `x is ety₁` for an undeclared `ety₁` (`IsTargetOf`).
   | unaryAppIsFalse :
     ∀ ety₁ ety₂ x₁ c env,
     ValidEntityType ety₂ env.ets env.acts →
-    ValidDifferentEntityType ety₂ ety₁ env.ets env.acts →
-    HasType x₁ c env (.entity ety₂) oc8 →
-    HasType (.unaryApp (.is ety₁) x₁) c env (.bool .ff) []
+    IsTargetOf decl env ety₁ →
+    ety₁ ≠ ety₂ →
+    HasType decl syn x₁ c env (.entity ety₂) oc8 →
+    HasType decl syn (.unaryApp (.is ety₁) x₁) c env (.bool .ff) []
 
   /- ### Binary: eq on literals -/
   | binaryAppEqLitSame :
     ∀ p c env ty,
-    HasType (.lit p) c env ty oc9 →
-    HasType (.binaryApp .eq (.lit p) (.lit p)) c env (.bool .tt) []
+    HasType decl syn (.lit p) c env ty oc9 →
+    HasType decl syn (.binaryApp .eq (.lit p) (.lit p)) c env (.bool .tt) []
   | binaryAppEqLitDiff :
     ∀ p₁ p₂ c env ty₁ ty₂,
     PrimNeq p₁ p₂ →
-    HasType (.lit p₁) c env ty₁ oc10 →
-    HasType (.lit p₂) c env ty₂ oc11 →
-    HasType (.binaryApp .eq (.lit p₁) (.lit p₂)) c env (.bool .ff) []
+    HasType decl syn (.lit p₁) c env ty₁ oc10 →
+    HasType decl syn (.lit p₂) c env ty₂ oc11 →
+    HasType decl syn (.binaryApp .eq (.lit p₁) (.lit p₂)) c env (.bool .ff) []
 
   /- ### Binary: eq non-literal (lub exists) -/
   | binaryAppEqNonLitLub :
     ∀ x₁ x₂ c env t₁ t₂ lubTy,
     Lub t₁ t₂ lubTy →
-    HasType x₁ c env t₁ oc12 →
-    HasType x₂ c env t₂ oc13 →
+    HasType decl syn x₁ c env t₁ oc12 →
+    HasType decl syn x₂ c env t₂ oc13 →
     ¬ BothLit x₁ x₂ →
-    HasType (.binaryApp .eq x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn (.binaryApp .eq x₁ x₂) c env (.bool .anyBool) []
 
   /- ### Binary: eq entity-entity different -/
   | binaryAppEqEntityDiff :
@@ -616,115 +825,110 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₁ env.ets env.acts →
     ValidEntityType ety₂ env.ets env.acts →
     ety₁ ≠ ety₂ →
-    HasType x₁ c env (.entity ety₁) oc14 →
-    HasType x₂ c env (.entity ety₂) oc15 →
+    HasType decl syn x₁ c env (.entity ety₁) oc14 →
+    HasType decl syn x₂ c env (.entity ety₂) oc15 →
     ¬ BothLit x₁ x₂ →
-    HasType (.binaryApp .eq x₁ x₂) c env (.bool .ff) []
+    HasType decl syn (.binaryApp .eq x₁ x₂) c env (.bool .ff) []
 
   /- ### Binary: arithmetic -/
   | binaryAppLessInt :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int oc16 →
-    HasType x₂ c env .int oc17 →
-    HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env .int oc16 →
+    HasType decl syn x₂ c env .int oc17 →
+    HasType decl syn (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessDatetime :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .datetime) oc18 →
-    HasType x₂ c env (.ext .datetime) oc19 →
-    HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.ext .datetime) oc18 →
+    HasType decl syn x₂ c env (.ext .datetime) oc19 →
+    HasType decl syn (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessDuration :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .duration) oc20 →
-    HasType x₂ c env (.ext .duration) oc21 →
-    HasType (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.ext .duration) oc20 →
+    HasType decl syn x₂ c env (.ext .duration) oc21 →
+    HasType decl syn (.binaryApp .less x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqInt :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int oc22 →
-    HasType x₂ c env .int oc23 →
-    HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env .int oc22 →
+    HasType decl syn x₂ c env .int oc23 →
+    HasType decl syn (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqDatetime :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .datetime) oc24 →
-    HasType x₂ c env (.ext .datetime) oc25 →
-    HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.ext .datetime) oc24 →
+    HasType decl syn x₂ c env (.ext .datetime) oc25 →
+    HasType decl syn (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppLessEqDuration :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env (.ext .duration) oc26 →
-    HasType x₂ c env (.ext .duration) oc27 →
-    HasType (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.ext .duration) oc26 →
+    HasType decl syn x₂ c env (.ext .duration) oc27 →
+    HasType decl syn (.binaryApp .lessEq x₁ x₂) c env (.bool .anyBool) []
   | binaryAppAdd :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int oc28 →
-    HasType x₂ c env .int oc29 →
-    HasType (.binaryApp .add x₁ x₂) c env .int []
+    HasType decl syn x₁ c env .int oc28 →
+    HasType decl syn x₂ c env .int oc29 →
+    HasType decl syn (.binaryApp .add x₁ x₂) c env .int []
   | binaryAppSub :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int oc30 →
-    HasType x₂ c env .int oc31 →
-    HasType (.binaryApp .sub x₁ x₂) c env .int []
+    HasType decl syn x₁ c env .int oc30 →
+    HasType decl syn x₂ c env .int oc31 →
+    HasType decl syn (.binaryApp .sub x₁ x₂) c env .int []
   | binaryAppMul :
     ∀ x₁ x₂ c env,
-    HasType x₁ c env .int oc32 →
-    HasType x₂ c env .int oc33 →
-    HasType (.binaryApp .mul x₁ x₂) c env .int []
+    HasType decl syn x₁ c env .int oc32 →
+    HasType decl syn x₂ c env .int oc33 →
+    HasType decl syn (.binaryApp .mul x₁ x₂) c env .int []
 
   /- ### Binary: set operations -/
   | binaryAppContains :
     ∀ x₁ x₂ c env t₂ elemTy,
     LubCompat t₂ elemTy →
-    HasType x₁ c env (.set elemTy) oc34 →
-    HasType x₂ c env t₂ oc35 →
-    HasType (.binaryApp .contains x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.set elemTy) oc34 →
+    HasType decl syn x₂ c env t₂ oc35 →
+    HasType decl syn (.binaryApp .contains x₁ x₂) c env (.bool .anyBool) []
   | binaryAppContainsAll :
     ∀ x₁ x₂ c env elemTy₁ elemTy₂,
     LubCompat elemTy₁ elemTy₂ →
-    HasType x₁ c env (.set elemTy₁) oc36 →
-    HasType x₂ c env (.set elemTy₂) oc37 →
-    HasType (.binaryApp .containsAll x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.set elemTy₁) oc36 →
+    HasType decl syn x₂ c env (.set elemTy₂) oc37 →
+    HasType decl syn (.binaryApp .containsAll x₁ x₂) c env (.bool .anyBool) []
   | binaryAppContainsAny :
     ∀ x₁ x₂ c env elemTy₁ elemTy₂,
     LubCompat elemTy₁ elemTy₂ →
-    HasType x₁ c env (.set elemTy₁) oc38 →
-    HasType x₂ c env (.set elemTy₂) oc39 →
-    HasType (.binaryApp .containsAny x₁ x₂) c env (.bool .anyBool) []
+    HasType decl syn x₁ c env (.set elemTy₁) oc38 →
+    HasType decl syn x₂ c env (.set elemTy₂) oc39 →
+    HasType decl syn (.binaryApp .containsAny x₁ x₂) c env (.bool .anyBool) []
 
   /- ### Binary: mem (generic — excludes action-literal cases) -/
-  -- `ValidEntityType` gives Specimen a finite producer for an operand entity type
-  -- (schema keys / action types) instead of enumerating `Name`. It's implied by
-  -- the operand typecheck under a well-formed env, so it rejects nothing `typeOf`
-  -- accepts. For the positive cases we pin only `ety₁` and let `DescendentOf`
-  -- *produce* `ety₂` (via its `ancestor`/`refl` constructors) — yielding just the
-  -- valid descendents rather than enumerating all schema types and filtering.
+  -- The `ValidEntityType` premises are implied by the operand typings (see `ValidEntityType`).
   | binaryAppMemEntityEntity :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     ValidEntityType ety₁ ets acts →
     DescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc40 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc41 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc40 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc41 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySame :
     ∀ x₁ x₂ c ets acts reqty ety,
     ValidEntityType ety ets acts →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc42 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety) oc43 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc42 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.entity ety) oc43 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySet :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     ValidEntityType ety₁ ets acts →
     DescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc44 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc45 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc44 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc45 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
   | binaryAppMemEntitySetSame :
     ∀ x₁ x₂ c ets acts reqty ety,
     ValidEntityType ety ets acts →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc46 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety)) oc47 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc46 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety)) oc47 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) []
 
   /- ### Binary: mem — false (not descendent, excludes action-literal cases) -/
   | binaryAppMemEntityEntityFf :
@@ -733,126 +937,112 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ValidEntityType ety₂ ets acts →
     NotDescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc48 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc49 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc48 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc49 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
   | binaryAppMemEntitySetFf :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     ValidEntityType ety₁ ets acts →
     ValidEntityType ety₂ ets acts →
     NotDescendentOf ets acts ety₁ ety₂ →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc50 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc51 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc50 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc51 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Binary: mem — false (action-typed operand, non-literal) -/
-  -- An action-typed operand `ety₁` (all action UIDs have the reserved `Action` type) can
-  -- only descend from another action type; comparing it to a *different* type `ety₂` is
-  -- always `.ff` (`typeOfInₑ`/`typeOfInₛ` take the `maybeDescendentOf` fallback, which is
-  -- false since action ancestors are `Action`-typed). `NotDescendentOf` can't witness this
-  -- (it walks standard `ets` entries), so these are separate rules; soundness uses the
-  -- `WfActionSchema` invariant that action ancestors are `Action`-typed.
+  -- For an operand type `ety₁` absent from `ets` (an action type), `typeOfInₑ`/`typeOfInₛ`
+  -- fall back to `maybeDescendentOf`: `x₁ in x₂` is `.ff` unless some action of type `ety₁`
+  -- has an ancestor of type `ety₂`. `NotDescendentOf` walks `ets` entries only, so these are
+  -- separate rules.
   | binaryAppMemActionEntityFf :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     MapNotContainsKey ety₁ ets →
     ety₁ ≠ ety₂ →
+    ¬ MaybeActionDescendentOf acts ety₁ ety₂ →
     ¬ IsActionLitMem x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc103 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc104 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc103 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.entity ety₂) oc104 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
   | binaryAppMemActionSetFf :
     ∀ x₁ x₂ c ets acts reqty ety₁ ety₂,
     MapNotContainsKey ety₁ ets →
     ety₁ ≠ ety₂ →
+    ¬ MaybeActionDescendentOf acts ety₁ ety₂ →
     ¬ IsActionLitMemSet x₁ x₂ acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc105 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc106 →
-    HasType (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety₁) oc105 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc106 →
+    HasType decl syn (.binaryApp .mem x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Binary: mem — true (known action literal hierarchy) -/
   | binaryAppMemActionLitTt :
     ∀ uid₁ uid₂ c ets acts reqty,
     ActionDescendentOf acts uid₁ uid₂ →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc52 →
-    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc53 →
-    HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .tt) []
+    HasType decl syn (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc52 →
+    HasType decl syn (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc53 →
+    HasType decl syn (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .tt) []
   | binaryAppMemActionLitFf :
     ∀ uid₁ uid₂ c ets acts reqty,
     NotActionDescendentOf acts uid₁ uid₂ →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc54 →
-    HasType (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc55 →
-    HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc54 →
+    HasType decl syn (.lit (.entityUID uid₂)) c ⟨ets, acts, reqty⟩ (.entity uid₂.ty) oc55 →
+    HasType decl syn (.binaryApp .mem (.lit (.entityUID uid₁)) (.lit (.entityUID uid₂))) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Binary: mem — action literal in set of entity literals (tt if any descendent) -/
   | binaryAppMemActionLitSetTt :
     ∀ uid₁ xs c ets acts reqty ety₂,
     IsActionLitMemSet (.lit (.entityUID uid₁)) (.set xs) acts →
     ActionInSet acts uid₁ xs →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc56 →
-    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc57 →
-    HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .tt) []
+    HasType decl syn (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc56 →
+    HasType decl syn (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc57 →
+    HasType decl syn (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .tt) []
   /- ### Binary: mem — action literal in set of entity literals (ff if no descendent) -/
   | binaryAppMemActionLitSetFf :
     ∀ uid₁ xs c ets acts reqty ety₂,
     IsActionLitMemSet (.lit (.entityUID uid₁)) (.set xs) acts →
     ¬ ActionInSet acts uid₁ xs →
-    HasType (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc58 →
-    HasType (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc59 →
-    HasType (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn (.lit (.entityUID uid₁)) c ⟨ets, acts, reqty⟩ (.entity uid₁.ty) oc58 →
+    HasType decl syn (.set xs) c ⟨ets, acts, reqty⟩ (.set (.entity ety₂)) oc59 →
+    HasType decl syn (.binaryApp .mem (.lit (.entityUID uid₁)) (.set xs)) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### hasAttr — record (attribute found) -/
-  -- `id rty`: keep `rty` check-only here so it is produced by the record-type
-  -- inference `HasType x₁ (.record rty)` (bounded), not enumerated by
-  -- `HasAttrInRecord` over all record types (unbounded). Same rationale as the
-  -- entity attr rules below.
   | hasAttrRecord :
     ∀ x₁ a c env rty ty caps,
-    HasType x₁ c env (.record rty) oc60 →
+    HasType decl syn x₁ c env (.record rty) oc60 →
     HasAttrInRecord rty x₁ a c true ty caps →
-    HasType (.hasAttr x₁ a) c env ty caps
+    HasType decl syn (.hasAttr x₁ a) c env ty caps
 
   /- ### hasAttr — record (attribute not found) -/
   | hasAttrRecordNotFound :
     ∀ x₁ a c env rty,
-    HasType x₁ c env (.record (.mk rty)) oc61 →
+    HasType decl syn x₁ c env (.record (.mk rty)) oc61 →
     MapNotContainsKey a (.mk rty) →
-    HasType (.hasAttr x₁ a) c env (.bool .ff) []
+    HasType decl syn (.hasAttr x₁ a) c env (.bool .ff) []
 
   /- ### hasAttr — entity (attribute found) -/
-  -- `id rty`: keep `rty` check-only in `HasAttrInRecord` so Specimen must obtain
-  -- it from `MapContainsAttrs` (a finite walk of the schema `ets`). Without this,
-  -- the checker/enumerator draws `rty` from `HasAttrInRecord` — an *unbounded*
-  -- enumeration over record types — and diverges. Cf. the `id` trick in `getTag`.
   | hasAttrEntity :
     ∀ x₁ a c ets acts reqty ety ty caps rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc62 →
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc62 →
     HasAttrInRecord rty x₁ a c false ty caps →
-    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty caps
+    HasType decl syn (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty caps
 
   /- ### hasAttr — entity (attribute not found) -/
   | hasAttrEntityNotFound :
     ∀ x₁ a c ets acts reqty ety rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc63 →
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc63 →
     MapNotContainsKey a rty →
-    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### hasAttr — enum entity (no attributes) -/
-  -- An enum entity type carries no attributes: `EntitySchema.attrs?` returns the
-  -- empty record for it, so `hasAttr` on an enum-typed operand types as `.bool .ff`.
-  -- Mirrors `typeOfHasAttr`'s enum path (`attrs? ety = some Map.empty` →
-  -- `hasAttrInRecord` finds nothing → `.bool .ff`). Uses `MapContains … (.enum …)`
-  -- (the enum entry) rather than `MapContainsAttrs` (which matches only standard
-  -- entries), so enum-typed operands get a derivation. `MapContainsEnum` extracts
-  -- the enum entry as a top-level output (Specimen-friendly), like the other
-  -- `MapContains…` field projectors.
+  -- `EntitySchema.attrs?` gives the empty record for an enumerated entity type, so `hasAttr`
+  -- on an enum-typed operand is `.bool .ff`.
   | hasAttrEnum :
     ∀ x₁ a c ets acts reqty ety eids,
     MapContainsEnum ety eids ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc64 →
-    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc64 →
+    HasType decl syn (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### hasAttr — action-typed entity (no attributes) -/
   -- An action type is absent from `ets`, so `typeOfHasAttr` takes its `actionType?` branch:
@@ -861,70 +1051,58 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ∀ x₁ a c ets acts reqty ety eid entry,
     MapNotContainsKey ety ets →
     MapContainsPairKey ety eid entry acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc109 →
-    HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc109 →
+    HasType decl syn (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### Extended has: `x₁ has a.as` -/
   | extHasAttr :
     ∀ x₁ a as c env ty₁ oc b cout,
-    HasType x₁ c env ty₁ oc →
+    HasType decl syn x₁ c env ty₁ oc →
     ExtHasAttrChain env ty₁ x₁ a as c b cout →
-    HasType (.extHasAttr x₁ a as) c env (.bool b) cout
+    ExtHasIf syn a as →
+    HasType decl syn (.extHasAttr x₁ a as) c env (.bool b) cout
 
   /- ### getAttr — record -/
-  -- `id rty`: produce `rty` from the record-type inference `HasType x₁ (.record
-  -- rty)` (bounded), not by enumerating it inside `GetAttrInRecord` over all
-  -- record types (which diverges). Same rationale as `getAttrEntity`.
   | getAttrRecord :
     ∀ x₁ a c env rty ty,
-    HasType x₁ c env (.record rty) oc65 →
+    HasType decl syn x₁ c env (.record rty) oc65 →
     GetAttrInRecord rty x₁ a c ty →
-    HasType (.getAttr x₁ a) c env ty []
+    HasType decl syn (.getAttr x₁ a) c env ty []
 
   /- ### getAttr — entity -/
-  -- `id rty`: force `rty` to come from `MapContainsAttrs` (a finite walk of the
-  -- schema `ets`) rather than from `GetAttrInRecord` (which would enumerate record
-  -- types via `Enum Map`). Combined with dropping `GetAttrInRecord`'s phantom
-  -- receiver type, this keeps the checker fully bounded.
   | getAttrEntity :
     ∀ x₁ a c ets acts reqty ety ty rty,
     MapContainsAttrs ety rty ets →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc66 →
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc66 →
     GetAttrInRecord rty x₁ a c ty →
-    HasType (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ ty []
+    HasType decl syn (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ ty []
 
   /- ### hasTag — entity has tags, not in capabilities -/
-  -- `¬ CapTagMem`: `typeOfHasTag` returns `.tt` (with `[]`) when `(x₁, .tag x₂) ∈ c`,
-  -- so the `anyBool` + new-capability branch fires only when the cap is absent.
-  -- Mirrors the `¬ CapAttrMem` guard on `HasAttrInRecord.found_not_known`; without
-  -- it the relation is unsound (derives `anyBool` where the functional gives `tt`).
+  -- `typeOfHasTag` gives `.tt` when the capability `(x₁, .tag x₂)` is available (`hasTagTt`).
   | hasTagAnyBool :
     ∀ x₁ x₂ c ets acts reqty ety ty,
     HasTagSchema ets ety ty →
     ¬ CapTagMem x₁ x₂ c →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc67 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc68 →
-    HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) [(x₁, .tag x₂)]
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc67 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ .string oc68 →
+    HasType decl syn (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .anyBool) [(x₁, .tag x₂)]
 
   /- ### hasTag — entity has tags, already in capabilities -/
   | hasTagTt :
     ∀ x₁ x₂ c ets acts reqty ety ty,
-    -- `id x₁`/`id x₂`: keep both typechecks as *checks* so Specimen can't produce
-    -- either operand here (it won't output from under a function), forcing
-    -- `CapTagMem` to produce *both* the entity and the key from `c`.
     CapTagMem x₁ x₂ c →
     HasTagSchema ets ety ty →
-    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc69 →
-    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string oc70 →
-    HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .tt) []
+    HasType decl syn (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc69 →
+    HasType decl syn (id x₂) c ⟨ets, acts, reqty⟩ .string oc70 →
+    HasType decl syn (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .tt) []
 
   /- ### hasTag — entity has no tags -/
   | hasTagFf :
     ∀ x₁ x₂ c ets acts reqty ety,
     NoTags ets ety →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc71 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc72 →
-    HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc71 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ .string oc72 →
+    HasType decl syn (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### hasTag — action-typed entity (no tags) -/
   -- An action type is absent from `ets`, so `typeOfHasTag` takes its `actionType?` branch:
@@ -933,258 +1111,287 @@ inductive HasType : Expr → Capabilities → TypeEnv → CedarType → Capabili
     ∀ x₁ x₂ c ets acts reqty ety eid entry,
     MapNotContainsKey ety ets →
     MapContainsPairKey ety eid entry acts →
-    HasType x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc107 →
-    HasType x₂ c ⟨ets, acts, reqty⟩ .string oc108 →
-    HasType (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+    HasType decl syn x₁ c ⟨ets, acts, reqty⟩ (.entity ety) oc107 →
+    HasType decl syn x₂ c ⟨ets, acts, reqty⟩ .string oc108 →
+    HasType decl syn (.binaryApp .hasTag x₁ x₂) c ⟨ets, acts, reqty⟩ (.bool .ff) []
 
   /- ### getTag — entity with tags, capability present -/
   | getTag :
     ∀ x₁ x₂ c ets acts reqty ety ty,
-    -- `id x₁`/`id x₂`: force `CapTagMem` to produce *both* operands from `c`.
-    -- Without `id x₁`, the scheduler produces `x₁` via `HasType … (.entity ety)`
-    -- (ety is fixed by the requested `ty`), demoting `CapTagMem` to a check and
-    -- leaving the id-wrapped `x₂` with no producer — so getTag never generates.
     CapTagMem x₁ x₂ c →
     HasTagSchema ets ety ty →
-    HasType (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc73 →
-    HasType (id x₂) c ⟨ets, acts, reqty⟩ .string oc74 →
-    HasType (.binaryApp .getTag x₁ x₂) c ⟨ets, acts, reqty⟩ ty []
+    HasType decl syn (id x₁) c ⟨ets, acts, reqty⟩ (.entity ety) oc73 →
+    HasType decl syn (id x₂) c ⟨ets, acts, reqty⟩ .string oc74 →
+    HasType decl syn (.binaryApp .getTag x₁ x₂) c ⟨ets, acts, reqty⟩ ty []
 
-  /- ### ite — condition true (untaken branch `x₃` is arbitrary: `typeOf` ignores it) -/
+  /- ### ite — condition true (`typeOf` skips the untaken branch `x₃`) -/
   | iteTt :
     ∀ x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ cout,
-    HasType x₁ c env (.bool .tt) c₁ →
+    HasType decl syn x₁ c env (.bool .tt) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env t₂ c₂ →
+    HasType decl syn x₂ c_c₁ env t₂ c₂ →
     CapMerge c₁ c₂ cout →
-    HasType (.ite x₁ x₂ x₃) c env t₂ cout
+    DeadOperand decl syn env x₃ →
+    HasType decl syn (.ite x₁ x₂ x₃) c env t₂ cout
 
-  /- ### ite — condition false (untaken branch `x₂` is arbitrary: `typeOf` ignores it) -/
+  /- ### ite — condition false (`typeOf` skips the untaken branch `x₂`) -/
   | iteFf :
     ∀ x₁ x₂ x₃ c env c₁ t₃ c₃,
-    HasType x₁ c env (.bool .ff) c₁ →
-    HasType x₃ c env t₃ c₃ →
-    HasType (.ite x₁ x₂ x₃) c env t₃ c₃
+    HasType decl syn x₁ c env (.bool .ff) c₁ →
+    HasType decl syn x₃ c env t₃ c₃ →
+    DeadOperand decl syn env x₂ →
+    HasType decl syn (.ite x₁ x₂ x₃) c env t₃ c₃
 
   /- ### ite — condition anyBool -/
   | iteAnyBool :
     ∀ x₁ x₂ x₃ c env c₁ c_c₁ t₂ c₂ t₃ c₃ lubTy c₁₂,
-    HasType x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env t₂ c₂ →
-    HasType x₃ c env t₃ c₃ →
+    HasType decl syn x₂ c_c₁ env t₂ c₂ →
+    HasType decl syn x₃ c env t₃ c₃ →
     Lub t₂ t₃ lubTy →
     CapMerge c₁ c₂ c₁₂ →
-    HasType (.ite x₁ x₂ x₃) c env lubTy (capIntersect c₁₂ c₃)
+    HasType decl syn (.ite x₁ x₂ x₃) c env lubTy (capIntersect c₁₂ c₃)
 
-  /- ### and — short-circuit -/
+  /- ### and — short-circuit (`typeOf` skips `x₂`) -/
   | andShort :
     ∀ x₁ x₂ c env c₁,
-    HasType x₁ c env (.bool .ff) c₁ →
-    HasType (.and x₁ x₂) c env (.bool .ff) []
+    HasType decl syn x₁ c env (.bool .ff) c₁ →
+    DeadOperand decl syn env x₂ →
+    HasType decl syn (.and x₁ x₂) c env (.bool .ff) []
 
   /- ### and — tt then ff -/
   | andTtFf :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂,
-    HasType x₁ c env (.bool .tt) c₁ →
+    HasType decl syn x₁ c env (.bool .tt) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .ff) c₂ →
-    HasType (.and x₁ x₂) c env (.bool .ff) []
+    HasType decl syn x₂ c_c₁ env (.bool .ff) c₂ →
+    HasType decl syn (.and x₁ x₂) c env (.bool .ff) []
 
   /- ### and — tt then tt -/
   | andTtTt :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂ cout,
-    HasType x₁ c env (.bool .tt) c₁ →
+    HasType decl syn x₁ c env (.bool .tt) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .tt) c₂ →
+    HasType decl syn x₂ c_c₁ env (.bool .tt) c₂ →
     CapMerge c₁ c₂ cout →
-    HasType (.and x₁ x₂) c env (.bool .tt) cout
+    HasType decl syn (.and x₁ x₂) c env (.bool .tt) cout
 
   /- ### and — tt then anyBool -/
   | andTtAny :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂ cout,
-    HasType x₁ c env (.bool .tt) c₁ →
+    HasType decl syn x₁ c env (.bool .tt) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .anyBool) c₂ →
+    HasType decl syn x₂ c_c₁ env (.bool .anyBool) c₂ →
     CapMerge c₁ c₂ cout →
-    HasType (.and x₁ x₂) c env (.bool .anyBool) cout
+    HasType decl syn (.and x₁ x₂) c env (.bool .anyBool) cout
 
   /- ### and — anyBool then ff -/
   | andAnyFf :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂,
-    HasType x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .ff) c₂ →
-    HasType (.and x₁ x₂) c env (.bool .ff) []
+    HasType decl syn x₂ c_c₁ env (.bool .ff) c₂ →
+    HasType decl syn (.and x₁ x₂) c env (.bool .ff) []
 
   /- ### and — anyBool then tt -/
   | andAnyTt :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂ cout,
-    HasType x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .tt) c₂ →
+    HasType decl syn x₂ c_c₁ env (.bool .tt) c₂ →
     CapMerge c₁ c₂ cout →
-    HasType (.and x₁ x₂) c env (.bool .anyBool) cout
+    HasType decl syn (.and x₁ x₂) c env (.bool .anyBool) cout
 
   /- ### and — anyBool then anyBool -/
   | andAnyAny :
     ∀ x₁ x₂ c env c₁ c_c₁ c₂ cout,
-    HasType x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
     CapMerge c c₁ c_c₁ →
-    HasType x₂ c_c₁ env (.bool .anyBool) c₂ →
+    HasType decl syn x₂ c_c₁ env (.bool .anyBool) c₂ →
     CapMerge c₁ c₂ cout →
-    HasType (.and x₁ x₂) c env (.bool .anyBool) cout
+    HasType decl syn (.and x₁ x₂) c env (.bool .anyBool) cout
 
-  /- ### or — short-circuit -/
+  /- ### or — short-circuit (`typeOf` skips `x₂`) -/
   | orShort :
     ∀ x₁ x₂ c env c₁,
-    HasType x₁ c env (.bool .tt) c₁ →
-    HasType (.or x₁ x₂) c env (.bool .tt) []
+    HasType decl syn x₁ c env (.bool .tt) c₁ →
+    DeadOperand decl syn env x₂ →
+    HasType decl syn (.or x₁ x₂) c env (.bool .tt) []
 
   /- ### or — ff then b₂ -/
   | orFfThen :
     ∀ x₁ x₂ c env c₁ b₂ c₂,
-    HasType x₁ c env (.bool .ff) c₁ →
-    HasType x₂ c env (.bool b₂) c₂ →
-    HasType (.or x₁ x₂) c env (.bool b₂) c₂
+    HasType decl syn x₁ c env (.bool .ff) c₁ →
+    HasType decl syn x₂ c env (.bool b₂) c₂ →
+    HasType decl syn (.or x₁ x₂) c env (.bool b₂) c₂
 
   /- ### or — anyBool then tt -/
   | orAnyTt :
     ∀ x₁ x₂ c env c₁ c₂,
-    HasType x₁ c env (.bool .anyBool) c₁ →
-    HasType x₂ c env (.bool .tt) c₂ →
-    HasType (.or x₁ x₂) c env (.bool .tt) []
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₂ c env (.bool .tt) c₂ →
+    HasType decl syn (.or x₁ x₂) c env (.bool .tt) []
 
   /- ### or — anyBool then ff -/
   | orAnyFf :
     ∀ x₁ x₂ c env c₁ c₂,
-    HasType x₁ c env (.bool .anyBool) c₁ →
-    HasType x₂ c env (.bool .ff) c₂ →
-    HasType (.or x₁ x₂) c env (.bool .anyBool) c₁
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₂ c env (.bool .ff) c₂ →
+    HasType decl syn (.or x₁ x₂) c env (.bool .anyBool) c₁
 
   /- ### or — anyBool then anyBool -/
   | orAnyAny :
     ∀ x₁ x₂ c env c₁ c₂,
-    HasType x₁ c env (.bool .anyBool) c₁ →
-    HasType x₂ c env (.bool .anyBool) c₂ →
-    HasType (.or x₁ x₂) c env (.bool .anyBool) (capIntersect c₁ c₂)
+    HasType decl syn x₁ c env (.bool .anyBool) c₁ →
+    HasType decl syn x₂ c env (.bool .anyBool) c₂ →
+    HasType decl syn (.or x₁ x₂) c env (.bool .anyBool) (capIntersect c₁ c₂)
 
   /- ### Set literal -/
   | set :
     ∀ x xs c env ty tyList lubTy,
-    HasType x c env ty oc75 →
-    HasTypeList xs c env tyList →
+    HasType decl syn x c env ty oc75 →
+    HasTypeList decl syn xs c env tyList →
     AllLub ty tyList lubTy →
-    HasType (.set (x :: xs)) c env (.set lubTy) []
+    HasType decl syn (.set (x :: xs)) c env (.set lubTy) []
 
   /- ### Record literal -/
+  -- `RecordTypeOf` is indexed by `syn`: distinct keys are required exactly when `syn` is set.
   | record :
-    ∀ axs c env atyList,
-    HasTypeRecord none axs c env atyList →
-    HasType (.record axs) c env (.record (.mk atyList)) []
+    ∀ axs c env rty,
+    RecordTypeOf decl syn syn axs c env rty →
+    HasType decl syn (.record axs) c env (.record rty) []
 
   /- ### Extension function call -/
-  -- Delegates to `HasTypeExtCall` (a mutual relation, below), which states each
-  -- function's argument types directly as `HasType` premises — no `HasTypeList`.
   | callExt : ∀ xfn args c env ty,
-    HasTypeExtCall xfn args c env ty →
-    HasType (.call xfn args) c env ty []
+    HasTypeExtCall decl syn xfn args c env ty →
+    HasType decl syn (.call xfn args) c env ty []
 
 /-- Typing a list of expressions. -/
-inductive HasTypeList : List Expr → Capabilities → TypeEnv → List CedarType → Prop where
+inductive HasTypeList (decl syn : Bool) : List Expr → Capabilities → TypeEnv → List CedarType → Prop where
   | nil :
     ∀ c env,
-    HasTypeList [] c env []
+    HasTypeList decl syn [] c env []
   | cons :
     ∀ x xs c env ty tys,
-    HasType x c env ty oc76 →
-    HasTypeList xs c env tys →
-    HasTypeList (x :: xs) c env (ty :: tys)
+    HasType decl syn x c env ty oc76 →
+    HasTypeList decl syn xs c env tys →
+    HasTypeList decl syn (x :: xs) c env (ty :: tys)
 
 /-- Typing a record. The `Option Attr` argument is a strict lower bound on the
     key of the head entry (`none` = −∞): each key must exceed the previous one
     (`KeyAbove lb a`), so the accumulated `atyList` is strictly sorted by key —
     sorted and duplicate-free, i.e. already canonical. -/
-inductive HasTypeRecord : Option Attr → List (Attr × Expr) → Capabilities → TypeEnv → List (Attr × QualifiedType) → Prop where
+inductive HasTypeRecord (decl syn : Bool) : Option Attr → List (Attr × Expr) → Capabilities → TypeEnv → List (Attr × QualifiedType) → Prop where
   | nil :
     ∀ lb c env,
-    HasTypeRecord lb [] c env []
+    HasTypeRecord decl syn lb [] c env []
   | cons :
     ∀ lb a x axs c env ty atyList,
     KeyAbove lb a →
-    HasType x c env ty oc77 →
-    HasTypeRecord (some a) axs c env atyList →
-    HasTypeRecord lb ((a, x) :: axs) c env ((a, .required ty) :: atyList)
+    HasType decl syn x c env ty oc77 →
+    HasTypeRecord decl syn (some a) axs c env atyList →
+    HasTypeRecord decl syn lb ((a, x) :: axs) c env ((a, .required ty) :: atyList)
 
-/-- Typing of extension-function calls. Mutual with `HasType`: each function's
-    argument types are stated directly as `HasType` premises (construction takes a
-    string literal via `ValidX`; methods take extension-typed args), so generating
-    a method call recurses type-directed on each argument (nesting construction
-    calls as needed) rather than routing an argument-type list through
-    `HasTypeList`. -/
-inductive HasTypeExtCall : ExtFun → List Expr → Capabilities → TypeEnv → CedarType → Prop where
+/-- `typeOfCall`: the type of an extension function call. Constructors take a string literal
+    that parses (`ValidDecimal`, ...); for the other functions each argument type is stated
+    as a `HasType` premise. -/
+inductive HasTypeExtCall (decl syn : Bool) : ExtFun → List Expr → Capabilities → TypeEnv → CedarType → Prop where
   /- Construction: fn applied to a string literal. -/
-  | decimal  : ∀ s c env, ValidDecimal s  → HasTypeExtCall .decimal [.lit (.string s)] c env (.ext .decimal)
-  | ip       : ∀ s c env, ValidIP s       → HasTypeExtCall .ip [.lit (.string s)] c env (.ext .ipAddr)
-  | datetime : ∀ s c env, ValidDatetime s → HasTypeExtCall .datetime [.lit (.string s)] c env (.ext .datetime)
-  | duration : ∀ s c env, ValidDuration s → HasTypeExtCall .duration [.lit (.string s)] c env (.ext .duration)
+  | decimal  : ∀ s c env, ValidDecimal s  → HasTypeExtCall decl syn .decimal [.lit (.string s)] c env (.ext .decimal)
+  | ip       : ∀ s c env, ValidIP s       → HasTypeExtCall decl syn .ip [.lit (.string s)] c env (.ext .ipAddr)
+  | datetime : ∀ s c env, ValidDatetime s → HasTypeExtCall decl syn .datetime [.lit (.string s)] c env (.ext .datetime)
+  | duration : ∀ s c env, ValidDuration s → HasTypeExtCall decl syn .duration [.lit (.string s)] c env (.ext .duration)
   /- Methods: argument types stated directly as `HasType` premises. -/
   | lessThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) oc96 → HasType b c env (.ext .decimal) oc78 →
-    HasTypeExtCall .lessThan [a, b] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .decimal) oc96 → HasType decl syn b c env (.ext .decimal) oc78 →
+    HasTypeExtCall decl syn .lessThan [a, b] c env (.bool .anyBool)
   | lessThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) oc97 → HasType b c env (.ext .decimal) oc79 →
-    HasTypeExtCall .lessThanOrEqual [a, b] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .decimal) oc97 → HasType decl syn b c env (.ext .decimal) oc79 →
+    HasTypeExtCall decl syn .lessThanOrEqual [a, b] c env (.bool .anyBool)
   | greaterThan : ∀ a b c env,
-    HasType a c env (.ext .decimal) oc98 → HasType b c env (.ext .decimal) oc80 →
-    HasTypeExtCall .greaterThan [a, b] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .decimal) oc98 → HasType decl syn b c env (.ext .decimal) oc80 →
+    HasTypeExtCall decl syn .greaterThan [a, b] c env (.bool .anyBool)
   | greaterThanOrEqual : ∀ a b c env,
-    HasType a c env (.ext .decimal) oc99 → HasType b c env (.ext .decimal) oc81 →
-    HasTypeExtCall .greaterThanOrEqual [a, b] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .decimal) oc99 → HasType decl syn b c env (.ext .decimal) oc81 →
+    HasTypeExtCall decl syn .greaterThanOrEqual [a, b] c env (.bool .anyBool)
   | isIpv4 : ∀ a c env,
-    HasType a c env (.ext .ipAddr) oc82 →
-    HasTypeExtCall .isIpv4 [a] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .ipAddr) oc82 →
+    HasTypeExtCall decl syn .isIpv4 [a] c env (.bool .anyBool)
   | isIpv6 : ∀ a c env,
-    HasType a c env (.ext .ipAddr) oc83 →
-    HasTypeExtCall .isIpv6 [a] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .ipAddr) oc83 →
+    HasTypeExtCall decl syn .isIpv6 [a] c env (.bool .anyBool)
   | isLoopback : ∀ a c env,
-    HasType a c env (.ext .ipAddr) oc84 →
-    HasTypeExtCall .isLoopback [a] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .ipAddr) oc84 →
+    HasTypeExtCall decl syn .isLoopback [a] c env (.bool .anyBool)
   | isMulticast : ∀ a c env,
-    HasType a c env (.ext .ipAddr) oc85 →
-    HasTypeExtCall .isMulticast [a] c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .ipAddr) oc85 →
+    HasTypeExtCall decl syn .isMulticast [a] c env (.bool .anyBool)
   /- `isInRange` takes an address and one or more ranges. The range types are chosen
      first (`IpAddrTypes`) and the ranges typed against them. -/
   | isInRange : ∀ a xs c env tys,
-    HasType a c env (.ext .ipAddr) oc100 → IpAddrTypes tys → HasTypeList xs c env (id tys) →
-    HasTypeExtCall .isInRange (a :: xs) c env (.bool .anyBool)
+    HasType decl syn a c env (.ext .ipAddr) oc100 → IpAddrTypes tys → HasTypeList decl syn xs c env (id tys) →
+    HasTypeExtCall decl syn .isInRange (a :: xs) c env (.bool .anyBool)
   | offset : ∀ a b c env,
-    HasType a c env (.ext .datetime) oc101 → HasType b c env (.ext .duration) oc87 →
-    HasTypeExtCall .offset [a, b] c env (.ext .datetime)
+    HasType decl syn a c env (.ext .datetime) oc101 → HasType decl syn b c env (.ext .duration) oc87 →
+    HasTypeExtCall decl syn .offset [a, b] c env (.ext .datetime)
   | durationSince : ∀ a b c env,
-    HasType a c env (.ext .datetime) oc102 → HasType b c env (.ext .datetime) oc88 →
-    HasTypeExtCall .durationSince [a, b] c env (.ext .duration)
+    HasType decl syn a c env (.ext .datetime) oc102 → HasType decl syn b c env (.ext .datetime) oc88 →
+    HasTypeExtCall decl syn .durationSince [a, b] c env (.ext .duration)
   | toDate : ∀ a c env,
-    HasType a c env (.ext .datetime) oc89 →
-    HasTypeExtCall .toDate [a] c env (.ext .datetime)
+    HasType decl syn a c env (.ext .datetime) oc89 →
+    HasTypeExtCall decl syn .toDate [a] c env (.ext .datetime)
   | toTime : ∀ a c env,
-    HasType a c env (.ext .datetime) oc90 →
-    HasTypeExtCall .toTime [a] c env (.ext .duration)
+    HasType decl syn a c env (.ext .datetime) oc90 →
+    HasTypeExtCall decl syn .toTime [a] c env (.ext .duration)
   | toMilliseconds : ∀ a c env,
-    HasType a c env (.ext .duration) oc91 →
-    HasTypeExtCall .toMilliseconds [a] c env .int
+    HasType decl syn a c env (.ext .duration) oc91 →
+    HasTypeExtCall decl syn .toMilliseconds [a] c env .int
   | toSeconds : ∀ a c env,
-    HasType a c env (.ext .duration) oc92 →
-    HasTypeExtCall .toSeconds [a] c env .int
+    HasType decl syn a c env (.ext .duration) oc92 →
+    HasTypeExtCall decl syn .toSeconds [a] c env .int
   | toMinutes : ∀ a c env,
-    HasType a c env (.ext .duration) oc93 →
-    HasTypeExtCall .toMinutes [a] c env .int
+    HasType decl syn a c env (.ext .duration) oc93 →
+    HasTypeExtCall decl syn .toMinutes [a] c env .int
   | toHours : ∀ a c env,
-    HasType a c env (.ext .duration) oc94 →
-    HasTypeExtCall .toHours [a] c env .int
+    HasType decl syn a c env (.ext .duration) oc94 →
+    HasTypeExtCall decl syn .toHours [a] c env .int
   | toDays : ∀ a c env,
-    HasType a c env (.ext .duration) oc95 →
-    HasTypeExtCall .toDays [a] c env .int
+    HasType decl syn a c env (.ext .duration) oc95 →
+    HasTypeExtCall decl syn .toDays [a] c env .int
+
+/-- `RecordTypeOf decl syn b axs c env rty`: the record literal with attributes `axs` has record
+    type `rty` (`typeOf`'s `.record` case), where `b` is the `syn` flag. `typeOf` types every
+    attribute in source order and canonicalizes the result with `Map.make`, which sorts by key
+    and keeps the *first* of duplicate keys.
+    * `sorted` (either `b`): the attributes are sorted first (`SortsTo`, which requires
+      distinct keys) and then typed in key order, so the attribute types are already canonical.
+    * `lax` (only `b = false`): every attribute is typed in source order, duplicates included
+      (`HasTypeFields`), and the type is `Map.make` of the result, exactly as in `typeOf`. -/
+inductive RecordTypeOf (decl syn : Bool) : Bool → List (Attr × Expr) → Capabilities → TypeEnv →
+    RecordType → Prop where
+  | sorted :
+    ∀ b axs axs' c env atyList,
+    SortsTo axs axs' →
+    HasTypeRecord decl syn none axs' c env atyList →
+    RecordTypeOf decl syn b axs c env (.mk atyList)
+  | lax :
+    ∀ axs c env atys,
+    HasTypeFields decl syn axs c env atys →
+    RecordTypeOf decl syn false axs c env (Map.make atys)
+
+/-- Typing the attributes of a record literal in source order, duplicate keys included, as
+    `typeOf` does (`mapM₂`): each attribute `a` with type `ty` contributes `(a, .required ty)`. -/
+inductive HasTypeFields (decl syn : Bool) : List (Attr × Expr) → Capabilities → TypeEnv →
+    List (Attr × QualifiedType) → Prop where
+  | nil :
+    ∀ c env,
+    HasTypeFields decl syn [] c env []
+  | cons :
+    ∀ a x axs c env ty atys,
+    HasType decl syn x c env ty oc110 →
+    HasTypeFields decl syn axs c env atys →
+    HasTypeFields decl syn ((a, x) :: axs) c env ((a, .required ty) :: atys)
 
 end
 

@@ -22,8 +22,8 @@ public import Cedar.Validation.Relational.Typing
 
 /-! # What the relational typing spec assumes of a type environment
 
-`HasType` agrees with `typeOf` on every type environment satisfying `EnvAssumptions`
-(`hasType_iff_typeOf_ok`). It asks for distinct keys where Cedar's own
+`HasType false false` agrees with `typeOf` on every type environment satisfying
+`EnvAssumptions` (`hasType_iff_typeOf_ok`). It asks for distinct keys where Cedar's own
 `TypeEnv.WellFormed` asks for sorted ones: `Map.find?` takes the first match, so distinct
 keys are what make it agree with a relational `MapContains` witness, and maps built in any
 order qualify. -/
@@ -45,6 +45,8 @@ inductive TyWf : CedarType → Prop where
   | set : ∀ t, TyWf t → TyWf (.set t)
   | record : ∀ (m : Map Attr QualifiedType), (m.toList.map Prod.fst).Nodup →
       (∀ q ∈ m.toList.map Prod.snd, TyWfQ q) → TyWf (.record m)
+
+/-- The qualified-type case of `TyWf`. -/
 inductive TyWfQ : QualifiedType → Prop where
   | required : ∀ t, TyWf t → TyWfQ (.required t)
   | optional : ∀ t, TyWf t → TyWfQ (.optional t)
@@ -52,9 +54,8 @@ end
 
 /-- A `CedarType` is *valid* in `env` when every entity type occurring in it is
     declared (`ValidEntityType`). This is the entity-declaredness fragment of Cedar's
-    `CedarType.WellFormed` — deliberately dropping the record-`Map` sortedness that Cedar
-    requires, since the relational `Schema.WfTypeEnv` builds maps in generation order, not
-    sorted. `typeOf` on a `WfTypeEnv` produces `TypeValid` types (`typeOf_type_valid`). -/
+    `CedarType.WellFormed`, without its requirement that record maps be sorted. `typeOf` on an
+    environment satisfying `EnvAssumptions` produces `TypeValid` types (`typeOf_type_valid`). -/
 inductive TypeValid (env : TypeEnv) : CedarType → Prop where
   | bool : ∀ b, TypeValid env (.bool b)
   | int : TypeValid env .int
@@ -67,15 +68,11 @@ inductive TypeValid (env : TypeEnv) : CedarType → Prop where
 /-- The properties of a type environment on which `HasType` and `typeOf` agree.
 
 * entity and action types are declared once each;
-* no action is a member of an action of a different entity type, so `in` between an
-  action-typed operand and an operand of another type is statically false;
 * attribute, tag and context types have distinct record keys (`TyWf`) and declared entity
   types (`TypeValid`), as does the request's principal, resource and action. -/
 structure EnvAssumptions (env : TypeEnv) : Prop where
   ets_keys_nodup : (env.ets.toList.map Prod.fst).Nodup
   acts_keys_nodup : (env.acts.toList.map Prod.fst).Nodup
-  action_ancestry_same_type :
-    ∀ {ety₁ ety₂ : EntityType}, ety₁ ≠ ety₂ → env.acts.maybeDescendentOf ety₁ ety₂ = false
   attrs_tyWf : ∀ {ety rty}, EntitySchema.attrs? env.ets ety = some rty → TyWf (.record rty)
   tags_tyWf : ∀ {ety ty}, EntitySchema.tags? env.ets ety = some (some ty) → TyWf ty
   context_tyWf : TyWf (.record env.reqty.context)
@@ -88,12 +85,5 @@ structure EnvAssumptions (env : TypeEnv) : Prop where
     ValidEntityType env.reqty.resource env.ets env.acts ∧
     ValidEntityType env.reqty.action.ty env.ets env.acts ∧
     TypeValid env (.record env.reqty.context)
-
-/-- Every ancestor of an action has the action's own entity type. Cedar's `TypeEnv.WellFormed`
-    does not require this, since an action may belong to an action of another entity type
-    (one in another namespace, say); on such schemas `HasType`'s rules for `in` on
-    action-typed operands disagree with `typeOf`. -/
-def ActionSchema.AncestorsSameType (acts : ActionSchema) : Prop :=
-  ∀ uid entry, acts.find? uid = some entry → ∀ anc ∈ entry.ancestors, anc.ty = uid.ty
 
 end Cedar.Validation.Relational

@@ -15,61 +15,28 @@
 -/
 
 import Cedar.Thm.Validation.Relational.CapsCongr
-import Cedar.Thm.Validation.Relational.Soundness
-import Cedar.Thm.WellTyped.Expr.WF
+import Cedar.Thm.Validation.Relational.Flags
 
 /-! # Completeness of the relational typing spec
 
-Converse of `hasType_sound`: on a well-formed environment, every *successful*
-run of the functional typechecker `Cedar.Validation.typeOf` is witnessed by a
-`HasType` derivation (up to `CapsEquiv` on the output capabilities).
+Converse of `hasType_sound` (`typeOf_complete`): on an environment satisfying
+`EnvAssumptions`, every *successful* run of the typechecker `Cedar.Validation.typeOf` is
+witnessed by a `HasType false false` derivation (up to `CapsEquiv` on the output
+capabilities). Together they give `hasType_iff_typeOf_ok`. The file also shows that every
+`Schema.WfTypeEnv` environment satisfies `EnvAssumptions` (`Schema.WfTypeEnv.envAssumptions`).
 
-Completeness holds only relative to `WfTypeEnv` and only for expressions whose
-record literals are already canonical (strictly-sorted, duplicate-free keys) —
-captured by `WfExpr`. `typeOf` canonicalizes record literals via `Map.make`, but
-`HasTypeRecord` bakes sortedness into the source syntax, so an unsorted record
-literal is typeable by `typeOf` yet has no derivation; `WfExpr` rules those out
-(the user-accepted "records are canonicalized" assumption). All other gaps are
-closed by the well-formedness of the environment. -/
+Completeness needs no condition on the expression: with both flags off, the `is` target is
+unconstrained (`IsTargetOf.lax`), skipped operands are arbitrary (`DeadOperand.lax`), and a
+record literal is typed field by field in source order (`RecordTypeOf.lax`), exactly as in
+`typeOf`. On expressions with declared entities, in the parser's image, the derivation can be
+strengthened to `HasType true true` (`HasType.strengthen`), which gives `typeOf_complete_strict`
+and `hasType_strict_iff_typeOf_ok`. -/
 
 namespace Cedar.Validation.Relational
 
 open Cedar.Spec
 open Cedar.Data
 open Cedar.Validation
-
-/-- Expression-level well-formedness for completeness (relative to `env`), capturing
-    the two places where the relational spec is deliberately narrower than *bare*
-    `typeOf` on an otherwise-accepted input:
-
-    * **Record literals must have strictly-sorted, distinct keys.** `typeOf`
-      canonicalizes them via `Map.make`, but `HasTypeRecord` bakes sortedness into
-      the source syntax. (The user-accepted "records are canonical" assumption.)
-    * **The tested type of an `is` must be declared.** `HasType` targets the real
-      validator `validate` (which runs `checkEntities` first, rejecting `x is T` for
-      undeclared `T`); bare `typeOf` skips that check. The tested type is a syntactic
-      annotation, so — unlike operand entity types, which are declared automatically
-      in a well-formed env — it must be required here.
-
-    Every other `ValidEntityType`/schema premise in `HasType` is *derivable* from a
-    successful `typeOf` on a `WfTypeEnv` (operand entity types are always declared),
-    so no further conditions are needed. -/
-inductive WfExpr : TypeEnv → Expr → Prop where
-  | lit : ∀ env p, WfExpr env (.lit p)
-  | var : ∀ env v, WfExpr env (.var v)
-  | ite : ∀ env a b c, WfExpr env a → WfExpr env b → WfExpr env c → WfExpr env (.ite a b c)
-  | and : ∀ env a b, WfExpr env a → WfExpr env b → WfExpr env (.and a b)
-  | or : ∀ env a b, WfExpr env a → WfExpr env b → WfExpr env (.or a b)
-  | unaryApp : ∀ env op a, (∀ ety, op = .is ety → ValidEntityType ety env.ets env.acts) →
-      WfExpr env a → WfExpr env (.unaryApp op a)
-  | binaryApp : ∀ env op a b, WfExpr env a → WfExpr env b → WfExpr env (.binaryApp op a b)
-  | getAttr : ∀ env a k, WfExpr env a → WfExpr env (.getAttr a k)
-  | hasAttr : ∀ env a k, WfExpr env a → WfExpr env (.hasAttr a k)
-  | extHasAttr : ∀ env a k ks, WfExpr env a → WfExpr env (.extHasAttr a k ks)
-  | set : ∀ env xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.set xs)
-  | record : ∀ env axs, (axs.map Prod.fst).SortedBy id → (∀ e ∈ axs.map Prod.snd, WfExpr env e) →
-      WfExpr env (.record axs)
-  | call : ∀ env f xs, (∀ e ∈ xs, WfExpr env e) → WfExpr env (.call f xs)
 
 /-! ## Reverse bridges (functional lookup ⇒ relational witness) -/
 
@@ -121,7 +88,7 @@ theorem actionType?_mapContainsPairKey {ety : EntityType} {acts : ActionSchema}
 
 /-- `EntitySchema.isValidEntityUID` ⇒ `ValidEntityUID` (standard/enum witnesses). -/
 theorem validEntityUID_of_isValid {ets : EntitySchema} {acts : ActionSchema} {uid : EntityUID}
-    (hnd : (ets.toList.map Prod.fst).Nodup) (h : ets.isValidEntityUID uid = true) :
+    (h : ets.isValidEntityUID uid = true) :
     ValidEntityUID uid.ty uid.eid ets acts := by
   simp only [EntitySchema.isValidEntityUID] at h
   split at h
@@ -133,6 +100,17 @@ theorem validEntityUID_of_isValid {ets : EntitySchema} {acts : ActionSchema} {ui
       simp only [EntitySchemaEntry.isValidEntityEID] at h
       exact ValidEntityUID.enum _ _ _ _ _ hmc ((setContains_iff_contains).mpr h)
   · simp at h
+
+/-- The entity-literal validity test of `typeOfLit` and `checkEntities` gives `ValidEntityUID`. -/
+theorem validEntityUID_of_checkEntities {ets : EntitySchema} {acts : ActionSchema}
+    {uid : EntityUID} (h : (ets.isValidEntityUID uid || acts.contains uid) = true) :
+    ValidEntityUID uid.ty uid.eid ets acts := by
+  rcases Bool.or_eq_true_iff.mp h with hv | hc
+  · exact validEntityUID_of_isValid hv
+  · simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
+    obtain ⟨entry, hfind⟩ := hc
+    obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
+    exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
 
 /-- `≠` on `BoolType` ⇒ `BoolTypeNeq` (reverse of `boolTypeNeq_ne`). -/
 theorem boolTypeNeq_of_ne {b₁ b₂ : BoolType} (h : b₁ ≠ b₂) : BoolTypeNeq b₁ b₂ := by
@@ -148,7 +126,7 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
     intro t h; simp only [lub?, Option.some.injEq] at h; subst h
     by_cases hb : b₁ = b₂
     · subst hb; simp only [lubBool]; exact Lub.boolSame _
-    · rw [show lubBool b₁ b₂ = .anyBool from by simp only [lubBool, if_neg hb]]
+    · rw [show lubBool b₁ b₂ = .anyBool from by simp only [lubBool, ite_eq_right hb]]
       exact Lub.boolDiff _ _ (boolTypeNeq_of_ne hb)
   | case2 s₁ s₂ ih =>
     intro t h; simp only [lub?] at h
@@ -182,7 +160,7 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
     rename_i r h
     have hk : k₁ = k₂ := by simpa using hbne
     subst hk
-    simp only [lubRecordType] at h; rw [if_neg hbne] at h
+    simp only [lubRecordType] at h; rw [ite_eq_right hbne] at h
     cases hty : lubQualifiedType v₁ v₂ with
     | none => rw [hty] at h; simp at h
     | some ty =>
@@ -210,9 +188,10 @@ theorem lub?_lub (ty₁ ty₂ : CedarType) : ∀ {t}, lub? ty₁ ty₂ = some t 
 
 /-! ## Entity-type declaredness invariant
 
-`typeOf` on a `WfTypeEnv` only ever produces entity types that are declared in the
-schema. This is Cedar's `typechecked_has_well_formed_type` composed with a bridge from
-the relational `WfTypeEnv` to Cedar's `TypeEnv.WellFormed`. -/
+On an environment satisfying `EnvAssumptions`, `typeOf` only produces types whose entity
+types are declared (`TypeValid`, `typeOf_type_valid`). The first lemmas below show that the
+environments of `Schema.WfTypeEnv` declare the entity types of their attribute, tag and
+request types, as `EnvAssumptions` requires. -/
 
 open Schema (WfCedarType WfAttrs WfEntitiesGo WfEntitySchema WfActionsGo WfActionSchema
   RequestFromAction DefinedEntityType WfPrincipalTypes WfResourceTypes)
@@ -376,14 +355,6 @@ theorem wfEntitiesGo_tags_typeValid {env : TypeEnv} {allNames entries built name
       simp [EntitySchemaEntry.tags?] at htag
     · exact ih hbridge hsub' ety entry ty hmem htag
 
-/-- A declared entity type (in the schema's name list) is `ValidEntityType` in `env`. -/
-theorem wfTypeEnv_definedEntityType_valid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) :
-    ∀ {allNames}, WfEntitySchema allNames env.ets.1 →
-      ∀ e, DefinedEntityType allNames e → ValidEntityType e env.ets env.acts := by
-  intro allNames hes e hd
-  obtain ⟨ets, acts, reqty⟩ := env
-  exact definedEntityType_valid hes hd
-
 /-- Attributes looked up in a well-formed schema form a `TypeValid` record. -/
 theorem wfTypeEnv_attrs?_typeValid {env : TypeEnv} (hwf : Schema.WfTypeEnv env) {ety rty}
     (hattr : EntitySchema.attrs? env.ets ety = some rty) : TypeValid env (.record rty) := by
@@ -542,7 +513,7 @@ theorem lub?_typeValid {env : TypeEnv} (ty₁ ty₂ : CedarType) :
     rename_i r h hvr1 hvr2
     have hk : k₁ = k₂ := by simpa using hbne
     subst hk
-    simp only [lubRecordType] at h; rw [if_neg hbne] at h
+    simp only [lubRecordType] at h; rw [ite_eq_right hbne] at h
     cases hty : lubQualifiedType v₁ v₂ with
     | none => rw [hty] at h; simp at h
     | some ty =>
@@ -740,9 +711,10 @@ theorem mapM₂_all_typeValid {env : TypeEnv} {c : Capabilities} :
             exact hall ax₀ (by simp) hx0
         · exact ih (fun ax hax => hall ax (by simp [hax])) has p hp
 
-/-- **Type validity of `typeOf`.** On a `WfTypeEnv`, every type `typeOf` produces has all its
-    entity components declared. The relational analogue of Cedar's `typechecked_has_well_formed_type`,
-    tracking only entity-declaredness (so it needs no map sortedness). -/
+/-- **Type validity of `typeOf`.** On an environment satisfying `EnvAssumptions`, every type
+    `typeOf` produces has all its entity components declared. The analogue of Cedar's
+    `typechecked_has_well_formed_type`, tracking only entity-declaredness (so it needs no map
+    sortedness). -/
 theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
       typeOf x c env = .ok (tx, c') → TypeValid env tx.typeOf := by
@@ -760,13 +732,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
     · split at h
       · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
         rename_i uid hcond
-        refine TypeValid.entity _ (validEntityUID_validType (eid := uid.eid) ?_)
-        rcases Bool.or_eq_true_iff.mp hcond with hv | hc
-        · exact validEntityUID_of_isValid (hwf.ets_keys_nodup) hv
-        · simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
-          obtain ⟨entry, hfind⟩ := hc
-          obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
-          exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
+        exact TypeValid.entity _ (validEntityUID_validType (validEntityUID_of_checkEntities hcond))
       · simp only [err, reduceCtorEq] at h
   | case2 c v =>
     intro tx c' h
@@ -828,7 +794,9 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
           obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
           split at h <;>
             first
-            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _)
+            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+               obtain ⟨rfl, rfl⟩ := h
+               exact TypeValid.bool _)
             | (simp only [err, reduceCtorEq] at h)
       · simp only [err, reduceCtorEq] at h
   | case5 c x₁ x₂ ih1 ih2 =>
@@ -855,7 +823,9 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
           obtain ⟨ty2, cc2⟩ := r2; rw [h2] at h; simp only [Except.bind_ok] at h
           split at h <;>
             first
-            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _)
+            | (simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+               obtain ⟨rfl, rfl⟩ := h
+               exact TypeValid.bool _)
             | (simp only [err, reduceCtorEq] at h)
       · simp only [err, reduceCtorEq] at h
   | case6 c op₁ x₁ ih1 =>
@@ -867,8 +837,10 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
       obtain ⟨ty1, cc1⟩ := r1; rw [h1] at h; simp only [Except.bind_ok, typeOfUnaryApp] at h
       split at h <;>
         first
-        | (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; first | exact TypeValid.bool _ | exact TypeValid.int)
-        | (split at h <;> (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; simp only [TypedExpr.typeOf]; exact TypeValid.bool _))
+        | (simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
+           obtain ⟨rfl, rfl⟩ := h
+           simp only [TypedExpr.typeOf]
+           first | exact TypeValid.bool _ | exact TypeValid.int)
         | (simp only [err, reduceCtorEq] at h)
   | case7 c op₂ x₁ x₂ ih1 ih2 =>
     intro tx c' h
@@ -900,7 +872,9 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
                        obtain ⟨rfl, rfl⟩ := h; exact typeOfHasTag_typeValid hht)
           | (simp only [ifLubThenBool] at h; split at h <;>
              first
-             | (simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h; exact TypeValid.bool _)
+             | (simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
+                obtain ⟨rfl, rfl⟩ := h
+                exact TypeValid.bool _)
              | (simp [err] at h))
           | (simp only [err, reduceCtorEq] at h)
   | case8 c x₁ a ih1 =>
@@ -1003,7 +977,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
       rw [hm] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
       have hcomp : ∀ p ∈ atys, TypeValid env p.2.typeOf := by
-        apply mapM₂_all_typeValid ?_ hm
+        refine mapM₂_all_typeValid ?_ hm
         intro ax hax tx cc htyp
         have hsz : sizeOf (ax.1, ax.2).snd < 1 + sizeOf axs := by
           have hlt := List.sizeOf_lt_of_mem hax
@@ -1043,7 +1017,7 @@ theorem typeOf_type_valid {env : TypeEnv} (hwf : EnvAssumptions env) :
              · simp only [err, reduceCtorEq] at h
            · simp only [err, reduceCtorEq] at h)
 
-/-- **Entity-type declaredness.** A successful `typeOf` on a `WfTypeEnv` only produces
+/-- **Entity-type declaredness.** A successful `typeOf` under `EnvAssumptions` only produces
     entity types declared in the schema (standard/enum in `ets`, or an action in `acts`). -/
 theorem typeOf_entityType_declared {env : TypeEnv} (hwf : EnvAssumptions env)
     {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} {ety : EntityType}
@@ -1052,20 +1026,6 @@ theorem typeOf_entityType_declared {env : TypeEnv} (hwf : EnvAssumptions env)
   have hv := typeOf_type_valid hwf hty
   rw [hety] at hv
   cases hv with | entity _ hvet => exact hvet
-
-/-- Cedar's `EntityType.WellFormed` ⇒ the relational `ValidEntityType`. -/
-theorem entityType_declared_of_wf {env : TypeEnv} {ety : EntityType}
-    (h : EntityType.WellFormed env ety) : ValidEntityType ety env.ets env.acts := by
-  simp only [EntityType.WellFormed] at h
-  rcases h with hc | ha
-  · obtain ⟨v, hmc⟩ := contains_mapContains hc
-    exact ValidEntityType.inSchema ety v env.ets env.acts hmc
-  · simp only [ActionSchema.IsActionEntityType] at ha
-    obtain ⟨uid, hcont, hty2⟩ := ha
-    obtain ⟨e, hmc⟩ := contains_mapContains hcont
-    obtain ⟨e', hpk⟩ := mapContainsPairKey_of_mapContains hmc
-    subst hty2
-    exact ValidEntityType.isAction uid.ty uid.eid e' env.ets env.acts hpk
 
 /-- The set-element analogue of `typeOf_entityType_declared`: a successful `typeOf`
     producing `.set (.entity ety)` has its element type `ety` declared. -/
@@ -1076,45 +1036,6 @@ theorem typeOf_setElem_entityType_declared {env : TypeEnv} (hwf : EnvAssumptions
   have hv := typeOf_type_valid hwf hty
   rw [hety] at hv
   cases hv with | set _ hv2 => cases hv2 with | entity _ hvet => exact hvet
-
-/-! ## `WfExpr` inversion helpers (extract sub-`WfExpr`s with `env` fixed) -/
-
-theorem wfExpr_or {env a b} (h : WfExpr env (.or a b)) : WfExpr env a ∧ WfExpr env b := by
-  cases h; exact ⟨by assumption, by assumption⟩
-
-theorem wfExpr_and {env a b} (h : WfExpr env (.and a b)) : WfExpr env a ∧ WfExpr env b := by
-  cases h; exact ⟨by assumption, by assumption⟩
-
-theorem wfExpr_ite {env a b d} (h : WfExpr env (.ite a b d)) :
-    WfExpr env a ∧ WfExpr env b ∧ WfExpr env d := by
-  cases h; exact ⟨by assumption, by assumption, by assumption⟩
-
-theorem wfExpr_unaryApp {env op a} (h : WfExpr env (.unaryApp op a)) :
-    (∀ ety, op = .is ety → ValidEntityType ety env.ets env.acts) ∧ WfExpr env a := by
-  cases h; exact ⟨by assumption, by assumption⟩
-
-theorem wfExpr_binaryApp {env op a b} (h : WfExpr env (.binaryApp op a b)) :
-    WfExpr env a ∧ WfExpr env b := by
-  cases h; exact ⟨by assumption, by assumption⟩
-
-theorem wfExpr_getAttr {env a k} (h : WfExpr env (.getAttr a k)) : WfExpr env a := by
-  cases h; assumption
-
-theorem wfExpr_hasAttr {env a k} (h : WfExpr env (.hasAttr a k)) : WfExpr env a := by
-  cases h; assumption
-
-theorem wfExpr_extHasAttr {env a k ks} (h : WfExpr env (.extHasAttr a k ks)) : WfExpr env a := by
-  cases h; assumption
-
-theorem wfExpr_set {env xs} (h : WfExpr env (.set xs)) : ∀ e ∈ xs, WfExpr env e := by
-  cases h; assumption
-
-theorem wfExpr_record {env axs} (h : WfExpr env (.record axs)) :
-    (axs.map Prod.fst).SortedBy id ∧ ∀ e ∈ axs.map Prod.snd, WfExpr env e := by
-  cases h; exact ⟨by assumption, by assumption⟩
-
-theorem wfExpr_call {env f xs} (h : WfExpr env (.call f xs)) : ∀ e ∈ xs, WfExpr env e := by
-  cases h; assumption
 
 /-! ## Reverse bridges for the list/set/record/call cases -/
 
@@ -1135,10 +1056,10 @@ theorem allLub_of_foldlM {acc : CedarType} {l : List CedarType} {result : CedarT
     with a per-element `HasType` witness, yields a `HasTypeList`. -/
 theorem hasTypeList_of_mapM {xs : List Expr} {c : Capabilities} {env : TypeEnv}
     (hty : ∀ x ∈ xs, ∀ {tx : TypedExpr} {cc : Capabilities},
-      typeOf x c env = .ok (tx, cc) → ∃ cout, HasType x c env tx.typeOf cout)
+      typeOf x c env = .ok (tx, cc) → ∃ cout, HasType false false x c env tx.typeOf cout)
     {tys : List TypedExpr}
     (hm : xs.mapM (fun x => justType (typeOf x c env)) = .ok tys) :
-    HasTypeList xs c env (tys.map TypedExpr.typeOf) := by
+    HasTypeList false false xs c env (tys.map TypedExpr.typeOf) := by
   induction xs generalizing tys with
   | nil =>
     simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm
@@ -1161,26 +1082,21 @@ theorem hasTypeList_of_mapM {xs : List Expr} {c : Capabilities} {env : TypeEnv}
         exact HasTypeList.cons hd tl c env thd.typeOf (ttl.map TypedExpr.typeOf) hHT
           (ih2 (fun x hx => hty x (List.mem_cons_of_mem _ hx)) htl)
 
-/-- Reverse of the `record` element pass: a successful `mapM` over the attribute
-    pairs, with per-element `HasType` witnesses and the sortedness of the keys
-    (`WfExpr.record`), yields a `HasTypeRecord` with the head key strictly above `lb`. -/
-theorem hasTypeRecord_of_mapM {axs : List (Attr × Expr)} {c : Capabilities} {env : TypeEnv}
+/-- Reverse of the `record` element pass: a successful `mapM` over the attributes, with
+    per-attribute `HasType` witnesses, yields a `HasTypeFields` in source order. -/
+theorem hasTypeFields_of_mapM {axs : List (Attr × Expr)} {c : Capabilities} {env : TypeEnv}
     (hty : ∀ ax ∈ axs, ∀ {tx : TypedExpr} {cc : Capabilities},
-      typeOf ax.2 c env = .ok (tx, cc) → ∃ cout, HasType ax.2 c env tx.typeOf cout)
+      typeOf ax.2 c env = .ok (tx, cc) → ∃ cout, HasType false false ax.2 c env tx.typeOf cout)
     {atys : List (Attr × TypedExpr)}
     (hm : axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok atys) :
-    ∀ {lb : Option Attr}, (∀ a ∈ axs.map Prod.fst, KeyAbove lb a) →
-      List.SortedBy id (axs.map Prod.fst) →
-      HasTypeRecord lb axs c env (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))) := by
+    HasTypeFields false false axs c env
+      (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))) := by
   induction axs generalizing atys with
   | nil =>
-    intro lb _ _
     simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm
-    exact HasTypeRecord.nil lb c env
+    exact HasTypeFields.nil c env
   | cons hd tl ih2 =>
-    intro lb hka hsorted
     obtain ⟨a, x⟩ := hd
-    simp only [List.map_cons] at hka hsorted
     simp only [List.mapM_cons] at hm
     cases hx : (typeOf x c env).map (fun r => (a, r.1)) with
     | error e => rw [hx] at hm; simp at hm
@@ -1198,18 +1114,9 @@ theorem hasTypeRecord_of_mapM {axs : List (Attr × Expr)} {c : Capabilities} {en
           obtain ⟨tx, cc⟩ := v
           rw [hx2] at hx; simp only [Except.map, Except.ok.injEq] at hx; subst hx
           obtain ⟨cout, hHT⟩ := hty (a, x) List.mem_cons_self hx2
-          have hka_hd : KeyAbove lb a := hka a (by simp)
-          have hsorted_tl : List.SortedBy id (tl.map Prod.fst) := List.tail_sortedBy hsorted
-          have hka_tl : ∀ a' ∈ tl.map Prod.fst, KeyAbove (some a) a' := by
-            intro a' ha'
-            have hlt := List.sortedBy_implies_head_lt_tail hsorted a' ha'
-            simp only [id_eq] at hlt
-            exact KeyAbove.some a a' hlt
           simp only [List.map_cons]
-          exact HasTypeRecord.cons lb a x tl c env tx.typeOf
-            (qtl.map (fun p => (p.1, Qualified.required p.2.typeOf)))
-            hka_hd hHT
-            (ih2 (fun ax hax => hty ax (List.mem_cons_of_mem _ hax)) htl hka_tl hsorted_tl)
+          exact HasTypeFields.cons a x tl c env tx.typeOf _ hHT
+            (ih2 (fun ax hax => hty ax (List.mem_cons_of_mem _ hax)) htl)
 
 /-- Reverse of `typeOfConstructor`: a successful run pins the argument to a single
     string literal whose parse succeeds, and returns the declared type / empty caps. -/
@@ -1228,30 +1135,6 @@ theorem validX_of_typeOfConstructor {α} {mk : String → Option α} {xs : List 
     · simp only [err, reduceCtorEq] at h
   · simp only [err, reduceCtorEq] at h
 
-/-- The `record` element pass preserves the attribute keys. -/
-theorem mapM_record_keys {axs : List (Attr × Expr)} {c : Capabilities} {env : TypeEnv}
-    {atys : List (Attr × TypedExpr)}
-    (hm : axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) = .ok atys) :
-    atys.map Prod.fst = axs.map Prod.fst := by
-  induction axs generalizing atys with
-  | nil => simp only [List.mapM_nil, pure, Except.pure, Except.ok.injEq] at hm; subst hm; rfl
-  | cons hd tl ih =>
-    simp only [List.mapM_cons] at hm
-    cases hx : (typeOf hd.2 c env).map (fun r => (hd.1, r.1)) with
-    | error e => rw [hx] at hm; simp at hm
-    | ok qhd =>
-      rw [hx] at hm; simp only [Except.bind_ok] at hm
-      cases htl : tl.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) with
-      | error e => rw [htl] at hm; simp at hm
-      | ok qtl =>
-        rw [htl] at hm; simp only [Except.bind_ok, pure, Except.pure, Except.ok.injEq] at hm
-        subst hm
-        have hfst : qhd.fst = hd.fst := by
-          cases hx2 : typeOf hd.2 c env with
-          | error e => rw [hx2] at hx; simp [Except.map] at hx
-          | ok v => rw [hx2] at hx; simp only [Except.map, Except.ok.injEq] at hx; subst hx; rfl
-        simp only [List.map_cons, hfst, ih htl]
-
 theorem ipAddrTypes_of_all : ∀ {t : CedarType} {ts : List CedarType},
     (t :: ts).all (· == .ext .ipAddr) = true → IpAddrTypes (t :: ts)
   | t, [], h => by
@@ -1267,209 +1150,42 @@ theorem ipAddrTypes_of_all : ∀ {t : CedarType} {ts : List CedarType},
     call produces empty capabilities). -/
 theorem hasTypeExtCall_of_typeOfCall {xfn : ExtFun} {xs : List Expr} {c : Capabilities}
     {env : TypeEnv} {tys : List TypedExpr} {tx : TypedExpr} {c' : Capabilities}
-    (hlist : HasTypeList xs c env (tys.map TypedExpr.typeOf))
+    (hlist : HasTypeList false false xs c env (tys.map TypedExpr.typeOf))
     (h : typeOfCall xfn tys xs = .ok (tx, c')) :
-    HasTypeExtCall xfn xs c env tx.typeOf ∧ c' = [] := by
+    HasTypeExtCall false false xfn xs c env tx.typeOf ∧ c' = [] := by
   simp only [typeOfCall] at h
   split at h
-  · -- .decimal
-    cases hc : typeOfConstructor Cedar.Spec.Ext.Decimal.decimal xs (.ext .decimal) with
-    | error e => rw [hc] at h; simp at h
-    | ok r =>
-      obtain ⟨rty, rc⟩ := r
-      obtain ⟨s, d, rfl, hmk, rfl, rfl⟩ := validX_of_typeOfConstructor hc
-      rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨rfl, rfl⟩ := h
-      refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-      exact HasTypeExtCall.decimal s c env (ValidDecimal.mk s d hmk)
-  · -- .ip
-    cases hc : typeOfConstructor Cedar.Spec.Ext.IPAddr.ip xs (.ext .ipAddr) with
-    | error e => rw [hc] at h; simp at h
-    | ok r =>
-      obtain ⟨rty, rc⟩ := r
-      obtain ⟨s, d, rfl, hmk, rfl, rfl⟩ := validX_of_typeOfConstructor hc
-      rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨rfl, rfl⟩ := h
-      refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-      exact HasTypeExtCall.ip s c env (ValidIP.mk s d hmk)
-  · -- .datetime
-    cases hc : typeOfConstructor Cedar.Spec.Ext.Datetime.parse xs (.ext .datetime) with
-    | error e => rw [hc] at h; simp at h
-    | ok r =>
-      obtain ⟨rty, rc⟩ := r
-      obtain ⟨s, d, rfl, hmk, rfl, rfl⟩ := validX_of_typeOfConstructor hc
-      rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨rfl, rfl⟩ := h
-      refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-      exact HasTypeExtCall.datetime s c env (ValidDatetime.mk s d hmk)
-  · -- .duration
-    cases hc : typeOfConstructor Cedar.Spec.Ext.Datetime.Duration.parse xs (.ext .duration) with
-    | error e => rw [hc] at h; simp at h
-    | ok r =>
-      obtain ⟨rty, rc⟩ := r
-      obtain ⟨s, d, rfl, hmk, rfl, rfl⟩ := validX_of_typeOfConstructor hc
-      rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
-      obtain ⟨rfl, rfl⟩ := h
-      refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-      exact HasTypeExtCall.duration s c env (ValidDuration.mk s d hmk)
-  · -- .lessThan
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.lessThan a b c env hHTa hHTb
-  · -- .lessThanOrEqual
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.lessThanOrEqual a b c env hHTa hHTb
-  · -- .greaterThan
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.greaterThan a b c env hHTa hHTb
-  · -- .greaterThanOrEqual
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.greaterThanOrEqual a b c env hHTa hHTb
-  · -- .isIpv4
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.isIpv4 a c env hHTa
-  · -- .isIpv6
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.isIpv6 a c env hHTa
-  · -- .isLoopback
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.isLoopback a c env hHTa
-  · -- .isMulticast
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.isMulticast a c env hHTa
-  · -- .isInRange
-    simp only [typeOfIsInRange] at h
+  all_goals first
+    | -- methods with fixed argument types
+      (rename_i heq
+       simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+       obtain ⟨rfl, rfl⟩ := h
+       rw [heq] at hlist
+       refine ⟨?_, rfl⟩
+       rcases hlist with _ | ⟨_, _, _, _, _, _, h₁, _ | ⟨_, _, _, _, _, _, h₂, _ | _⟩⟩
+       constructor <;> assumption)
+    | -- constructors
+      (have ⟨⟨_, _⟩, hc, h⟩ := do_eq_ok.mp h
+       obtain ⟨s, d, rfl, hmk, rfl, rfl⟩ := validX_of_typeOfConstructor hc
+       simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
+       obtain ⟨rfl, rfl⟩ := h
+       exact ⟨by constructor; exact .mk _ _ hmk, rfl⟩)
+    | (simp only [err, reduceCtorEq] at h)
+    | skip
+  -- `isInRange`
+  simp only [typeOfIsInRange] at h
+  split at h
+  · rename_i t ts heq
     split at h
-    · rename_i t ts heq
-      split at h
-      · rename_i hall
-        simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-        rw [heq] at hlist
-        cases hlist with
-        | cons a _ _ _ _ _ hHTa hrest =>
-          refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-          exact HasTypeExtCall.isInRange a _ c env _ hHTa (ipAddrTypes_of_all hall) hrest
-      · simp only [err, reduceCtorEq] at h
+    · rename_i hall
+      simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
+      rw [heq] at hlist
+      cases hlist with
+      | cons a _ _ _ _ _ hHTa hrest =>
+        refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
+        exact HasTypeExtCall.isInRange a _ c env _ hHTa (ipAddrTypes_of_all hall) hrest
     · simp only [err, reduceCtorEq] at h
-  · -- .offset
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.offset a b c env hHTa hHTb
-  · -- .durationSince
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest with
-      | cons b _ _ _ _ _ hHTb hr2 => cases hr2
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.durationSince a b c env hHTa hHTb
-  · -- .toDate
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toDate a c env hHTa
-  · -- .toTime
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toTime a c env hHTa
-  · -- .toMilliseconds
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toMilliseconds a c env hHTa
-  · -- .toSeconds
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toSeconds a c env hHTa
-  · -- .toMinutes
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toMinutes a c env hHTa
-  · -- .toHours
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toHours a c env hHTa
-  · -- .toDays
-    rename_i heq
-    simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
-    rw [heq] at hlist
-    cases hlist with
-    | cons a _ _ _ _ _ hHTa hrest => cases hrest
-                                     refine ⟨?_, rfl⟩; simp only [TypedExpr.typeOf]
-                                     exact HasTypeExtCall.toDays a c env hHTa
-  · -- fallthrough: err
-    simp only [err, reduceCtorEq] at h
+  · simp only [err, reduceCtorEq] at h
 
 /-! ## Reverse bridges for the binaryApp case -/
 
@@ -1583,17 +1299,6 @@ theorem descendentOf_of_true_inSchema {ets : EntitySchema} {acts : ActionSchema}
         ((setContains_iff_contains).mpr h)
     | enum eids => simp [EntitySchemaEntry.ancestors, Set.contains, Set.empty, Set.elts] at h
 
-/-- An operand absent from `ets` (`find? = none`) with a distinct target cannot be a proper
-    `descendentOf`: the lookup falls through to `maybeDescendentOf`, which is `false` in a
-    well-formed env (all action UIDs/ancestors carry the reserved `Action` type). So a
-    `descendentOf = true` hypothesis is absurd — used to discharge the unreachable
-    "action operand, membership true" mem branches. -/
-theorem descendentOf_absurd_of_absent {env : TypeEnv} (hwf : EnvAssumptions env)
-    {ety₁ ety₂ : EntityType} (hne : ety₁ ≠ ety₂) (hf : env.ets.find? ety₁ = none)
-    (hdesc : TypeEnv.descendentOf env ety₁ ety₂ = true) : False := by
-  simp only [TypeEnv.descendentOf, if_neg hne, hf, hwf.action_ancestry_same_type hne] at hdesc
-  exact absurd hdesc (by decide)
-
 /-- `TypeEnv.descendentOf = false` for a *standard* operand type ⇒ `NotDescendentOf`. -/
 theorem notDescendentOf_of_false_standard {ets : EntitySchema} {acts : ActionSchema}
     {reqty : RequestType} {ety₁ ety₂ : EntityType} {ancs : Set EntityType} {attrs : RecordType}
@@ -1601,7 +1306,7 @@ theorem notDescendentOf_of_false_standard {ets : EntitySchema} {acts : ActionSch
     (hmc : MapContains ety₁ (.standard ⟨ancs, attrs, tags⟩) ets) (hne : ety₁ ≠ ety₂)
     (h : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false) :
     NotDescendentOf ets acts ety₁ ety₂ := by
-  simp only [TypeEnv.descendentOf, if_neg hne, mapContains_find?_nodup hmc hnd,
+  simp only [TypeEnv.descendentOf, ite_eq_right hne, mapContains_find?_nodup hmc hnd,
     EntitySchemaEntry.ancestors] at h
   exact NotDescendentOf.diff ets acts ety₁ ety₂ ancs hne (mapContainsAncestors_of_standard hmc)
     (fun hsc => by simp [(setContains_iff_contains).mp hsc] at h)
@@ -1612,7 +1317,7 @@ theorem notActionDescendentOf_of_false {acts : ActionSchema} {uid₁ uid₂ : En
     {entry : ActionSchemaEntry} (hnd : (acts.toList.map Prod.fst).Nodup)
     (hmc : MapContains uid₁ entry acts) (hne : uid₁ ≠ uid₂)
     (h : acts.descendentOf uid₁ uid₂ = false) : NotActionDescendentOf acts uid₁ uid₂ := by
-  simp only [ActionSchema.descendentOf, beq_iff_eq, if_neg hne,
+  simp only [ActionSchema.descendentOf, beq_iff_eq, ite_eq_right hne,
     mapContains_find?_nodup hmc hnd] at h
   exact NotActionDescendentOf.diff acts uid₁ uid₂ entry hne hmc
     (fun hsc => by simp [(setContains_iff_contains).mp hsc] at h)
@@ -1634,6 +1339,25 @@ theorem mapNotContainsKey_of_find?_none {α β} [LT α] [DecidableLT α] [Strict
     {k : α} {m : Map α β} (h : m.find? k = none) : MapNotContainsKey k m := by
   obtain ⟨l⟩ := m
   exact mapNotContainsKey_of_absent (by simpa only [Map.toList] using Map.find?_none_all_absent h)
+
+/-- `TypeEnv.descendentOf = true` for an operand type absent from `ets` (an action type) and a
+    distinct target ⇒ `DescendentOf.action`: the lookup falls through to `maybeDescendentOf`. -/
+theorem descendentOf_of_true_absent {ets : EntitySchema} {acts : ActionSchema}
+    {reqty : RequestType} {ety₁ ety₂ : EntityType} (hne : ety₁ ≠ ety₂)
+    (hf : ets.find? ety₁ = none) (h : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true) :
+    DescendentOf ets acts ety₁ ety₂ := by
+  simp only [TypeEnv.descendentOf, hne, ↓reduceIte, hf] at h
+  exact .action _ _ _ _ (mapNotContainsKey_of_find?_none hf) (maybeActionDescendentOf_iff.mpr h)
+
+/-- `TypeEnv.descendentOf = false` for an operand type absent from `ets` ⇒ no action of that
+    type has an ancestor of the target type. -/
+theorem not_maybeActionDescendentOf_of_false {ets : EntitySchema} {acts : ActionSchema}
+    {reqty : RequestType} {ety₁ ety₂ : EntityType} (hne : ety₁ ≠ ety₂)
+    (hf : ets.find? ety₁ = none) (h : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = false) :
+    ¬ MaybeActionDescendentOf acts ety₁ ety₂ := by
+  simp only [TypeEnv.descendentOf, hne, ↓reduceIte, hf] at h
+  intro hmd
+  simp [maybeActionDescendentOf_iff.mp hmd] at h
 
 /-- `MapContains` of a standard entry ⇒ `MapContainsAttrs` (reverse extractor). -/
 theorem mapContainsAttrs_of_standard {ety : EntityType} {ancs : Set EntityType} {attrs : RecordType}
@@ -1660,7 +1384,6 @@ theorem mapContainsEnum_of_mapContains {ety : EntityType} {eids : Set String} {e
     (and empty output capabilities). -/
 theorem getAttrInRecord_of_ok {ty : CedarType} {rty : RecordType} {x : Expr} {a : Attr}
     {c : Capabilities} {aty : CedarType} {ac : Capabilities}
-    (hnd : (rty.toList.map Prod.fst).Nodup)
     (h : getAttrInRecord ty rty x a c = .ok (aty, ac)) : GetAttrInRecord rty x a c aty ∧ ac = ∅ := by
   simp only [getAttrInRecord] at h
   split at h
@@ -1679,8 +1402,7 @@ theorem getAttrInRecord_of_ok {ty : CedarType} {rty : RecordType} {x : Expr} {a 
 /-- Reverse of `hasAttrInRecord` on a *found* attribute: yields a `HasAttrInRecord` witness. -/
 theorem hasAttrInRecord_found_of_ok {rty : RecordType} {x : Expr} {a : Attr} {c : Capabilities}
     {k : Bool} {ty : CedarType} {caps : Capabilities} {qty : QualifiedType}
-    (hnd : (rty.toList.map Prod.fst).Nodup) (hfind : rty.find? a = some qty)
-    (h : hasAttrInRecord rty x a c k = .ok (ty, caps)) :
+    (hfind : rty.find? a = some qty) (h : hasAttrInRecord rty x a c k = .ok (ty, caps)) :
     HasAttrInRecord rty x a c k ty caps := by
   have hmc : MapContains a qty rty := find?_mapContains hfind
   simp only [hasAttrInRecord, hfind] at h
@@ -1711,12 +1433,12 @@ theorem hasAttrInRecord_found_of_ok {rty : RecordType} {x : Expr} {a : Attr} {c 
 /-- Transport an input capability across `∪` to a `++` `CapMerge` witness. `typeOf`
     types the taken branch of `and`/`ite` at `c ∪ c₁` (dedup union), while the relational
     rules require it at a `CapMerge c cout₁ ·` witness; `c ++ cout₁` is such a witness
-    (`capMerge_append'`) and is `CapsEquiv` to `c ∪ c₁` when `cout₁ ≈ c₁`. Feeds
+    (`capMerge_append`) and is `CapsEquiv` to `c ∪ c₁` when `cout₁ ≈ c₁`. Feeds
     `hasType_capsCongr` to move the branch IH onto the witness. -/
 theorem capsEquiv_union_append {c cc₁ cout₁ : Capabilities} (hce₁ : CapsEquiv cout₁ cc₁) :
     CapsEquiv (c ∪ cc₁) (c ++ cout₁) :=
   (CapsEquiv.union (CapsEquiv.refl c) hce₁.symm).trans
-    (capMerge_capsEquiv_union (capMerge_append' c cout₁)).symm
+    (capMerge_capsEquiv_union (capMerge_append c cout₁)).symm
 
 /-! ## Completeness of the extended `has` chain -/
 
@@ -1740,7 +1462,7 @@ theorem hasAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : Type
         rw [hha] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
         obtain ⟨b, rfl⟩ := hasAttrInRecord_bool hha
-        exact ⟨b, rfl, HasAttrOn.record _ _ _ _ _ _ _ (hasAttrInRecord_found_of_ok hnd hfa hha)⟩
+        exact ⟨b, rfl, HasAttrOn.record _ _ _ _ _ _ _ (hasAttrInRecord_found_of_ok hfa hha)⟩
     | none =>
       rw [show hasAttrInRecord rty x a c true = ok (.bool .ff) from by
         simp only [hasAttrInRecord, hfa]] at h
@@ -1773,7 +1495,7 @@ theorem hasAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : Type
             obtain ⟨rfl, rfl⟩ := h
             obtain ⟨b, rfl⟩ := hasAttrInRecord_bool hha
             exact ⟨b, rfl, HasAttrOn.entity _ _ _ _ _ _ _ _ _ _ hmca
-              (hasAttrInRecord_found_of_ok hnd hfa hha)⟩
+              (hasAttrInRecord_found_of_ok hfa hha)⟩
         | none =>
           rw [show hasAttrInRecord rty x a c false = ok (.bool .ff) from by
             simp only [hasAttrInRecord, hfa]] at h
@@ -1818,7 +1540,7 @@ theorem getAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : Type
       rw [hg] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
       have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
-      obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+      obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hg
       exact ⟨GetAttrOn.record _ _ _ _ _ _ hgar, rfl⟩
   · rename_i ety heqty
     rw [heqty]
@@ -1839,7 +1561,7 @@ theorem getAttrOn_complete {env : TypeEnv} (hwf : EnvAssumptions env) {tx : Type
         | standard s =>
           obtain ⟨ancs, attrs, tags⟩ := s
           simp only [EntitySchemaEntry.attrs] at hea
-          obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+          obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hg
           exact ⟨GetAttrOn.entity _ _ _ _ _ _ _ _ _ (hea ▸ mapContainsAttrs_of_standard hmc) hgar, rfl⟩
         | enum eids =>
           simp only [EntitySchemaEntry.attrs] at hea
@@ -1902,16 +1624,16 @@ theorem extHasAttrChain_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
               | ff =>
                 simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
                 exact ⟨[], ExtHasAttrChain.restFf _ _ _ _ _ _ _ _ _ _ _ _ hon (by constructor)
-                  (capMerge_append' c ci) hgaC hch, CapsEquiv.refl _⟩
+                  (capMerge_append c ci) hgaC hch, CapsEquiv.refl _⟩
               | tt =>
                 simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
                 exact ⟨ci ++ coutR, ExtHasAttrChain.restTt _ _ _ _ _ _ _ _ _ _ _ _ _ hon
-                  (by constructor) (capMerge_append' c ci) hgaC hch (capMerge_append' ci coutR),
+                  (by constructor) (capMerge_append c ci) hgaC hch (capMerge_append ci coutR),
                   (capsEquiv_union_append hceR).symm⟩
               | anyBool =>
                 simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
                 exact ⟨ci ++ coutR, ExtHasAttrChain.restAnyBool _ _ _ _ _ _ _ _ _ _ _ _ _ hon
-                  (by constructor) (capMerge_append' c ci) hgaC hch (capMerge_append' ci coutR),
+                  (by constructor) (capMerge_append c ci) hgaC hch (capMerge_append ci coutR),
                   (capsEquiv_union_append hceR).symm⟩)
       cases bh with
       | ff =>
@@ -1920,18 +1642,17 @@ theorem extHasAttrChain_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       | tt => exact rest NotFf.tt
       | anyBool => exact rest NotFf.anyBool
 
-/-- **Completeness of `HasType`** (converse of `hasType_sound`): on a well-formed
-    environment, any successful `typeOf` run on a `WfExpr` (canonical-record,
-    declared-`is`-type) expression is witnessed by a `HasType` derivation with a
-    capability-equivalent output. -/
+/-- **Completeness of `HasType`** (converse of `hasType_sound`): on an environment satisfying
+    `EnvAssumptions`, any successful `typeOf` run is witnessed by a `HasType false false`
+    derivation with a capability-equivalent output. -/
 theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
     ∀ {x : Expr} {c : Capabilities} {tx : TypedExpr} {c' : Capabilities},
-      WfExpr env x → typeOf x c env = .ok (tx, c') →
-      ∃ cout, HasType x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
+      typeOf x c env = .ok (tx, c') →
+      ∃ cout, HasType false false x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
   intro x c
   induction x, c using typeOf.induct with
   | case1 c p =>
-    intro hwfx tx c' h
+    intro tx c' h
     obtain ⟨ets, acts, reqty⟩ := env
     simp only [typeOf, typeOfLit] at h
     split at h
@@ -1947,18 +1668,11 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       · simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
         rename_i uid hcond
-        have hval : ValidEntityUID uid.ty uid.eid ets acts := by
-          rcases Bool.or_eq_true_iff.mp hcond with hv | hc
-          · exact validEntityUID_of_isValid (hwf.ets_keys_nodup) hv
-          · -- action UID: `acts.find? uid` is some entry ⇒ `MapContainsPairKey`
-            simp only [ActionSchema.contains, Option.isSome_iff_exists] at hc
-            obtain ⟨entry, hfind⟩ := hc
-            obtain ⟨e, hpk⟩ := mapContainsPairKey_of_mapContains (find?_mapContains hfind)
-            exact ValidEntityUID.action uid.ty uid.eid ets acts e hpk
-        exact ⟨[], HasType.litEntity uid.ty uid.eid c ets acts reqty hval, fun _ => Iff.rfl⟩
+        exact ⟨[], HasType.litEntity uid.ty uid.eid c ets acts reqty
+          (validEntityUID_of_checkEntities hcond), fun _ => Iff.rfl⟩
       · simp only [err, reduceCtorEq] at h
   | case2 c v =>
-    intro hwfx tx c' h
+    intro tx c' h
     obtain ⟨ets, acts, princ, ⟨actionTy, actionEid⟩, resource, ctx⟩ := env
     simp only [typeOf, typeOfVar] at h
     split at h <;>
@@ -1968,15 +1682,14 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
     · exact ⟨[], HasType.varResource _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
     · exact ⟨[], HasType.varContext _ _ _ _ _ _ _, fun _ => Iff.rfl⟩
   | case3 c x₁ x₂ x₃ ih1 ih2 ih3 =>
-    intro tx c' hwfx h
-    obtain ⟨hw1, hw2, hw3⟩ := wfExpr_ite hwfx
+    intro tx c' h
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c env with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
       simp only [typeOfIf] at h
       split at h
       · -- ty1.typeOf = .bool tt → iteTt (x₃ untaken)
@@ -1986,15 +1699,15 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         | ok r2 =>
           obtain ⟨ty2, cc2⟩ := r2
           rw [h2] at h; simp only [Except.bind_ok] at h
-          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 h2
           obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
           refine ⟨cout1 ++ cout2', ?_, ?_⟩
           · simp only [TypedExpr.typeOf]
             exact HasType.iteTt x₁ x₂ x₃ c env cout1 _ ty2.typeOf cout2' _ (heq ▸ hHT1)
-              (capMerge_append' c cout1) hHT2' (capMerge_append' cout1 cout2')
-          · exact (capMerge_capsEquiv_union (capMerge_append' cout1 cout2')).trans
+              (capMerge_append c cout1) hHT2' (capMerge_append cout1 cout2') (DeadOperand.lax _ _)
+          · exact (capMerge_capsEquiv_union (capMerge_append cout1 cout2')).trans
               (CapsEquiv.union hce1 (hce2'.symm.trans hce2))
       · -- ty1.typeOf = .bool ff → iteFf (x₂ untaken)
         rename_i heq
@@ -2003,12 +1716,13 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         | ok r3 =>
           obtain ⟨ty3, cc3⟩ := r3
           rw [h3] at h; simp only [Except.bind_ok] at h
-          obtain ⟨cout3, hHT3, hce3⟩ := ih3 hw3 h3
+          obtain ⟨cout3, hHT3, hce3⟩ := ih3 h3
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
           refine ⟨cout3, ?_, hce3⟩
           simp only [TypedExpr.typeOf]
           exact HasType.iteFf x₁ x₂ x₃ c env cout1 ty3.typeOf cout3 (heq ▸ hHT1) hHT3
+            (DeadOperand.lax _ _)
       · -- ty1.typeOf = .bool anyBool → iteAnyBool
         rename_i heq
         cases h2 : typeOf x₂ (c ∪ cc1) env with
@@ -2016,14 +1730,14 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         | ok r2 =>
           obtain ⟨ty2, cc2⟩ := r2
           rw [h2] at h; simp only [Except.bind_ok] at h
-          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 h2
           obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
           cases h3 : typeOf x₃ c env with
           | error e => rw [h3] at h; simp at h
           | ok r3 =>
             obtain ⟨ty3, cc3⟩ := r3
             rw [h3] at h; simp only [Except.bind_ok] at h
-            obtain ⟨cout3, hHT3, hce3⟩ := ih3 hw3 h3
+            obtain ⟨cout3, hHT3, hce3⟩ := ih3 h3
             split at h
             · -- ty2.typeOf ⊔ ty3.typeOf = some lubTy → iteAnyBool
               rename_i lubTy hlub
@@ -2032,25 +1746,24 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
               refine ⟨capIntersect (cout1 ++ cout2') cout3, ?_, ?_⟩
               · simp only [TypedExpr.typeOf]
                 exact HasType.iteAnyBool x₁ x₂ x₃ c env cout1 _ ty2.typeOf cout2' ty3.typeOf cout3
-                  lubTy _ (heq ▸ hHT1) (capMerge_append' c cout1) hHT2' hHT3 (lub?_lub _ _ hlub)
-                  (capMerge_append' cout1 cout2')
+                  lubTy _ (heq ▸ hHT1) (capMerge_append c cout1) hHT2' hHT3 (lub?_lub _ _ hlub)
+                  (capMerge_append cout1 cout2')
               · exact (capIntersect_capsEquiv_inter _ _).trans (CapsEquiv.inter
-                  ((capMerge_capsEquiv_union (capMerge_append' cout1 cout2')).trans
+                  ((capMerge_capsEquiv_union (capMerge_append cout1 cout2')).trans
                     (CapsEquiv.union hce1 (hce2'.symm.trans hce2))) hce3)
             · -- lub = none → err
               simp only [err, reduceCtorEq] at h
       · -- ty1.typeOf non-bool → err
         simp only [err, reduceCtorEq] at h
   | case4 c x₁ x₂ ih1 ih2 =>
-    intro tx c' hwfx h
-    obtain ⟨hw1, hw2⟩ := wfExpr_and hwfx
+    intro tx c' h
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c env with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
       simp only [typeOfAnd] at h
       split at h
       · -- ty1.typeOf = .bool .ff → andShort (short-circuit)
@@ -2059,7 +1772,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         obtain ⟨rfl, rfl⟩ := h
         refine ⟨[], ?_, fun _ => Iff.rfl⟩
         rw [heq]
-        exact HasType.andShort x₁ x₂ c env cout1 (heq ▸ hHT1)
+        exact HasType.andShort x₁ x₂ c env cout1 (heq ▸ hHT1) (DeadOperand.lax _ _)
       · -- ty1.typeOf = .bool ty₁ (ty₁ ∈ {tt, anyBool}); x₂ typed at c ∪ cc1
         rename_i _ ty₁ hne heq
         cases h2 : typeOf x₂ (c ∪ cc1) env with
@@ -2067,11 +1780,11 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         | ok r2 =>
           obtain ⟨ty2, cc2⟩ := r2
           rw [h2] at h; simp only [Except.bind_ok] at h
-          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 hw2 h2
+          obtain ⟨cout2, hHT2, hce2⟩ := ih2 cc1 h2
           -- transport the branch IH from (c ∪ cc1) onto the CapMerge witness (c ++ cout1)
           obtain ⟨cout2', hHT2', hce2'⟩ := hasType_capsCongr hHT2 (capsEquiv_union_append hce1)
-          have hm₁ : CapMerge c cout1 (c ++ cout1) := capMerge_append' c cout1
-          have hm₂ : CapMerge cout1 cout2' (cout1 ++ cout2') := capMerge_append' cout1 cout2'
+          have hm₁ : CapMerge c cout1 (c ++ cout1) := capMerge_append c cout1
+          have hm₂ : CapMerge cout1 cout2' (cout1 ++ cout2') := capMerge_append cout1 cout2'
           have hout : CapsEquiv (cout1 ++ cout2') (cc1 ∪ cc2) :=
             (capMerge_capsEquiv_union hm₂).trans (CapsEquiv.union hce1 (hce2'.symm.trans hce2))
           split at h
@@ -2113,28 +1826,27 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       · -- ty1.typeOf non-bool → err
         simp only [err, reduceCtorEq] at h
   | case5 c x₁ x₂ ih1 ih2 =>
-    intro tx c' hwfx h
-    obtain ⟨hw1, hw2⟩ := wfExpr_or hwfx
+    intro tx c' h
     · simp only [typeOf] at h
       cases h1 : typeOf x₁ c env with
       | error e => rw [h1] at h; simp at h
       | ok r1 =>
         obtain ⟨ty1, cc1⟩ := r1
         rw [h1] at h; simp only [Except.bind_ok] at h
-        obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+        obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
         simp only [typeOfOr] at h
         split at h
         · rename_i heq
           simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
           refine ⟨[], ?_, fun _ => Iff.rfl⟩
-          rw [heq]; exact HasType.orShort x₁ x₂ c env cout1 (heq ▸ hHT1)
+          rw [heq]; exact HasType.orShort x₁ x₂ c env cout1 (heq ▸ hHT1) (DeadOperand.lax _ _)
         · rename_i heq
           cases h2 : typeOf x₂ c env with
           | error e => rw [h2] at h; simp at h
           | ok r2 =>
             obtain ⟨ty2, cc2⟩ := r2
             rw [h2] at h; simp only [Except.bind_ok] at h
-            obtain ⟨cout2, hHT2, hce2⟩ := ih2 hw2 h2
+            obtain ⟨cout2, hHT2, hce2⟩ := ih2 h2
             split at h
             · rename_i heq2
               simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
@@ -2152,7 +1864,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
           | ok r2 =>
             obtain ⟨ty2, cc2⟩ := r2
             rw [h2] at h; simp only [Except.bind_ok] at h
-            obtain ⟨cout2, hHT2, hce2⟩ := ih2 hw2 h2
+            obtain ⟨cout2, hHT2, hce2⟩ := ih2 h2
             split at h
             · rename_i heq2
               simp only [ok, Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, rfl⟩ := h
@@ -2177,15 +1889,14 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             · simp only [err, reduceCtorEq] at h
         · simp only [err, reduceCtorEq] at h
   | case6 c op₁ x₁ ih1 =>
-    intro tx c' hwfx h
-    obtain ⟨his, hw1⟩ := wfExpr_unaryApp hwfx
+    intro tx c' h
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c env with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
       simp only [typeOfUnaryApp] at h
       split at h
       · -- `.not`, `.bool bx`: pick not-rule by the operand's bool subtype
@@ -2223,34 +1934,30 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       · -- `.is ety₁`, `.entity ety₂`
         rename_i _ _ ety₁ ety₂ heq
         split at h
-        · -- ety₁ = ety₂ → `.tt`; tested type declared via `his`
+        · -- ety₁ = ety₂ → `.tt`
           rename_i hEq
           simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
           subst hEq
           refine ⟨[], ?_, fun _ => Iff.rfl⟩
           simp only [TypedExpr.typeOf]
-          exact HasType.unaryAppIsTrue ety₁ x₁ c env (his ety₁ rfl) (heq ▸ hHT1)
+          exact HasType.unaryAppIsTrue ety₁ x₁ c env (IsTargetOf.lax _ _) (heq ▸ hHT1)
         · -- ety₁ ≠ ety₂ → `.ff`
           rename_i hNe
           simp only [ok, Function.comp, Except.ok.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
           refine ⟨[], ?_, fun _ => Iff.rfl⟩
           simp only [TypedExpr.typeOf]
-          have hvdet : ValidDifferentEntityType ety₂ ety₁ env.ets env.acts := by
-            rcases his ety₁ rfl with _ | _
-            · exact ValidDifferentEntityType.inSchema _ _ _ _ _ ‹MapContains _ _ _› hNe
-            · exact ValidDifferentEntityType.isAction _ _ _ _ _ _ ‹MapContainsPairKey _ _ _ _› hNe
           -- Operand type `ety₂` is declared, by the entity-type declaredness invariant.
           have hvet₂ : ValidEntityType ety₂ env.ets env.acts :=
             typeOf_entityType_declared hwf h1 heq
-          exact HasType.unaryAppIsFalse ety₁ ety₂ x₁ c env hvet₂ hvdet (heq ▸ hHT1)
+          exact HasType.unaryAppIsFalse ety₁ ety₂ x₁ c env hvet₂ (IsTargetOf.lax _ _) hNe
+            (heq ▸ hHT1)
       · -- err (unexpected operand type)
         simp only [err, reduceCtorEq] at h
   | case7 c op₂ x₁ x₂ ih1 ih2 =>
-    intro tx c' hwfx h
+    intro tx c' h
     obtain ⟨ets, acts, reqty⟩ := env
-    obtain ⟨hw1, hw2⟩ := wfExpr_binaryApp hwfx
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c ⟨ets, acts, reqty⟩ with
     | error e => rw [h1] at h; simp at h
@@ -2262,8 +1969,8 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       | ok r2 =>
         obtain ⟨ty2, cc2⟩ := r2
         rw [h2] at h; simp only [Except.bind_ok] at h
-        obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
-        obtain ⟨cout2, hHT2, hce2⟩ := ih2 hw2 h2
+        obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
+        obtain ⟨cout2, hHT2, hce2⟩ := ih2 h2
         simp only [typeOfBinaryApp] at h
         split at h
         · -- eq
@@ -2328,11 +2035,11 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                 simp [typeOfInₑ, actionUID?, entityUID?, hc1]
               rw [htype]
               by_cases hdesc : acts.descendentOf uid₁ uid₂ = true
-              · rw [if_pos hdesc]
+              · rw [ite_eq_left hdesc]
                 exact ⟨[], HasType.binaryAppMemActionLitTt uid₁ uid₂ c ets acts reqty
                   (descendentOf_actionDescendentOf hmcA hnda hdesc) (hty1 ▸ hHT1) (hty2 ▸ hHT2),
                   fun _ => Iff.rfl⟩
-              · rw [if_neg hdesc]
+              · rw [ite_eq_right hdesc]
                 have hne : uid₁ ≠ uid₂ := fun he => by subst he; simp [ActionSchema.descendentOf] at hdesc
                 exact ⟨[], HasType.binaryAppMemActionLitFf uid₁ uid₂ c ets acts reqty
                   (notActionDescendentOf_of_false hnda hmcA hne (by simpa using hdesc))
@@ -2343,7 +2050,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             rw [typeOfInₑ_fallback hal]
             have hv1 := typeOf_entityType_declared hwf h1 heq1
             by_cases hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true
-            · rw [if_pos hdesc]
+            · rw [ite_eq_left hdesc]
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
               by_cases heqe : ety₁ = ety₂
               · subst heqe
@@ -2351,19 +2058,21 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                   (heq1 ▸ hHT1) (heq2 ▸ hHT2)
               · cases hf : ets.find? ety₁ with
                 | none =>
-                  -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
-                  exact (descendentOf_absurd_of_absent hwf heqe hf hdesc).elim
+                  exact HasType.binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
+                    (descendentOf_of_true_absent heqe hf hdesc) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
                 | some entry =>
                   exact HasType.binaryAppMemEntityEntity x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
                     (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
                     (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-            · rw [if_neg (by simpa using hdesc)]
+            · rw [ite_eq_right (by simpa using hdesc)]
               have hne : ety₁ ≠ ety₂ := fun he => by subst he; simp [TypeEnv.descendentOf] at hdesc
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
               cases hf : ets.find? ety₁ with
               | none =>
                 exact HasType.binaryAppMemActionEntityFf x₁ x₂ c ets acts reqty ety₁ ety₂
-                  (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+                  (mapNotContainsKey_of_find?_none hf) hne
+                  (not_maybeActionDescendentOf_of_false hne hf (by simpa using hdesc)) hal
+                  (heq1 ▸ hHT1) (heq2 ▸ hHT2)
               | some entry =>
                 have hv2 := typeOf_entityType_declared hwf h2 heq2
                 have hmc := find?_mapContains hf
@@ -2394,7 +2103,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                 simp [typeOfInₛ, actionUID?, entityUID?, entityUIDs?, hc1, huids]
               rw [htype]
               by_cases hany : uids.any (fun u => acts.descendentOf uid₁ u) = true
-              · rw [if_pos hany]
+              · rw [ite_eq_left hany]
                 simp only [List.any_eq_true] at hany
                 obtain ⟨u, hu_mem, hu_desc⟩ := hany
                 have hais := actionInSet_of_mem huids hu_mem
@@ -2402,7 +2111,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                 exact ⟨[], HasType.binaryAppMemActionLitSetTt uid₁ xs c ets acts reqty ety₂
                   (IsActionLitMemSet.mk uid₁ xs acts entry hmcA hall) hais
                   (hty1 ▸ hHT1) (heq2 ▸ hHT2), fun _ => Iff.rfl⟩
-              · rw [if_neg hany]
+              · rw [ite_eq_right hany]
                 have hnais : ¬ ActionInSet acts uid₁ xs :=
                   fun ha => hany (actionInSet_any ha huids hnda)
                 exact ⟨[], HasType.binaryAppMemActionLitSetFf uid₁ xs c ets acts reqty ety₂
@@ -2412,7 +2121,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             rw [typeOfInₛ_fallback hal]
             have hv1 := typeOf_entityType_declared hwf h1 heq1
             by_cases hdesc : TypeEnv.descendentOf ⟨ets, acts, reqty⟩ ety₁ ety₂ = true
-            · rw [if_pos hdesc]
+            · rw [ite_eq_left hdesc]
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
               by_cases heqe : ety₁ = ety₂
               · subst heqe
@@ -2420,19 +2129,21 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                   (heq1 ▸ hHT1) (heq2 ▸ hHT2)
               · cases hf : ets.find? ety₁ with
                 | none =>
-                  -- unreachable: `descendentOf` falls through to `maybeDescendentOf = false`
-                  exact (descendentOf_absurd_of_absent hwf heqe hf hdesc).elim
+                  exact HasType.binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
+                    (descendentOf_of_true_absent heqe hf hdesc) hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
                 | some entry =>
                   exact HasType.binaryAppMemEntitySet x₁ x₂ c ets acts reqty ety₁ ety₂ hv1
                     (descendentOf_of_true_inSchema hnd (find?_mapContains hf) hdesc) hal
                     (heq1 ▸ hHT1) (heq2 ▸ hHT2)
-            · rw [if_neg (by simpa using hdesc)]
+            · rw [ite_eq_right (by simpa using hdesc)]
               have hne : ety₁ ≠ ety₂ := fun he => by subst he; simp [TypeEnv.descendentOf] at hdesc
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
               cases hf : ets.find? ety₁ with
               | none =>
                 exact HasType.binaryAppMemActionSetFf x₁ x₂ c ets acts reqty ety₁ ety₂
-                  (mapNotContainsKey_of_find?_none hf) hne hal (heq1 ▸ hHT1) (heq2 ▸ hHT2)
+                  (mapNotContainsKey_of_find?_none hf) hne
+                  (not_maybeActionDescendentOf_of_false hne hf (by simpa using hdesc)) hal
+                  (heq1 ▸ hHT1) (heq2 ▸ hHT2)
               | some entry =>
                 have hv2 := typeOf_setElem_entityType_declared hwf h2 heq2
                 have hmc := find?_mapContains hf
@@ -2458,7 +2169,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             split at hht
             · -- tags? = some none  →  `.bool .ff`
               rename_i htags
-              -- the entry must be standard-with-no-tags (enum would be a genuine gap)
+              -- a standard entry without tags, or an enum
               simp only [EntitySchema.tags?, Option.map_eq_some_iff] at htags
               obtain ⟨entry, hfind, hea⟩ := htags
               have hmc := find?_mapContains hfind
@@ -2618,16 +2329,15 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
           simp only [err, reduceCtorEq] at h
   | case8 c x₁ a ih1 =>
     -- hasAttr
-    intro tx c' hwfx h
+    intro tx c' h
     obtain ⟨ets, acts, reqty⟩ := env
-    have hw1 := wfExpr_hasAttr hwfx
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c ⟨ets, acts, reqty⟩ with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
       simp only [typeOfHasAttr] at h
       split at h
       · -- receiver is a record
@@ -2643,9 +2353,9 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             have htw := typeOf_tyWf hwf h1; rw [heqty] at htw
             have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
             refine ⟨caps, ?_, fun _ => Iff.rfl⟩
-            show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty' caps
+            show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty' caps
             exact HasType.hasAttrRecord x₁ a c ⟨ets, acts, reqty⟩ rty ty' caps (heqty ▸ hHT1)
-              (hasAttrInRecord_found_of_ok hnd hfa hha)
+              (hasAttrInRecord_found_of_ok hfa hha)
         | none =>
           rw [show hasAttrInRecord rty x₁ a c true = ok (.bool .ff) from by
             simp only [hasAttrInRecord, hfa]] at h
@@ -2653,7 +2363,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
           obtain ⟨rfl, rfl⟩ := h
           obtain ⟨rtyList⟩ := rty
           refine ⟨[], ?_, fun _ => Iff.rfl⟩
-          show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+          show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
           exact HasType.hasAttrRecordNotFound x₁ a c ⟨ets, acts, reqty⟩ rtyList (heqty ▸ hHT1)
             (mapNotContainsKey_of_find?_none hfa)
       · -- receiver is an entity
@@ -2681,16 +2391,16 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
                 rw [hha] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
                 obtain ⟨rfl, rfl⟩ := h
                 refine ⟨caps, ?_, fun _ => Iff.rfl⟩
-                show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty' caps
+                show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ ty' caps
                 exact HasType.hasAttrEntity x₁ a c ets acts reqty ety ty' caps rty hmca
-                  (heqty ▸ hHT1) (hasAttrInRecord_found_of_ok hnd hfa hha)
+                  (heqty ▸ hHT1) (hasAttrInRecord_found_of_ok hfa hha)
             | none =>
               rw [show hasAttrInRecord rty x₁ a c false = ok (.bool .ff) from by
                 simp only [hasAttrInRecord, hfa]] at h
               simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
               obtain ⟨rfl, rfl⟩ := h
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
-              show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+              show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
               exact HasType.hasAttrEntityNotFound x₁ a c ets acts reqty ety rty hmca
                 (heqty ▸ hHT1) (mapNotContainsKey_of_find?_none hfa)
           | enum eids =>
@@ -2702,7 +2412,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
             obtain ⟨rfl, rfl⟩ := h
             refine ⟨[], ?_, fun _ => Iff.rfl⟩
-            show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+            show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
             exact HasType.hasAttrEnum x₁ a c ets acts reqty ety eids hmce (heqty ▸ hHT1)
         · -- attrs? ety = none
           rename_i hattrn
@@ -2714,22 +2424,21 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
               simp only [EntitySchema.attrs?, Option.map_eq_none_iff] at hattrn; exact hattrn
             obtain ⟨eid, entry, hpk⟩ := actionType?_mapContainsPairKey hact
             refine ⟨[], ?_, fun _ => Iff.rfl⟩
-            show HasType (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
+            show HasType false false (.hasAttr x₁ a) c ⟨ets, acts, reqty⟩ (.bool .ff) []
             exact HasType.hasAttrActionFf x₁ a c ets acts reqty ety eid entry
               (mapNotContainsKey_of_find?_none hfnone) hpk (heqty ▸ hHT1)
           · simp only [err, reduceCtorEq] at h
       · simp only [err, reduceCtorEq] at h
   | case9 c x₁ a as ih1 =>
     -- extHasAttr
-    intro tx c' hwfx h
-    have hw1 := wfExpr_extHasAttr hwfx
+    intro tx c' h
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c env with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, _⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, _⟩ := ih1 h1
       cases hc : typeOfExtHasAttr ty1 x₁ (a :: as) c env with
       | error e => rw [hc] at h; simp at h
       | ok r2 =>
@@ -2737,19 +2446,18 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         rw [hc] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
         obtain ⟨cout, hch, hce⟩ := extHasAttrChain_complete hwf as (typeOf_tyWf hwf h1) hc
-        exact ⟨cout, HasType.extHasAttr _ _ _ _ _ _ _ _ _ hHT1 hch, hce⟩
+        exact ⟨cout, HasType.extHasAttr _ _ _ _ _ _ _ _ _ hHT1 hch (.no _ _), hce⟩
   | case10 c x₁ a ih1 =>
     -- getAttr
-    intro tx c' hwfx h
+    intro tx c' h
     obtain ⟨ets, acts, reqty⟩ := env
-    have hw1 := wfExpr_getAttr hwfx
     simp only [typeOf] at h
     cases h1 : typeOf x₁ c ⟨ets, acts, reqty⟩ with
     | error e => rw [h1] at h; simp at h
     | ok r1 =>
       obtain ⟨ty1, cc1⟩ := r1
       rw [h1] at h; simp only [Except.bind_ok] at h
-      obtain ⟨cout1, hHT1, hce1⟩ := ih1 hw1 h1
+      obtain ⟨cout1, hHT1, hce1⟩ := ih1 h1
       simp only [typeOfGetAttr] at h
       split at h
       · -- receiver is a record
@@ -2762,9 +2470,9 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
           obtain ⟨rfl, rfl⟩ := h
           have htw := typeOf_tyWf hwf h1; rw [heqty] at htw
           have hnd : (rty.toList.map Prod.fst).Nodup := by cases htw with | record _ hn _ => exact hn
-          obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+          obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hg
           refine ⟨[], ?_, fun _ => Iff.rfl⟩
-          show HasType (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ aty []
+          show HasType false false (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ aty []
           exact HasType.getAttrRecord x₁ a c ⟨ets, acts, reqty⟩ rty aty (heqty ▸ hHT1) hgar
       · -- receiver is an entity
         rename_i ety heqty
@@ -2787,9 +2495,9 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
               obtain ⟨ancs, attrs, tags⟩ := s
               simp only [EntitySchemaEntry.attrs] at hea
               have hmca := mapContainsAttrs_of_standard hmc
-              obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hnd hg
+              obtain ⟨hgar, rfl⟩ := getAttrInRecord_of_ok hg
               refine ⟨[], ?_, fun _ => Iff.rfl⟩
-              show HasType (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ aty []
+              show HasType false false (.getAttr x₁ a) c ⟨ets, acts, reqty⟩ aty []
               exact HasType.getAttrEntity x₁ a c ets acts reqty ety aty rty (hea ▸ hmca)
                 (heqty ▸ hHT1) hgar
             | enum eids =>
@@ -2800,8 +2508,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
         · simp only [err, reduceCtorEq] at h
       · simp only [err, reduceCtorEq] at h
   | case11 c xs ih =>
-    intro tx c' hwfx h
-    have hws := wfExpr_set hwfx
+    intro tx c' h
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
     cases xs with
     | nil =>
@@ -2824,12 +2531,12 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
             obtain ⟨rfl, rfl⟩ := h
             obtain ⟨cc0, hx02⟩ := justType_ok hx0
             obtain ⟨cout0, hHT0, _⟩ :=
-              ih x₀ List.mem_cons_self (hws x₀ List.mem_cons_self) hx02
+              ih x₀ List.mem_cons_self hx02
             have hty' : ∀ x ∈ xs', ∀ {tx : TypedExpr} {cc : Capabilities},
-                typeOf x c env = .ok (tx, cc) → ∃ cout, HasType x c env tx.typeOf cout := by
+                typeOf x c env = .ok (tx, cc) → ∃ cout, HasType false false x c env tx.typeOf cout := by
               intro x hx tx cc htyp
               obtain ⟨cout, hHT, _⟩ :=
-                ih x (List.mem_cons_of_mem _ hx) (hws x (List.mem_cons_of_mem _ hx)) htyp
+                ih x (List.mem_cons_of_mem _ hx) htyp
               exact ⟨cout, hHT⟩
             have hlist := hasTypeList_of_mapM hty' hxs'
             have hallub := allLub_of_foldlM hfold
@@ -2839,8 +2546,7 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
               hHT0 hlist hallub
           · simp only [err, reduceCtorEq] at h
   | case12 c axs ih =>
-    intro tx c' hwfx h
-    obtain ⟨hsort, hws⟩ := wfExpr_record hwfx
+    intro tx c' h
     simp only [typeOf,
       List.mapM₂_eq_mapM (fun p : Attr × Expr => (typeOf p.2 c env).map (fun r => (p.1, r.1)))] at h
     cases hm : axs.mapM (fun ax => (typeOf ax.2 c env).map (fun r => (ax.1, r.1))) with
@@ -2849,41 +2555,28 @@ theorem typeOf_complete {env : TypeEnv} (hwf : EnvAssumptions env) :
       rw [hm] at h; simp only [Except.bind_ok, ok, Except.ok.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
       have hty' : ∀ ax ∈ axs, ∀ {tx : TypedExpr} {cc : Capabilities},
-          typeOf ax.2 c env = .ok (tx, cc) → ∃ cout, HasType ax.2 c env tx.typeOf cout := by
+          typeOf ax.2 c env = .ok (tx, cc) → ∃ cout, HasType false false ax.2 c env tx.typeOf cout := by
         intro ax hax tx cc htyp
         have hsz : sizeOf (ax.1, ax.2).snd < 1 + sizeOf axs := by
           have hlt := List.sizeOf_lt_of_mem hax
           obtain ⟨a, x⟩ := ax
           simp only [sizeOf, Prod._sizeOf_1] at *
           omega
-        have hmem : ax.2 ∈ axs.map Prod.snd := List.mem_map.mpr ⟨ax, hax, rfl⟩
-        obtain ⟨cout, hHT, _⟩ := ih ax.1 ax.2 hsz (hws ax.2 hmem) htyp
+        obtain ⟨cout, hHT, _⟩ := ih ax.1 ax.2 hsz htyp
         exact ⟨cout, hHT⟩
-      have hrec := hasTypeRecord_of_mapM hty' hm (fun a _ => KeyAbove.none a) hsort
-      have hkeys : (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))).map Prod.fst
-          = (axs.map Prod.fst).map id := by
-        rw [List.map_map, List.map_id]
-        exact mapM_record_keys hm
-      have hsortAty : (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))).SortedBy Prod.fst :=
-        (List.map_eq_implies_sortedBy hkeys).mpr hsort
-      have hmake := Map.make_eq_mk.mp hsortAty
-      refine ⟨[], ?_, fun _ => Iff.rfl⟩
-      show HasType (.record axs) c env
-        (.record (Map.make (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))))) []
-      rw [hmake]
-      exact HasType.record axs c env (atys.map (fun p => (p.1, Qualified.required p.2.typeOf))) hrec
+      exact ⟨[], HasType.record axs c env _ (RecordTypeOf.lax _ _ _ _ (hasTypeFields_of_mapM hty' hm)),
+        fun _ => Iff.rfl⟩
   | case13 c xfn xs ih =>
-    intro tx c' hwfx h
-    have hws := wfExpr_call hwfx
+    intro tx c' h
     simp only [typeOf, List.mapM₁_eq_mapM (fun x => justType (typeOf x c env))] at h
     cases hm : xs.mapM (fun x => justType (typeOf x c env)) with
     | error e => rw [hm] at h; simp at h
     | ok tys =>
       rw [hm] at h; simp only [Except.bind_ok] at h
       have hty' : ∀ x ∈ xs, ∀ {tx : TypedExpr} {cc : Capabilities},
-          typeOf x c env = .ok (tx, cc) → ∃ cout, HasType x c env tx.typeOf cout := by
+          typeOf x c env = .ok (tx, cc) → ∃ cout, HasType false false x c env tx.typeOf cout := by
         intro x hx tx cc htyp
-        obtain ⟨cout, hHT, _⟩ := ih x hx (hws x hx) htyp
+        obtain ⟨cout, hHT, _⟩ := ih x hx htyp
         exact ⟨cout, hHT⟩
       have hlist := hasTypeList_of_mapM hty' hm
       obtain ⟨hExt, rfl⟩ := hasTypeExtCall_of_typeOfCall hlist h
@@ -2895,7 +2588,6 @@ theorem Schema.WfTypeEnv.envAssumptions {env : TypeEnv} (hwf : Schema.WfTypeEnv 
     EnvAssumptions env where
   ets_keys_nodup := wfTypeEnv_ets_nodup hwf
   acts_keys_nodup := wfTypeEnv_acts_nodup hwf
-  action_ancestry_same_type := wfTypeEnv_maybeDescendentOf_false hwf
   attrs_tyWf := wfTypeEnv_attrs?_tyWf hwf
   tags_tyWf := wfTypeEnv_tags?_tyWf hwf
   context_tyWf := wfTypeEnv_context_tyWf hwf
@@ -2903,19 +2595,46 @@ theorem Schema.WfTypeEnv.envAssumptions {env : TypeEnv} (hwf : Schema.WfTypeEnv 
   tags_typeValid := wfTypeEnv_tags?_typeValid hwf
   reqty_valid := wfTypeEnv_reqty_valid hwf
 
-/-- `HasType` characterizes the typechecker: on an environment satisfying `EnvAssumptions` and
-    an expression satisfying `WfExpr`, the relation derives type `ty` for `x` exactly when
-    `typeOf` succeeds with a typed expression of type `ty`. Output capabilities agree up to
-    `CapsEquiv` (see `hasType_sound` and `typeOf_complete`). -/
+/-- `HasType false false` characterizes the typechecker: on an environment satisfying
+    `EnvAssumptions`, the relation derives type `ty` for `x` exactly when `typeOf` succeeds with
+    a typed expression of type `ty`. Output capabilities agree up to `CapsEquiv` (see
+    `hasType_sound` and `typeOf_complete`). -/
 theorem hasType_iff_typeOf_ok {env : TypeEnv} (hwf : EnvAssumptions env)
-    {x : Expr} (hwfx : WfExpr env x) {c : Capabilities} {ty : CedarType} :
-    (∃ cout, HasType x c env ty cout) ↔ (∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty) := by
+    {x : Expr} {c : Capabilities} {ty : CedarType} :
+    (∃ cout, HasType false false x c env ty cout) ↔
+      (∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty) := by
   constructor
   · rintro ⟨cout, hHT⟩
     obtain ⟨tx, c', hok, hty, _⟩ := hasType_sound hwf hHT
     exact ⟨tx, c', hok, hty⟩
   · rintro ⟨tx, c', hok, hty⟩
-    obtain ⟨cout, hHT, _⟩ := typeOf_complete hwf hwfx hok
+    obtain ⟨cout, hHT, _⟩ := typeOf_complete hwf hok
+    exact ⟨cout, hty ▸ hHT⟩
+
+/-- **Strict completeness.** On an environment satisfying `EnvAssumptions`, every successful run
+    of `typeOf` on an expression with declared entities, in the parser's image, is witnessed by
+    a `HasType true true` derivation (up to `CapsEquiv` on the output capabilities). -/
+theorem typeOf_complete_strict {env : TypeEnv} (hwf : EnvAssumptions env) {x : Expr}
+    {c : Capabilities} {tx : TypedExpr} {c' : Capabilities} (hok : typeOf x c env = .ok (tx, c'))
+    (hd : EntitiesDeclared env.ets env.acts x) (hk : ParserImage x) :
+    ∃ cout, HasType true true x c env tx.typeOf cout ∧ CapsEquiv cout c' := by
+  obtain ⟨cout, hHT, hc⟩ := typeOf_complete hwf hok
+  exact ⟨cout, hHT.strengthen hd hk, hc⟩
+
+/-- `HasType true true` characterizes the typechecker on expressions meeting the syntactic
+    conditions: on an environment satisfying `EnvAssumptions`, the relation derives type `ty`
+    for `x` exactly when `typeOf` succeeds with a typed expression of type `ty` and `x` has
+    declared entities and is in the parser's image (`ParserImage`). -/
+theorem hasType_strict_iff_typeOf_ok {env : TypeEnv} (hwf : EnvAssumptions env)
+    {x : Expr} {c : Capabilities} {ty : CedarType} :
+    (∃ cout, HasType true true x c env ty cout) ↔
+      (∃ tx c', typeOf x c env = .ok (tx, c') ∧ tx.typeOf = ty) ∧
+        EntitiesDeclared env.ets env.acts x ∧ ParserImage x := by
+  constructor
+  · rintro ⟨cout, hHT⟩
+    exact ⟨(hasType_iff_typeOf_ok hwf).mp ⟨cout, hHT.weaken⟩, hHT.strict_syntax⟩
+  · rintro ⟨⟨tx, c', hok, hty⟩, hd, hk⟩
+    obtain ⟨cout, hHT, _⟩ := typeOf_complete_strict hwf hok hd hk
     exact ⟨cout, hty ▸ hHT⟩
 
 end Cedar.Validation.Relational

@@ -24,9 +24,12 @@ public import Cedar.Validation.Relational.Typing
 
 `ValidPolicy ets acts envs p` holds when `validate` accepts `p` against environments `envs`
 sharing the entity schema `ets` and action schema `acts` (`validate` uses
-`schema.environments`): every entity the policy names is declared, the policy is Boolean-typed
+`schema.environments`): every entity the policy names is declared (`EntitiesDeclared`, defined
+with the typing relation in `Typing.lean`), the policy is Boolean-typed (`HasType false false`)
 in every environment once `action` is replaced by that environment's action, and it is not
-`.ff` in all of them. Each relation below mirrors one function of the validator. -/
+`.ff` in all of them. Each relation below mirrors one function of the validator.
+`ValidPolicyStrict` is the same with `HasType true true`, which also requires the policy to be in
+the image of the parser (`ParserImage`). -/
 
 namespace Cedar.Validation.Relational
 
@@ -108,76 +111,32 @@ inductive SubstAction : EntityUID → Expr → Expr → Prop where
       SubstAction uid (.record axs) (.record axs')
   | call : ∀ uid f xs xs', SubstActionList uid xs xs' → SubstAction uid (.call f xs) (.call f xs')
 
+/-- `SubstAction` on each expression of a list. -/
 inductive SubstActionList : EntityUID → List Expr → List Expr → Prop where
   | nil : ∀ uid, SubstActionList uid [] []
   | cons : ∀ uid x xs x' xs', SubstAction uid x x' → SubstActionList uid xs xs' →
       SubstActionList uid (x :: xs) (x' :: xs')
 
+/-- `SubstAction` on each field of a record literal. -/
 inductive SubstActionRecord : EntityUID → List (Attr × Expr) → List (Attr × Expr) → Prop where
   | nil : ∀ uid, SubstActionRecord uid [] []
   | cons : ∀ uid a x axs x' axs', SubstAction uid x x' → SubstActionRecord uid axs axs' →
       SubstActionRecord uid ((a, x) :: axs) ((a, x') :: axs')
 end
 
-/-! ## Declared entities (`checkEntities`) -/
-
-mutual
-/-- `checkEntities` succeeds: every entity literal is valid and every `is` type declared. -/
-inductive EntitiesDeclared : EntitySchema → ActionSchema → Expr → Prop where
-  | litBool : ∀ ets acts b, EntitiesDeclared ets acts (.lit (.bool b))
-  | litInt : ∀ ets acts i, EntitiesDeclared ets acts (.lit (.int i))
-  | litString : ∀ ets acts s, EntitiesDeclared ets acts (.lit (.string s))
-  | litEntity : ∀ ets acts ety eid, ValidEntityUID ety eid ets acts →
-      EntitiesDeclared ets acts (.lit (.entityUID ⟨ety, eid⟩))
-  | var : ∀ ets acts v, EntitiesDeclared ets acts (.var v)
-  | ite : ∀ ets acts a b c, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
-      EntitiesDeclared ets acts c → EntitiesDeclared ets acts (.ite a b c)
-  | and : ∀ ets acts a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
-      EntitiesDeclared ets acts (.and a b)
-  | or : ∀ ets acts a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
-      EntitiesDeclared ets acts (.or a b)
-  | is : ∀ ets acts ety a, ValidEntityType ety ets acts → EntitiesDeclared ets acts a →
-      EntitiesDeclared ets acts (.unaryApp (.is ety) a)
-  | not : ∀ ets acts a, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.unaryApp .not a)
-  | neg : ∀ ets acts a, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.unaryApp .neg a)
-  | isEmpty : ∀ ets acts a, EntitiesDeclared ets acts a →
-      EntitiesDeclared ets acts (.unaryApp .isEmpty a)
-  | like : ∀ ets acts p a, EntitiesDeclared ets acts a →
-      EntitiesDeclared ets acts (.unaryApp (.like p) a)
-  | binaryApp : ∀ ets acts op a b, EntitiesDeclared ets acts a → EntitiesDeclared ets acts b →
-      EntitiesDeclared ets acts (.binaryApp op a b)
-  | getAttr : ∀ ets acts a k, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.getAttr a k)
-  | hasAttr : ∀ ets acts a k, EntitiesDeclared ets acts a → EntitiesDeclared ets acts (.hasAttr a k)
-  | extHasAttr : ∀ ets acts a k ks, EntitiesDeclared ets acts a →
-      EntitiesDeclared ets acts (.extHasAttr a k ks)
-  | set : ∀ ets acts xs, EntitiesDeclaredList ets acts xs → EntitiesDeclared ets acts (.set xs)
-  | record : ∀ ets acts axs, EntitiesDeclaredRecord ets acts axs →
-      EntitiesDeclared ets acts (.record axs)
-  | call : ∀ ets acts f xs, EntitiesDeclaredList ets acts xs →
-      EntitiesDeclared ets acts (.call f xs)
-
-inductive EntitiesDeclaredList : EntitySchema → ActionSchema → List Expr → Prop where
-  | nil : ∀ ets acts, EntitiesDeclaredList ets acts []
-  | cons : ∀ ets acts x xs, EntitiesDeclared ets acts x → EntitiesDeclaredList ets acts xs →
-      EntitiesDeclaredList ets acts (x :: xs)
-
-inductive EntitiesDeclaredRecord : EntitySchema → ActionSchema → List (Attr × Expr) → Prop where
-  | nil : ∀ ets acts, EntitiesDeclaredRecord ets acts []
-  | cons : ∀ ets acts a x axs, EntitiesDeclared ets acts x → EntitiesDeclaredRecord ets acts axs →
-      EntitiesDeclaredRecord ets acts ((a, x) :: axs)
-end
-
 /-! ## Validation -/
 
 /-- The policy expression `x`, with `action` replaced by each environment's action, is
-    Boolean-typed in each of `envs`; `bs` are its types. -/
-inductive TypedInEnvs : List TypeEnv → Expr → List BoolType → Prop where
-  | nil : ∀ x, TypedInEnvs [] x []
+    Boolean-typed (`HasType decl syn`) in each of `envs`; `bs` are its types. `validate` uses
+    `TypedInEnvs false false`; `TypedInEnvs true true` also guarantees the syntactic conditions
+    (`TypedInEnvs.validPolicy`). -/
+inductive TypedInEnvs (decl syn : Bool) : List TypeEnv → Expr → List BoolType → Prop where
+  | nil : ∀ x, TypedInEnvs decl syn [] x []
   | cons : ∀ ets acts p act r ctx x x' b cout envs bs,
       SubstAction act x x' →
-      HasType x' [] ⟨ets, acts, ⟨p, act, r, ctx⟩⟩ (.bool b) cout →
-      TypedInEnvs envs x bs →
-      TypedInEnvs (⟨ets, acts, ⟨p, act, r, ctx⟩⟩ :: envs) x (b :: bs)
+      HasType decl syn x' [] ⟨ets, acts, ⟨p, act, r, ctx⟩⟩ (.bool b) cout →
+      TypedInEnvs decl syn envs x bs →
+      TypedInEnvs decl syn (⟨ets, acts, ⟨p, act, r, ctx⟩⟩ :: envs) x (b :: bs)
 
 /-- Some type in the list is not `.ff`. -/
 inductive SomeNotFf : List BoolType → Prop where
@@ -189,8 +148,20 @@ inductive ValidPolicy : EntitySchema → ActionSchema → List TypeEnv → Polic
   | mk : ∀ ets acts envs p x bs,
       PolicyExpr p x →
       EntitiesDeclared ets acts x →
-      TypedInEnvs envs x bs →
+      TypedInEnvs false false envs x bs →
       SomeNotFf bs →
       ValidPolicy ets acts envs p
+
+/-- `ValidPolicy` with the strict typing relation: the policy is typed by `HasType true true` in
+    every environment, so it is also in the image of the parser (`ParserImage`). These are
+    exactly the policies `validate` accepts that the parser can produce
+    (`validate_and_parserImage_iff_strict`). -/
+inductive ValidPolicyStrict : EntitySchema → ActionSchema → List TypeEnv → Policy → Prop where
+  | mk : ∀ ets acts envs p x bs,
+      PolicyExpr p x →
+      EntitiesDeclared ets acts x →
+      TypedInEnvs true true envs x bs →
+      SomeNotFf bs →
+      ValidPolicyStrict ets acts envs p
 
 end Cedar.Validation.Relational
