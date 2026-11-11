@@ -28,7 +28,7 @@ use cedar_policy_generators::{
 };
 use cedar_testing::cedar_test_impl::time_function;
 use libfuzzer_sys::arbitrary::{self, Arbitrary, Unstructured};
-use log::{debug, info};
+use log::{debug, info, warn};
 
 /// Input for validation DRT fuzz targets
 #[derive(Debug, Clone)]
@@ -86,6 +86,34 @@ pub fn fuzz_target<const TYPE_DIRECTED: bool>(input: FuzzTargetInput<TYPE_DIRECT
         // run the policy through both validators and compare the result
         let (_, total_dur) =
             time_function(|| run_val_test(&def_impl, schema, &policyset, ValidationMode::Strict));
+        info!("{}{}", TOTAL_MSG, total_dur.as_nanos());
+    }
+}
+
+/// Validation DRT on inputs from the generators Specimen derives from the relational specification:
+/// a schema, and policies valid for it, drawn by Lean from `seed`. Every policy is valid by
+/// construction (`validate_generated`), so this checks that Rust agrees with Lean on valid inputs.
+#[cfg(feature = "specimen-gen")]
+pub fn fuzz_target_specimen(seed: u64) {
+    initialize_log();
+    let def_impl = CedarLeanFfi::new();
+    let (size, budget, count) = (8, 8, 4);
+    let Some(generated) = def_impl
+        .generate_schema_policies(seed, size, budget, count)
+        .expect("the derived generators failed")
+    else {
+        return;
+    };
+    let schema = generated.schema;
+    debug!("Schema: {:?}", schema);
+    for e in generated.undecodable {
+        warn!("generated policy not decoded by Rust: {e}");
+    }
+    for policyset in generated.policies {
+        debug!("Policies: {policyset}");
+        let (_, total_dur) = time_function(|| {
+            run_val_test(&def_impl, schema.clone(), &policyset, ValidationMode::Strict)
+        });
         info!("{}{}", TOTAL_MSG, total_dur.as_nanos());
     }
 }

@@ -26,6 +26,8 @@ use crate::datatypes::{
     TpeResponse, TpeResponseInner, ValidationResponse,
 };
 use crate::err::FfiError;
+#[cfg(feature = "specimen-gen")]
+use crate::lean_object::call_lean_ffi_function;
 use crate::lean_object::{
     OwnedLeanObject, call_lean_ffi_takes_obj_and_protobuf,
     call_lean_ffi_takes_obj_protobuf_and_string, call_lean_ffi_takes_protobuf,
@@ -47,12 +49,34 @@ mod test_implementation;
 
 // Import and signal Rust to link the exported Lean FFI code (which are C functions at this point)
 #[allow(clippy::duplicated_attributes)]
-#[link(name = "Cedar_Cedar", kind = "static")]
-#[link(name = "Cedar_Cedar_SymCC", kind = "static")]
-#[link(name = "Cedar_Protobuf", kind = "static")]
-#[link(name = "Cedar_CedarProto", kind = "static")]
-#[link(name = "batteries_Batteries", kind = "static")]
-#[link(name = "Cedar_CedarFFI", kind = "static")]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "Cedar_Cedar", kind = "static")
+)]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "Cedar_Cedar_SymCC", kind = "static")
+)]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "Cedar_Protobuf", kind = "static")
+)]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "Cedar_CedarProto", kind = "static")
+)]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "batteries_Batteries", kind = "static")
+)]
+#[cfg_attr(
+    not(feature = "specimen-gen"),
+    link(name = "Cedar_CedarFFI", kind = "static")
+)]
+#[cfg_attr(
+    feature = "specimen-gen",
+    link(name = "CedarFFIGen_all", kind = "static")
+)]
 unsafe extern "C" {
     fn runCheckNeverErrors(schema: *mut lean_object, req: *mut lean_object) -> *mut lean_object;
     fn runCheckNeverErrorsWithCex(
@@ -294,7 +318,12 @@ unsafe extern "C" {
 
     fn checkPartialRequestConsistency(req: *mut lean_object) -> *mut lean_object;
 
+    #[cfg(not(feature = "specimen-gen"))]
     fn initialize_Cedar_CedarFFI(builtin: u8, ob: *mut lean_object) -> *mut lean_object;
+    #[cfg(feature = "specimen-gen")]
+    fn initialize_Cedar_CedarFFIGen(builtin: u8, ob: *mut lean_object) -> *mut lean_object;
+    #[cfg(feature = "specimen-gen")]
+    fn generateSchemaPolicies(req: *mut lean_object) -> *mut lean_object;
 
     fn loadProtobufSchema(req: *mut lean_object) -> *mut lean_object;
 
@@ -592,7 +621,10 @@ impl CedarLeanFfi {
                 // following: https://lean-lang.org/lean4/doc/dev/ffi.html
                 lean_initialize_runtime_module_locked();
                 let builtin: u8 = 1;
+                #[cfg(not(feature = "specimen-gen"))]
                 let res = initialize_Cedar_CedarFFI(builtin, lean_io_mk_world());
+                #[cfg(feature = "specimen-gen")]
+                let res = initialize_Cedar_CedarFFIGen(builtin, lean_io_mk_world());
                 if lean_io_result_is_ok(res) {
                     lean_dec_ref(res);
                 } else {
@@ -1374,6 +1406,85 @@ impl CedarLeanFfi {
     }
 }
 
+#[cfg(feature = "specimen-gen")]
+impl CedarLeanFfi {
+    /// A schema and up to `count` policies valid for it, from the generators Specimen derives from
+    /// the relational specification (`CedarFFI.Generate`), at the generators' `size`, with at most
+    /// `budget` request environments, from `seed`. `None` if no schema was found. A policy that
+    /// Rust does not decode is left out and counted.
+    pub fn generate_schema_policies(
+        &self,
+        seed: u64,
+        size: u32,
+        budget: u32,
+        count: u32,
+    ) -> Result<Option<Generated>, FfiError> {
+        use cedar_policy::proto::traits::Protobuf;
+        let params =
+            serde_json::json!({ "seed": seed, "size": size, "budget": budget, "count": count });
+        let arg = OwnedLeanObject::new_array_from_buf(params.to_string().as_bytes());
+        let response = unsafe { call_lean_ffi_function(generateSchemaPolicies, arg) };
+        let bytes = response.as_borrowed().as_byte_array()?;
+        let mut chunks = Frames(bytes);
+        let Some(schema) = chunks.next() else {
+            return Ok(None);
+        };
+        let decode = |what: &str, e: cedar_policy::proto::traits::DecodeError| {
+            FfiError::LeanDeserializationError(format!("generated {what} does not decode: {e}"))
+        };
+        let schema = cedar_policy::Schema::decode(schema).map_err(|e| decode("schema", e))?;
+        let n = chunks.u32().unwrap_or(0);
+        let mut generated = Generated {
+            schema,
+            policies: Vec::new(),
+            undecodable: Vec::new(),
+        };
+        for b in (0..n).filter_map(|_| chunks.next()) {
+            match cedar_policy::PolicySet::decode(b) {
+                Ok(p) => generated.policies.push(p),
+                Err(e) => generated.undecodable.push(e.to_string()),
+            }
+        }
+        Ok(Some(generated))
+    }
+}
+
+/// What [`CedarLeanFfi::generate_schema_policies`] returns.
+#[cfg(feature = "specimen-gen")]
+#[derive(Debug)]
+pub struct Generated {
+    /// The schema.
+    pub schema: cedar_policy::Schema,
+    /// Policies valid for it, each in a policy set of its own.
+    pub policies: Vec<cedar_policy::PolicySet>,
+    /// Why each policy Rust did not decode was rejected.
+    pub undecodable: Vec<String>,
+}
+
+/// Length-prefixed (u32, little-endian) frames.
+#[cfg(feature = "specimen-gen")]
+struct Frames<'a>(&'a [u8]);
+
+#[cfg(feature = "specimen-gen")]
+impl<'a> Frames<'a> {
+    fn u32(&mut self) -> Option<u32> {
+        let (n, rest) = self.0.split_first_chunk::<4>()?;
+        self.0 = rest;
+        Some(u32::from_le_bytes(*n))
+    }
+}
+
+#[cfg(feature = "specimen-gen")]
+impl<'a> Iterator for Frames<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<&'a [u8]> {
+        let n = self.u32()? as usize;
+        let (frame, rest) = (self.0.get(..n)?, self.0.get(n..)?);
+        self.0 = rest;
+        Some(frame)
+    }
+}
+
 /// uninitialize lean thread when done
 impl Drop for CedarLeanFfi {
     fn drop(&mut self) {
@@ -1385,12 +1496,34 @@ impl Drop for CedarLeanFfi {
 mod test {
     /***************** Copy Extern Block so that Tests are also linked with lean code *****************/
     #[allow(clippy::duplicated_attributes)]
-    #[link(name = "Cedar_Cedar", kind = "static")]
-    #[link(name = "Cedar_Cedar_SymCC", kind = "static")]
-    #[link(name = "Cedar_Protobuf", kind = "static")]
-    #[link(name = "Cedar_CedarProto", kind = "static")]
-    #[link(name = "batteries_Batteries", kind = "static")]
-    #[link(name = "Cedar_CedarFFI", kind = "static")]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Cedar", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Cedar_SymCC", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Protobuf", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_CedarProto", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "batteries_Batteries", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_CedarFFI", kind = "static")
+    )]
+    #[cfg_attr(
+        feature = "specimen-gen",
+        link(name = "CedarFFIGen_all", kind = "static")
+    )]
     unsafe extern "C" {}
 
     use cedar_policy::{
@@ -2591,5 +2724,35 @@ action "" appliesTo {
         ffi.asserts_of_check_never_errors(&policy, lean_schema, &req_env)
             .expect("Lean call unexpectedly failed for asserts_of_check_never_errors")
             .expect("SymCC unexpectedly failed to encode/serialize the pathological term");
+    }
+
+    /// The derived generators' schemas decode in Rust, and their policies pass Rust's validator.
+    #[cfg(feature = "specimen-gen")]
+    #[test]
+    fn generated_policies_validate() {
+        let ffi = CedarLeanFfi::new();
+        let mut policies = 0;
+        for seed in 0..16 {
+            let generated = ffi
+                .generate_schema_policies(seed, 6, 4, 4)
+                .expect("generation failed")
+                .expect("no schema found");
+            assert!(
+                generated.undecodable.is_empty(),
+                "seed {seed}: {:?}",
+                generated.undecodable
+            );
+            let validator = cedar_policy::Validator::new(generated.schema);
+            for set in generated.policies {
+                let res = validator.validate(&set, ValidationMode::Strict);
+                assert!(res.validation_passed(), "seed {seed}: {set}\n{res}");
+                policies += 1;
+            }
+        }
+        assert_eq!(
+            policies,
+            16 * 4,
+            "a seed gave fewer policies than asked for"
+        );
     }
 }

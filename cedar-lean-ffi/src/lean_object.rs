@@ -27,7 +27,8 @@ use thiserror::Error;
 
 use lean_sys::{
     lean_alloc_sarray, lean_ctor_get, lean_ctor_num_objs, lean_dec, lean_inc, lean_is_ctor,
-    lean_is_string, lean_object, lean_ptr_tag, lean_sarray_object, lean_string_cstr,
+    lean_is_sarray, lean_is_string, lean_object, lean_ptr_tag, lean_sarray_cptr,
+    lean_sarray_object, lean_sarray_size, lean_string_cstr,
 };
 
 use crate::FfiError;
@@ -43,6 +44,8 @@ pub enum LeanObjectError {
     ExpectedConstructor(u8),
     #[error("expected lean sting object, but saw tag {0}")]
     ExpectedString(u8),
+    #[error("expected lean byte array, but saw tag {0}")]
+    ExpectedByteArray(u8),
     #[error("string could not be decoded as utf8: {0}")]
     Utf8Error(Utf8Error),
     #[error("constructor index out of bounds {idx}, constructor contains {num_objs} objects")]
@@ -163,6 +166,19 @@ impl<'a> LeanObject<'a> {
             CStr::from_ptr(lean_obj_p as *const c_char)
         };
         cstr.to_str().map_err(LeanObjectError::Utf8Error)
+    }
+
+    /// This `LeanObject` as the bytes of a Lean `ByteArray`.
+    pub fn as_byte_array(&self) -> Result<&'a [u8], LeanObjectError> {
+        if !unsafe { lean_is_sarray(self.0) } {
+            return Err(LeanObjectError::ExpectedByteArray(self.tag()));
+        }
+        unsafe {
+            Ok(std::slice::from_raw_parts(
+                lean_sarray_cptr(self.0),
+                lean_sarray_size(self.0),
+            ))
+        }
     }
 
     /// Deserialize this `LeanObject` into type `T`, assuming that it is a Lean

@@ -56,6 +56,10 @@ lean_lib CedarProto where
 lean_lib CedarFFI where
   defaultFacets := #[LeanLib.staticFacet]
 
+-- The FFI with the derived generators (`CedarFFI.Generate`), for the Rust harness's `specimen-gen`
+-- feature, which links everything it reaches (`cedar-lean-ffi/build_lean_lib_gen.sh`).
+lean_lib CedarFFIGen
+
 /-- `--load-dynlib` for the compiled libraries of Specimen, Basalt and their dependencies that have
 been built (their `:dynlib` facets), so that the derivations and proofs run Specimen's and
 Basalt's tactics compiled; a library not built is left out, and its code is interpreted (the same

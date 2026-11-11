@@ -16,6 +16,7 @@ The table below lists all available fuzz targets, including which component of t
 | [`rbac`](fuzz/fuzz_targets/rbac.rs) | Authorizer | DRT | Diff test authorizer on sets of RBAC policies, including template instantiations |
 | [`validation-drt-type-directed`](fuzz/fuzz_targets/validation-drt-type-directed.rs) | Validator | DRT | Diff test validation using (mostly) well-typed inputs |
 | [`validation-drt`](fuzz/fuzz_targets/validation-drt.rs) | Validator | DRT | Diff test validation |
+| [`validation-drt-specimen`](fuzz/fuzz_targets/validation-drt-specimen.rs) | Validator | DRT | Diff test validation on schemas and valid policies from the generators Specimen derives from the relational specification (see below) |
 | [`entity-validation`](fuzz/fuzz_targets/entity-validation.rs) | Entity Validator | DRT | Diff test entity validation |
 | [`request-validation`](fuzz/fuzz_targets/request-validation.rs) | Request Validator | DRT | Diff test request validation |
 | [`partial-schema-validation-drt`](fuzz/fuzz_targets/partial-schema-validation-drt.rs) | Entity and Request Validator (RFC 116) | DRT | Diff test entity and request validation against a schema that declares some entity types and actions `external` |
@@ -81,6 +82,21 @@ The table below lists all available fuzz targets, including which component of t
 | [`protobuf-encode-gen-request`](fuzz/fuzz_targets/protobuf-encode/protobuf-encode-gen-request.rs) | Protobuf encoder | PBT | Test round trip property: decode ∘ encode == id for generated requests |
 | [`protobuf-encode-gen-schema`](fuzz/fuzz_targets/protobuf-encode/protobuf-encode-gen-schema.rs) | Protobuf encoder | PBT | Test round trip property: decode ∘ encode == id (up to schema equivalence) for generated schemas |
 | [`protobuf-encode-gen-template`](fuzz/fuzz_targets/protobuf-encode/protobuf-encode-gen-template.rs) | Protobuf encoder | PBT | Test round trip property: decode ∘ encode == id for generated templates |
+
+## Inputs from the derived generators
+
+`validation-drt-specimen` draws its inputs from the generators Specimen derives from the relational
+specification (`cedar-lean/CedarGen`): a well-formed schema, then policies valid for it, both
+generated in Lean (`cedar-lean/CedarFFI/Generate.lean`). The fuzzer's input is their seed. The
+generators bring in Specimen, Basalt and part of Mathlib, so they are behind the `specimen-gen`
+feature, and the Lean side is one archive of everything they reach:
+
+```bash
+source set_env_vars.sh
+../cedar-lean-ffi/build_lean_lib_gen.sh      # after `lake build CedarGen` in cedar-lean
+cd fuzz
+cargo fuzz run -s none --features specimen-gen validation-drt-specimen
+```
 
 ## Generating corpus tests
 

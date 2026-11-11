@@ -180,12 +180,34 @@ impl CedarLeanFfi {
 mod test {
     /***************** Copy Extern Block so that Tests are also linked with lean code *****************/
     #[allow(clippy::duplicated_attributes)]
-    #[link(name = "Cedar_Cedar", kind = "static")]
-    #[link(name = "Cedar_Cedar_SymCC", kind = "static")]
-    #[link(name = "Cedar_Protobuf", kind = "static")]
-    #[link(name = "Cedar_CedarProto", kind = "static")]
-    #[link(name = "batteries_Batteries", kind = "static")]
-    #[link(name = "Cedar_CedarFFI", kind = "static")]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Cedar", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Cedar_SymCC", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_Protobuf", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_CedarProto", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "batteries_Batteries", kind = "static")
+    )]
+    #[cfg_attr(
+        not(feature = "specimen-gen"),
+        link(name = "Cedar_CedarFFI", kind = "static")
+    )]
+    #[cfg_attr(
+        feature = "specimen-gen",
+        link(name = "CedarFFIGen_all", kind = "static")
+    )]
     unsafe extern "C" {}
 
     use cedar_policy::{

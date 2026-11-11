@@ -6,6 +6,9 @@ publish = false
 
 [features]
 integration-testing = []
+# Link the derived generators (`CedarFFIGen`, built by `build_lean_lib_gen.sh`) and expose
+# `generate_schema_policies`.
+specimen-gen = []
 
 [dependencies]
 cedar-policy = { version = "*", path = "../cedar/cedar-policy", features = ["protobufs", "tpe"] }

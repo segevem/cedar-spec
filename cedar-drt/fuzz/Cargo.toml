@@ -47,6 +47,8 @@ libc = "0.2.177"
 
 [features]
 input-generation = []
+# Targets on inputs from the derived generators; needs `cedar-lean-ffi/build_lean_lib_gen.sh`.
+specimen-gen = ["cedar-lean-ffi/specimen-gen"]
 
 [patch.crates-io]
 cedar-policy = { path = "../../cedar/cedar-policy" }
@@ -122,6 +124,13 @@ name = "entity-slicing-drt-type-directed"
 path = "fuzz_targets/entity-slicing-drt-type-directed.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "validation-drt-specimen"
+path = "fuzz_targets/validation-drt-specimen.rs"
+test = false
+doc = false
+required-features = ["specimen-gen"]
 
 [[bin]]
 name = "validation-drt"

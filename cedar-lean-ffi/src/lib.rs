@@ -27,5 +27,7 @@ pub use datatypes::{
     IpAddr, Op, Term, TermPrim, TermPrimType, TermType, TermVar, Uuf, Value,
 };
 pub use err::FfiError;
+#[cfg(feature = "specimen-gen")]
+pub use lean_ffi::Generated;
 pub use lean_ffi::{CedarLeanFfi, LeanSchema};
 pub use messages::tpe::{UncheckedPartialEntity, UncheckedPartialRequest};

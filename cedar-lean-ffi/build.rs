@@ -54,6 +54,11 @@ fn main() {
     println!(
         "cargo:rustc-link-search=native={CEDAR_LEAN_DIR}/.lake/packages/batteries/.lake/build/lib"
     );
+    // With `specimen-gen`, the FFI is one archive of everything `CedarFFIGen` reaches, some of which
+    // imports Lake.
+    if std::env::var_os("CARGO_FEATURE_SPECIMEN_GEN").is_some() {
+        println!("cargo:rustc-link-lib=dylib=Lake_shared");
+    }
     println!("cargo:rerun-if-changed={LEAN_BUILD_DIR}");
     println!("cargo:rerun-if-changed={lean_dir}");
     println!("cargo:rerun-if-changed={CEDAR_LEAN_DIR}/.lake/packages/batteries/.lake/build/lib");
