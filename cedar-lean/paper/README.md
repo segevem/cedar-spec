@@ -8,6 +8,7 @@ Specimen's and Basalt's tactics compiled).
 |---|---|
 | Inductive relations in the relational specification | `python3 paper/count_relations.py` |
 | Derived definitions, lines of derived code and mutually recursive groups, by sort (the table) | `paper/derived_table.sh` |
+| The dependency graph of those definitions, one node per mutually recursive group (a figure) | `python3 paper/dep_graph.py <dump dir> <out>`, on the dump `paper/derived_table.sh` writes; needs Graphviz |
 | Laws proved, and that none depends on an axiom but the standard three | the last lines of `lake env lake -R build CedarGenProof` (`#specimen_audit`) |
 | Time of the expression derivation and its proofs | `paper/proof_time.sh` |
 | Derivation time, Basalt against Plausible emission; generator speed with SplitMix and with Plausible | `paper/gen_speed.sh` |
