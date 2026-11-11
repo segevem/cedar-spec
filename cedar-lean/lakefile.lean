@@ -201,6 +201,21 @@ lean_lib CedarGen where
   moreLeanArgs := nativeLibs
 
 
+-- The paper's generator-speed measurements (`paper/gen_speed.sh`): the production expression derivation
+-- without its proofs, emitted against Basalt (`GenSpeedOn`) and against Plausible (`GenSpeedOff`). Not
+-- built by default.
+lean_lib GenSpeedDerive where
+  roots := #[`GenSpeedOn.Derive, `GenSpeedOff.Derive]
+  moreLeanArgs := nativeLibs
+
+lean_exe GenSpeedOn where
+  root := `GenSpeedOn.Main
+  moreLeanArgs := nativeLibs
+
+lean_exe GenSpeedOff where
+  root := `GenSpeedOff.Main
+  moreLeanArgs := nativeLibs
+
 -- The proofs that the expression generators are sound and complete (`CedarGenProof.ExprGen`).
 lean_lib CedarGenProof where
   roots := #[`CedarGenProof.ExprGen, `CedarGenProof.ExprGen.Setup, `CedarGenProof.ExprGen.Sound,
